@@ -1,0 +1,38 @@
+[Builtin Data Types]
+Maps (key/value pairs (hetero/homogeneous?), variable size), Lists (heterogeneous, variable size)
+Tagged Enums/ADTs (heterogeneous, fixed size)
+Tuples (heterogenous, fixed size), Arrays (homogeneous, fixed size)?
+Functions built around these types for easy runtime introspection and reflection.
+
+[Name Bindings]
+Variable or constant declarations/definitions, allows abstraction
+
+[Destructuring]
+Provides bindings for components of a data structure
+Nothing conditional about destructuring
+
+[Pattern Matching]
+Determines which branch of code to run based on patterns
+Conditional branch based on structure of data
+Works in tandem with destructuring.
+
+[Function Application]
+Call a function with provided parameters
+
+[Function Composition]
+Combine two functions with compatible output->input into a single function
+
+[Currying]
+Destructure a function into a sequence of functions with 1 input and 1 output, the composition of which is equivalent to the original function.
+    Could destructure into entire list or pair of functions from either end: (head, tail) or (init, last)
+
+[Structural Types]
+Types are structurally determined, not by e.g. identity.
+Two types can have different names but still be considered equivalent if their structure is the same.
+
+[Type Inferrence]
+Types of values or expressions can be inferred most of the time.
+No need to explicitly write the type unless writing a declaration.
+
+[Value Introspection]
+At runtime, provide capabilities for determining the shape/structure of values.
