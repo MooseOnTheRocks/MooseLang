@@ -14,6 +14,9 @@ public class Tokenizer {
             entry(T_NEWLINE, buildSpan(Tokenizer::isNewline)),
             entry(T_WHITESPACE, buildSpan(Tokenizer::isWhitespace)),
 
+            entry(T_KW_FOR, buildMatch("for")),
+            entry(T_KW_IN, buildMatch("in")),
+
             entry(T_NAME, buildSpan(Tokenizer::isAlpha, ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum))),
             entry(T_NUMBER, buildSpan(Tokenizer::isNum)),
 
@@ -23,10 +26,12 @@ public class Tokenizer {
             entry(T_LPAREN, buildMatch("(")),
             entry(T_RPAREN, buildMatch(")")),
             entry(T_LBRACE, buildMatch("{")),
-            entry(T_RBRACE, buildMatch("}"))
+            entry(T_RBRACE, buildMatch("}")),
+            entry(T_LBRACKET, buildMatch("[")),
+            entry(T_RBRACKET, buildMatch("]"))
     );
 
-    private StringBuffer remainder;
+    private final StringBuffer remainder;
 
     public Tokenizer() {
         remainder = new StringBuffer();
