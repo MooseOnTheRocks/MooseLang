@@ -1,7 +1,10 @@
 package dev.foltz.mooselang;
 
-//import dev.foltz.mooselang.parse.Parser;
 import dev.foltz.mooselang.interpreter.Interpreter;
+import dev.foltz.mooselang.interpreter.runtime.RTFuncPrint;
+import dev.foltz.mooselang.interpreter.runtime.RTNone;
+import dev.foltz.mooselang.interpreter.runtime.RTObject;
+import dev.foltz.mooselang.parser.ast.ASTPrinter;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
 import dev.foltz.mooselang.parser.Parser;
 import dev.foltz.mooselang.tokenizer.Token;
@@ -10,20 +13,33 @@ import dev.foltz.mooselang.tokenizer.Tokenizer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
         System.out.println("Hello, MooseLang!");
-        String program = """
+        String program1 = """
+                greeting1 = "Hello"
+                greeting2 = "World"
+                print(greeting1, greeting2)
                 numbers = [1, 2, 3, 4, 5]
                 print(numbers)
                 """;
+        String program2 = """
+                greetingOuter = "Hello"
+                {
+                    greetingInner = "World"
+                    print(greetingOuter)
+                    print(greetingInner)
+                }
+                print(greetingOuter)
+                """;
         System.out.println("== Program");
-        System.out.println(program);
+        System.out.println(program1);
         System.out.println();
 
         Tokenizer tokenizer = new Tokenizer();
-        tokenizer.feed(program);
+        tokenizer.feed(program1);
         List<Token> tokens = new ArrayList<>();
         while (!tokenizer.isEmpty()) {
             Token token = tokenizer.nextToken();
@@ -43,13 +59,21 @@ public class Main {
         System.out.println("== AST");
         stmts.forEach(System.out::println);
         System.out.println();
+        ASTPrinter printer = new ASTPrinter();
+        stmts.forEach(stmt -> stmt.accept(printer));
+        System.out.println(printer);
+        System.out.println();
 
 
-        Interpreter interp = new Interpreter();
-        stmts.forEach(interp::feed);
         System.out.println("== Interpreter");
-        while (!interp.isEmpty()) {
-            interp.execStmt();
+        Interpreter interpreter = new Interpreter(Map.of("print", new RTFuncPrint()));
+        stmts.forEach(interpreter::feed);
+        while (!interpreter.isEmpty()) {
+            RTObject res = interpreter.execNext();
+            if (res instanceof RTNone) {
+                continue;
+            }
+            System.out.println("==> " + res);
         }
     }
 }

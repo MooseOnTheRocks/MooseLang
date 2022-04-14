@@ -1,5 +1,6 @@
 package dev.foltz.mooselang.parser.ast.statements;
 
+import dev.foltz.mooselang.parser.ast.ASTVisitor;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExpr;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
 
@@ -13,8 +14,8 @@ public class ASTStmtBind extends ASTStmt {
     }
 
     @Override
-    public ASTStmt evalStmt() {
-        return new ASTStmtBind(name, expr.evalExpr());
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 
     @Override

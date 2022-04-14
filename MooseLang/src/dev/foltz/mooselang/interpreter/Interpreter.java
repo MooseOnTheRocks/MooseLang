@@ -1,89 +1,107 @@
 package dev.foltz.mooselang.interpreter;
 
 import dev.foltz.mooselang.interpreter.runtime.*;
+import dev.foltz.mooselang.parser.ast.ASTVisitor;
 import dev.foltz.mooselang.parser.ast.expressions.*;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtBind;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
+import dev.foltz.mooselang.parser.ast.statements.ASTStmtBind;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
 
+import javax.swing.*;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import static java.util.Map.entry;
-
-public class Interpreter {
-    public final Map<String, RTObject> BUILTINS = Map.ofEntries(
-            entry("print", new RTBuiltinPrint())
-    );
-
+public class Interpreter implements ASTVisitor<RTObject> {
     private final List<ASTStmt> remaining;
-    private final Map<String, RTObject> nameBindings;
+    private final Env env;
 
-    public Interpreter() {
-        remaining = new ArrayList<>();
-        nameBindings = new HashMap<>();
-        nameBindings.putAll(BUILTINS);
+    public Interpreter(Map<String, RTObject> globals) {
+        this.env = new Env();
+        for (Map.Entry<String, RTObject> entry : globals.entrySet()) {
+            env.bind(entry.getKey(), entry.getValue());
+        }
+        this.remaining = new ArrayList<>();
+    }
+
+    public void feed(ASTStmt stmt) {
+        remaining.add(stmt);
     }
 
     public boolean isEmpty() {
         return remaining.isEmpty();
     }
 
-    public Interpreter feed(ASTStmt stmt) {
-        this.remaining.add(stmt);
-        return this;
+    public RTObject execNext() {
+        ASTStmt stmt = remaining.remove(0);
+        return stmt.accept(this);
     }
 
-    public RTObject execExpr(ASTExpr expr) {
-        if (expr instanceof ASTExprInt exprInt) {
-            return new RTInt(exprInt.value);
+    @Override
+    public RTObject visit(ASTExprInt node) {
+        return new RTInt(node.value);
+    }
+
+    @Override
+    public RTObject visit(ASTExprString node) {
+        return new RTString(node.value);
+    }
+
+    @Override
+    public RTObject visit(ASTExprList node) {
+        List<RTObject> elems = new ArrayList<>();
+        for (ASTExpr elem : node.elements) {
+            elems.add(elem.accept(this));
         }
-        else if (expr instanceof ASTExprName exprName) {
-            return nameBindings.get(exprName.value);
-        }
-        else if (expr instanceof ASTExprList exprList) {
-            List<RTObject> objects = new ArrayList<>();
-            for (ASTExpr elem : exprList.elements) {
-                objects.add(execExpr(elem));
+        return new RTList(elems);
+    }
+
+    @Override
+    public RTObject visit(ASTExprName node) {
+        return env.find(node.value);
+    }
+
+    @Override
+    public RTObject visit(ASTExprCall node) {
+        RTObject binding = env.find(node.name.value);
+        if (binding instanceof RTFunc rtFunc) {
+            // TODO: Function application!
+            if (rtFunc.name.equals("print")) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(node.params.stream()
+                        .map(param -> param.accept(this))
+                        .map(RTFuncPrint::print)
+                        .collect(Collectors.joining(" ")));
+                System.out.println(sb);
+                return RTNone.INSTANCE;
             }
-            return new RTList(objects);
         }
-        else if (expr instanceof ASTExprCall exprCall) {
-            String name = exprCall.name.value;
-            RTObject obj = nameBindings.get(name);
-            if (obj instanceof RTFunc func) {
-                List<RTObject> params = new ArrayList<>();
-                for (ASTExpr param : exprCall.params) {
-                    params.add(execExpr(param));
-                }
-                return func.call(params);
-            }
-        }
-        throw new IllegalStateException("Unable to execute expression: " + expr);
+        throw new UnsupportedOperationException("Unrecognized function in call: " + node.name.value);
     }
 
-    public void execBind(ASTStmtBind node) {
-        String name = node.name.value;
-        if (nameBindings.containsKey(name)) {
-            throw new IllegalStateException("Name \"" + name + "\" already bound.");
+    @Override
+    public RTObject visit(ASTExprBlock node) {
+        env.pushScope();
+        RTObject lastObj = RTNone.INSTANCE;
+        for (ASTStmt stmt : node.stmts) {
+            lastObj = stmt.accept(this);
         }
-        RTObject obj = execExpr(node.expr);
-        nameBindings.put(name, obj);
+        env.popScope();
+        return lastObj;
     }
 
-    public void execStmt() {
-        ASTStmt stmt = remaining.get(0);
-        remaining.remove(0);
-        if (stmt instanceof ASTStmtBind stmtBind) {
-            execBind(stmtBind);
+    @Override
+    public RTObject visit(ASTStmtBind node) {
+        if (env.find(node.name.value) != null) {
+            throw new IllegalStateException("Name \"" + node.name.value + "\" already bound.");
         }
-        else if (stmt instanceof ASTStmtExpr stmtExpr) {
-            execExpr(stmtExpr.expr);
-        }
-        else {
-            throw new IllegalStateException("Could not execute bind: " + stmt);
-        }
+        env.bind(node.name.value, node.expr.accept(this));
+        return RTNone.INSTANCE;
+    }
+
+    @Override
+    public RTObject visit(ASTStmtExpr node) {
+        return node.expr.accept(this);
     }
 }

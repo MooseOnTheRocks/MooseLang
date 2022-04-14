@@ -2,10 +2,10 @@ package dev.foltz.mooselang.parser.ast.expressions;
 
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
 
-public class ASTExprName extends ASTExpr {
+public class ASTExprString extends ASTExpr {
     public final String value;
 
-    public ASTExprName(String value) {
+    public ASTExprString(String value) {
         this.value = value;
     }
 
@@ -16,7 +16,7 @@ public class ASTExprName extends ASTExpr {
 
     @Override
     public String toString() {
-        return "ASTExprName{" +
+        return "ASTExprString{" +
                 "value='" + value + '\'' +
                 '}';
     }

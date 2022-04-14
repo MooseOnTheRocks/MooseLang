@@ -104,6 +104,10 @@ public class Parser {
         return new ASTExprCall(name, params);
     }
 
+    public ASTExprString parseString() {
+        return new ASTExprString(consume(T_STRING).value);
+    }
+
     public ASTExpr parseExpr() {
         if (expect(T_NAME)) {
             if (expect(T_LPAREN, 1)) {
@@ -116,8 +120,14 @@ public class Parser {
         else if (expect(T_NUMBER)) {
             return parseNumber();
         }
+        else if (expect(T_STRING)) {
+            return parseString();
+        }
         else if (expect(T_LBRACKET)) {
             return parseList();
+        }
+        else if (expect(T_LBRACE)) {
+            return parseBlock();
         }
         throw new IllegalStateException("Failed to parse expression: " + peek());
     }
@@ -138,10 +148,20 @@ public class Parser {
         }
     }
 
+    public ASTExprBlock parseBlock() {
+        List<ASTStmt> stmts = new ArrayList<>();
+        consume(T_LBRACE);
+        while (!expect(T_RBRACE)) {
+            stmts.add(parseStmt());
+        }
+        consume(T_RBRACE);
+        return new ASTExprBlock(stmts);
+    }
+
     public List<ASTStmt> parse() {
         List<ASTStmt> nodes = new ArrayList<>();
         while (!isEmpty()) {
-            nodes.add(parseStmt().evalStmt());
+            nodes.add(parseStmt());
         }
         return nodes;
     }

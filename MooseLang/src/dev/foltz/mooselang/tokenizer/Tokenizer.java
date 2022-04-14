@@ -9,26 +9,28 @@ import static java.util.Map.entry;
 
 
 public class Tokenizer {
-    public static final Map<TokenType, Function<CharSequence, Integer>> TOKEN_PARSERS = Map.ofEntries(
-            entry(T_NEWLINE, buildSpan(Tokenizer::isNewline)),
-            entry(T_WHITESPACE, buildSpan(Tokenizer::isWhitespace)),
+    public static final Map<TokenType, Function<CharSequence, Integer>> TOKEN_PARSERS = new LinkedHashMap<>();
+    static {
+        TOKEN_PARSERS.put(T_NEWLINE, buildSpan(Tokenizer::isNewline));
+        TOKEN_PARSERS.put(T_WHITESPACE, buildSpan(Tokenizer::isWhitespace));
 
-            entry(T_KW_FOR, buildMatch("for")),
-            entry(T_KW_IN, buildMatch("in")),
+        TOKEN_PARSERS.put(T_KW_FOR, buildMatch("for"));
+        TOKEN_PARSERS.put(T_KW_IN, buildMatch("in"));
 
-            entry(T_NAME, buildSpan(Tokenizer::isAlpha, ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum))),
-            entry(T_NUMBER, buildSpan(Tokenizer::isNum)),
+        TOKEN_PARSERS.put(T_NAME, buildSpan(Tokenizer::isAlpha, ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum)));
+        TOKEN_PARSERS.put(T_NUMBER, buildSpan(Tokenizer::isNum));
+        TOKEN_PARSERS.put(T_STRING, Tokenizer::matchString);
 
-            entry(T_EQUALS, buildMatch("=")),
-            entry(T_COMMA, buildMatch(",")),
+        TOKEN_PARSERS.put(T_EQUALS, buildMatch("="));
+        TOKEN_PARSERS.put(T_COMMA, buildMatch(","));
 
-            entry(T_LPAREN, buildMatch("(")),
-            entry(T_RPAREN, buildMatch(")")),
-            entry(T_LBRACE, buildMatch("{")),
-            entry(T_RBRACE, buildMatch("}")),
-            entry(T_LBRACKET, buildMatch("[")),
-            entry(T_RBRACKET, buildMatch("]"))
-    );
+        TOKEN_PARSERS.put(T_LPAREN, buildMatch("("));
+        TOKEN_PARSERS.put(T_RPAREN, buildMatch(")"));
+        TOKEN_PARSERS.put(T_LBRACE, buildMatch("{"));
+        TOKEN_PARSERS.put(T_RBRACE, buildMatch("}"));
+        TOKEN_PARSERS.put(T_LBRACKET, buildMatch("["));
+        TOKEN_PARSERS.put(T_RBRACKET, buildMatch("]"));
+    }
 
     private final StringBuffer remainder;
 
@@ -53,7 +55,9 @@ public class Tokenizer {
         for (Map.Entry<TokenType, Function<CharSequence, Integer>> tokenParser : TOKEN_PARSERS.entrySet()) {
             int index = tokenParser.getValue().apply(remainder);
             if (index > 0) {
-                String capture = remainder.substring(0, index);
+                String capture = tokenParser.getKey() == T_STRING
+                        ? remainder.substring(1, index - 1)
+                        : remainder.substring(0, index);
                 remainder.delete(0, index);
                 return new Token(tokenParser.getKey(), capture);
             }
@@ -120,5 +124,28 @@ public class Tokenizer {
 //            System.out.println("match = " + match);
             return CharSequence.compare(source.subSequence(0, match.length()), match) == 0 ? match.length() : 0;
         };
+    }
+
+    public static int matchString(CharSequence source) {
+        if (source.isEmpty()) {
+            return 0;
+        }
+
+        if (source.charAt(0) != '"') {
+            return 0;
+        }
+
+        int index = 1;
+        while (true) {
+            char c = source.charAt(index);
+            index += 1;
+            if (index >= source.length()) {
+                return 0;
+            }
+            if (c == '"') {
+                break;
+            }
+        }
+        return index;
     }
 }

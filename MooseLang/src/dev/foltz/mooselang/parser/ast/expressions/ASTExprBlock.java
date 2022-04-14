@@ -1,15 +1,16 @@
 package dev.foltz.mooselang.parser.ast.expressions;
 
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
+import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ASTExprList extends ASTExpr {
-    public final List<ASTExpr> elements;
+public class ASTExprBlock extends ASTExpr {
+    public List<ASTStmt> stmts;
 
-    public ASTExprList(List<ASTExpr> elements) {
-        this.elements = List.copyOf(elements);
+    public ASTExprBlock(List<ASTStmt> stmts) {
+        this.stmts = List.copyOf(stmts);
     }
 
     @Override
@@ -19,8 +20,6 @@ public class ASTExprList extends ASTExpr {
 
     @Override
     public String toString() {
-        return "ASTExprList{" +
-                "elements=" + elements +
-                '}';
+        return "ASTExprBlock{...}";
     }
 }

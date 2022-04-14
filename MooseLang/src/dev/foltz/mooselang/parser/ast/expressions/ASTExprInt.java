@@ -1,5 +1,7 @@
 package dev.foltz.mooselang.parser.ast.expressions;
 
+import dev.foltz.mooselang.parser.ast.ASTVisitor;
+
 public class ASTExprInt extends ASTExpr {
     public final int value;
 
@@ -8,8 +10,8 @@ public class ASTExprInt extends ASTExpr {
     }
 
     @Override
-    public ASTExpr evalExpr() {
-        return this;
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 
     @Override

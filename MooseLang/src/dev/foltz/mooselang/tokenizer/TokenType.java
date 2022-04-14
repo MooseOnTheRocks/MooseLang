@@ -9,6 +9,7 @@ public enum TokenType {
 
     T_NAME,
     T_NUMBER,
+    T_STRING,
 
     T_EQUALS,
     T_COMMA,
