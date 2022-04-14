@@ -34,12 +34,21 @@ public class Main {
                 }
                 print(greetingOuter)
                 """;
+        String program3 = """
+                def userFunc(x) = {
+                    print("Begin userFunc")
+                    print(x)
+                    print("End userFunc")
+                }
+                
+                userFunc("Hello, userFunc!")
+                """;
         System.out.println("== Program");
-        System.out.println(program1);
+        System.out.println(program3);
         System.out.println();
 
         Tokenizer tokenizer = new Tokenizer();
-        tokenizer.feed(program1);
+        tokenizer.feed(program3);
         List<Token> tokens = new ArrayList<>();
         while (!tokenizer.isEmpty()) {
             Token token = tokenizer.nextToken();

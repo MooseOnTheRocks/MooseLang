@@ -13,4 +13,5 @@ public interface ASTVisitor<T> {
     T visit(ASTExprBlock node);
     T visit(ASTStmtBind node);
     T visit(ASTStmtExpr node);
+    T visit(ASTExprFuncDef node);
 }

@@ -1,7 +1,6 @@
 package dev.foltz.mooselang.parser.ast;
 
 import dev.foltz.mooselang.parser.ast.expressions.*;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtBind;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
 
@@ -56,7 +55,7 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
 
     @Override
     public StringBuilder visit(ASTExprString node) {
-        emit("String(", node.value, ")");
+        emit("String(\"", node.value, "\")");
         return sb;
     }
 
@@ -147,6 +146,27 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
     @Override
     public StringBuilder visit(ASTStmtExpr node) {
         node.expr.accept(this);
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTExprFuncDef node) {
+        emit("FuncDef(");
+        emit();
+        indent();
+        emit("[");
+        for (int i = 0; i < node.paramNames.size(); i++) {
+            ASTExpr param = node.paramNames.get(i);
+            param.accept(this);
+            if (i != node.paramNames.size() - 1) {
+                emit(", ");
+            }
+        }
+        emit("],");
+        emit();
+        node.body.accept(this);
+        dedent();
+        emit(")");
         return sb;
     }
 }

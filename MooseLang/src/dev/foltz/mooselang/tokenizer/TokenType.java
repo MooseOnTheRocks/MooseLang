@@ -6,6 +6,7 @@ public enum TokenType {
 
     T_KW_FOR,
     T_KW_IN,
+    T_KW_DEF,
 
     T_NAME,
     T_NUMBER,

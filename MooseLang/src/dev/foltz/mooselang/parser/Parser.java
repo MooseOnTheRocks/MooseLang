@@ -132,6 +132,26 @@ public class Parser {
         throw new IllegalStateException("Failed to parse expression: " + peek());
     }
 
+    public ASTStmtBind parseFuncDef() {
+        consume(T_KW_DEF);
+        ASTExprName name = parseName();
+        consume(T_LPAREN);
+        List<ASTExprName> paramNames = new ArrayList<>();
+        // First item
+        paramNames.add(parseName());
+        // Any other items
+        while (expect(T_COMMA)) {
+            consume(T_COMMA);
+            paramNames.add(parseName());
+        }
+        consume(T_RPAREN);
+        consume(T_EQUALS);
+        ASTExpr body = parseExpr();
+        ASTExprFuncDef funcDef = new ASTExprFuncDef(name, paramNames, body);
+        ASTStmtBind binding = new ASTStmtBind(name, funcDef);
+        return binding;
+    }
+
     public ASTStmtBind parseBind() {
         ASTExprName name = parseName();
         consume(T_EQUALS);
@@ -140,6 +160,9 @@ public class Parser {
     }
 
     public ASTStmt parseStmt() {
+        if (expect(T_KW_DEF)) {
+            return parseFuncDef();
+        }
         if (expect(T_NAME) && expect(T_EQUALS, 1)) {
             return parseBind();
         }

@@ -66,7 +66,7 @@ public class Interpreter implements ASTVisitor<RTObject> {
     public RTObject visit(ASTExprCall node) {
         RTObject binding = env.find(node.name.value);
         if (binding instanceof RTFunc rtFunc) {
-            // TODO: Function application!
+            // Builtin function application
             if (rtFunc.name.equals("print")) {
                 StringBuilder sb = new StringBuilder();
                 sb.append(node.params.stream()
@@ -75,6 +75,29 @@ public class Interpreter implements ASTVisitor<RTObject> {
                         .collect(Collectors.joining(" ")));
                 System.out.println(sb);
                 return RTNone.INSTANCE;
+            }
+            // User defined function application
+            else if (rtFunc instanceof RTFuncDef rtDef) {
+                String name = rtDef.name;
+                ASTExpr body = rtDef.body;
+                List<String> paramNames = rtDef.paramNames;
+                List<ASTExpr> params = node.params;
+                if (paramNames.size() != params.size()) {
+                    throw new IllegalStateException("Function " + name + " called with " + params.size() + " parameters, expects " + paramNames.size());
+                }
+//                System.out.println("Calling user defined function: " + name + "(" + params + ")");
+                env.pushScope();
+                for (int i = 0; i < paramNames.size(); i++) {
+                    String paramName = paramNames.get(i);
+                    if (env.find(paramName) != null) {
+                        throw new IllegalStateException("Attempt to bind already bound name " + paramName);
+                    }
+                    ASTExpr param = params.get(i);
+                    env.bind(paramName, param.accept(this));
+                }
+                RTObject result = body.accept(this);
+                env.popScope();
+                return result;
             }
         }
         throw new UnsupportedOperationException("Unrecognized function in call: " + node.name.value);
@@ -103,5 +126,11 @@ public class Interpreter implements ASTVisitor<RTObject> {
     @Override
     public RTObject visit(ASTStmtExpr node) {
         return node.expr.accept(this);
+    }
+
+    @Override
+    public RTObject visit(ASTExprFuncDef node) {
+        List<String> paramNames = node.paramNames.stream().map(pn -> pn.value).collect(Collectors.toList());
+        return new RTFuncDef(node.name.value, paramNames, node.body);
     }
 }
