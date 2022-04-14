@@ -1,5 +1,9 @@
 package dev.foltz.mooselang.parser;
 
+import dev.foltz.mooselang.parser.ast.destructors.ASTDestInt;
+import dev.foltz.mooselang.parser.ast.destructors.ASTDestName;
+import dev.foltz.mooselang.parser.ast.destructors.ASTDestString;
+import dev.foltz.mooselang.parser.ast.destructors.ASTDestructor;
 import dev.foltz.mooselang.parser.ast.expressions.*;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtBind;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
@@ -93,12 +97,14 @@ public class Parser {
         ASTExprName name = parseName();
         consume(T_LPAREN);
         List<ASTExpr> params = new ArrayList<>();
-        // First item
-        params.add(parseExpr());
-        // Any other items
-        while (expect(T_COMMA)) {
-            consume(T_COMMA);
+        if (!expect(T_RPAREN)) {
+            // First item
             params.add(parseExpr());
+            // Any other items
+            while (expect(T_COMMA)) {
+                consume(T_COMMA);
+                params.add(parseExpr());
+            }
         }
         consume(T_RPAREN);
         return new ASTExprCall(name, params);
@@ -132,27 +138,43 @@ public class Parser {
         throw new IllegalStateException("Failed to parse expression: " + peek());
     }
 
+    public ASTDestructor parseDestructor() {
+        if (expect(T_NAME)) {
+            return new ASTDestName(parseName());
+        }
+        else if (expect(T_NUMBER)) {
+            return new ASTDestInt(parseNumber());
+        }
+        else if (expect(T_STRING)) {
+            return new ASTDestString(parseString());
+        }
+        throw new IllegalStateException("Failed to parse destructor: " + peek());
+    }
+
     public ASTStmtBind parseFuncDef() {
         consume(T_KW_DEF);
         ASTExprName name = parseName();
         consume(T_LPAREN);
-        List<ASTExprName> paramNames = new ArrayList<>();
-        // First item
-        paramNames.add(parseName());
-        // Any other items
-        while (expect(T_COMMA)) {
-            consume(T_COMMA);
-            paramNames.add(parseName());
+        List<ASTDestructor> paramDtors = new ArrayList<>();
+        if (!expect(T_RPAREN)) {
+            // First item
+            paramDtors.add(parseDestructor());
+            // Any other items
+            while (expect(T_COMMA)) {
+                consume(T_COMMA);
+                paramDtors.add(parseDestructor());
+            }
         }
         consume(T_RPAREN);
         consume(T_EQUALS);
         ASTExpr body = parseExpr();
-        ASTExprFuncDef funcDef = new ASTExprFuncDef(name, paramNames, body);
+        ASTExprFuncDef funcDef = new ASTExprFuncDef(name, paramDtors, body);
         ASTStmtBind binding = new ASTStmtBind(name, funcDef);
         return binding;
     }
 
     public ASTStmtBind parseBind() {
+        consume(T_KW_LET);
         ASTExprName name = parseName();
         consume(T_EQUALS);
         ASTExpr expr = parseExpr();
@@ -163,7 +185,7 @@ public class Parser {
         if (expect(T_KW_DEF)) {
             return parseFuncDef();
         }
-        if (expect(T_NAME) && expect(T_EQUALS, 1)) {
+        else if (expect(T_KW_LET)) {
             return parseBind();
         }
         else {

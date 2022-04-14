@@ -19,16 +19,16 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("Hello, MooseLang!");
         String program1 = """
-                greeting1 = "Hello"
-                greeting2 = "World"
+                let greeting1 = "Hello"
+                let greeting2 = "World"
                 print(greeting1, greeting2)
-                numbers = [1, 2, 3, 4, 5]
+                let numbers = [1, 2, 3, 4, 5]
                 print(numbers)
                 """;
         String program2 = """
-                greetingOuter = "Hello"
+                let greetingOuter = "Hello"
                 {
-                    greetingInner = "World"
+                    let greetingInner = "World"
                     print(greetingOuter)
                     print(greetingInner)
                 }
@@ -43,12 +43,30 @@ public class Main {
                 
                 userFunc("Hello, userFunc!")
                 """;
+        String program4 = """
+                let x = 10
+                def userFunc() = print(x)
+                userFunc()
+                """;
+        String program5 = """
+                def func(0) = "Zero"
+                def func(1) = "One"
+                def func(2) = "Two"
+                def func(n) = "Some number"
+                
+                let results = [func(0), func(1), func(2), func(3)]
+                print(results)
+                
+                """;
+
+        String program = program5;
+
         System.out.println("== Program");
-        System.out.println(program3);
+        System.out.println(program);
         System.out.println();
 
         Tokenizer tokenizer = new Tokenizer();
-        tokenizer.feed(program3);
+        tokenizer.feed(program);
         List<Token> tokens = new ArrayList<>();
         while (!tokenizer.isEmpty()) {
             Token token = tokenizer.nextToken();

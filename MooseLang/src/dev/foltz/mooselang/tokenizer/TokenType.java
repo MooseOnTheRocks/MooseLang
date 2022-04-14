@@ -4,9 +4,10 @@ public enum TokenType {
     T_WHITESPACE,
     T_NEWLINE,
 
+    T_KW_LET,
+    T_KW_DEF,
     T_KW_FOR,
     T_KW_IN,
-    T_KW_DEF,
 
     T_NAME,
     T_NUMBER,

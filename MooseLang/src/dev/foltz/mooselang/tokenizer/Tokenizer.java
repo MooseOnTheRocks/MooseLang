@@ -14,9 +14,10 @@ public class Tokenizer {
         TOKEN_PARSERS.put(T_NEWLINE, buildSpan(Tokenizer::isNewline));
         TOKEN_PARSERS.put(T_WHITESPACE, buildSpan(Tokenizer::isWhitespace));
 
+        TOKEN_PARSERS.put(T_KW_LET, buildMatch("let"));
+        TOKEN_PARSERS.put(T_KW_DEF, buildMatch("def"));
         TOKEN_PARSERS.put(T_KW_FOR, buildMatch("for"));
         TOKEN_PARSERS.put(T_KW_IN, buildMatch("in"));
-        TOKEN_PARSERS.put(T_KW_DEF, buildMatch("def"));
 
         TOKEN_PARSERS.put(T_NAME, buildSpan(Tokenizer::isAlpha, ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum)));
         TOKEN_PARSERS.put(T_NUMBER, buildSpan(Tokenizer::isNum));

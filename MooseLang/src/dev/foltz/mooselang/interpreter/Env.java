@@ -1,5 +1,6 @@
 package dev.foltz.mooselang.interpreter;
 
+import dev.foltz.mooselang.interpreter.runtime.RTFuncDef;
 import dev.foltz.mooselang.interpreter.runtime.RTObject;
 
 import java.util.ArrayList;
@@ -33,7 +34,8 @@ public class Env {
     }
 
     public void bind(String name, RTObject object) {
-        if (find(name) != null) {
+        RTObject binding = find(name);
+        if (binding != null && !(binding instanceof RTFuncDef)) {
             throw new IllegalStateException("Multiple bindings for: " + name);
         }
         Map<String, RTObject> scope = scopedBindings.get(scopedBindings.size() - 1);
