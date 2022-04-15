@@ -28,6 +28,7 @@ public class Tokenizer {
                 ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum).or(c -> "_#$'".contains("" + c))));
 
         TOKEN_PARSERS.put(T_ELLIPSES, buildMatch(".."));
+        TOKEN_PARSERS.put(T_FAT_ARROW, buildMatch("=>"));
 
         TOKEN_PARSERS.put(T_EQUALS, buildMatch("="));
         TOKEN_PARSERS.put(T_COMMA, buildMatch(","));
@@ -73,6 +74,7 @@ public class Tokenizer {
                     case "for" -> new Token(T_KW_FOR, capture);
                     case "in" -> new Token(T_KW_IN, capture);
                     case "do" -> new Token(T_KW_DO, capture);
+                    case "lambda" -> new Token(T_KW_LAMBDA, capture);
                     default -> new Token(tokenParser.getKey(), capture);
                 };
             }

@@ -4,11 +4,11 @@ import dev.foltz.mooselang.parser.ast.ASTVisitor;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExpr;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
 
-public class ASTStmtAssign extends ASTStmt {
+public class ASTStmtLet extends ASTStmt {
     public final ASTExprName name;
     public final ASTExpr expr;
 
-    public ASTStmtAssign(ASTExprName name, ASTExpr expr) {
+    public ASTStmtLet(ASTExprName name, ASTExpr expr) {
         this.name = name;
         this.expr = expr;
     }

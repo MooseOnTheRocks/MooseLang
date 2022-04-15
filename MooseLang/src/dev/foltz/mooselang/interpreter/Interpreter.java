@@ -13,10 +13,7 @@ import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprList;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprNone;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtAssign;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtForInLoop;
+import dev.foltz.mooselang.parser.ast.statements.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,6 +84,7 @@ public class Interpreter implements ASTVisitor<RTObject> {
         RTObject binding = env.find(node.name.value);
         List<ASTExpr> params = node.params;
         List<RTObject> evalParams = params.stream().map(param -> param.accept(this)).toList();
+//        System.out.println("Binding: " + binding);
         if (binding instanceof RTFunc rtFunc) {
             if (rtFunc instanceof RTFuncPrint rtFuncPrint) {
                 StringBuilder sb = new StringBuilder();
@@ -122,7 +120,7 @@ public class Interpreter implements ASTVisitor<RTObject> {
                         return new RTList(new ArrayList<>());
                     }
 
-                    List<RTObject> objs = rtList.elems.subList(1, rtList.elems.size());
+                    List<RTObject> objs = new ArrayList<>(rtList.elems.subList(1, rtList.elems.size()));
                     return new RTList(objs);
                 }
 
@@ -137,7 +135,7 @@ public class Interpreter implements ASTVisitor<RTObject> {
                 RTObject param2 = evalParams.get(1);
 
                 if (param2 instanceof RTList rtList) {
-                    List<RTObject> elems = rtList.elems;
+                    List<RTObject> elems = new ArrayList<>(rtList.elems);
                     elems.add(0, elem);
                     return new RTList(elems);
                 }
@@ -152,7 +150,7 @@ public class Interpreter implements ASTVisitor<RTObject> {
                 RTFunc.RTFuncBranch branch = rtFunc.dispatch(evalParams);
                 List<ASTDeconstructor> branchDecons = branch.paramDecons;
 
-                // System.out.println("Calling user defined function: " + name + "(" + params + ")");
+//                 System.out.println("Calling user defined function: " + name + "(" + params + ")");
                 env.pushScope();
                 for (int i = 0; i < branchDecons.size(); i++) {
                     ASTDeconstructor decon = branchDecons.get(i);
@@ -175,6 +173,13 @@ public class Interpreter implements ASTVisitor<RTObject> {
     }
 
     @Override
+    public RTObject visit(ASTExprLambda node) {
+        RTFunc funcDef = new RTFunc("<lambda>");
+        funcDef.addBranch(new RTFunc.RTFuncBranch(node.paramDtors, node.body));
+        return funcDef;
+    }
+
+    @Override
     public RTObject visit(ASTExprBlock node) {
         env.pushScope();
         RTObject lastObj = RTNone.INSTANCE;
@@ -186,7 +191,7 @@ public class Interpreter implements ASTVisitor<RTObject> {
     }
 
     @Override
-    public RTObject visit(ASTExprFuncDef node) {
+    public RTObject visit(ASTStmtFuncDef node) {
         String funcName = node.name.value;
         RTObject binding = env.find(funcName);
         RTFunc funcDef;
@@ -202,7 +207,7 @@ public class Interpreter implements ASTVisitor<RTObject> {
     }
 
     @Override
-    public RTObject visit(ASTStmtAssign node) {
+    public RTObject visit(ASTStmtLet node) {
         RTObject binding = env.find(node.name.value);
 //        if (binding != null) {
 //            throw new IllegalStateException("Name \"" + node.name.value + "\" already bound.");

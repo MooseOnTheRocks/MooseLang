@@ -9,6 +9,7 @@ public enum TokenType {
     T_KW_FOR,
     T_KW_IN,
     T_KW_DO,
+    T_KW_LAMBDA,
 
     T_COMMENT,
     T_NAME,
@@ -16,6 +17,7 @@ public enum TokenType {
     T_STRING,
     T_NONE,
     T_ELLIPSES,
+    T_FAT_ARROW,
 
     T_EQUALS,
     T_COMMA,

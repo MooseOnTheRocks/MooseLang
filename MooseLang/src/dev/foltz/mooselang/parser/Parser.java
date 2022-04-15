@@ -7,10 +7,7 @@ import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprList;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprNone;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtAssign;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtForInLoop;
+import dev.foltz.mooselang.parser.ast.statements.*;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
 
@@ -117,6 +114,52 @@ public class Parser {
         return new ASTExprString(consume(T_STRING).value);
     }
 
+    public ASTExprLambda parseLambda() {
+        consume(T_KW_LAMBDA);
+        List<ASTDeconstructor> paramDtors = new ArrayList<>();
+        if (expect(T_LPAREN)) {
+            consume(T_LPAREN);
+            if (expect(T_RPAREN)) {
+               consume(T_RPAREN);
+            }
+            else {
+                paramDtors.add(parseDeconstructor());
+                while (expect(T_COMMA)) {
+                    consume(T_COMMA);
+                    paramDtors.add(parseDeconstructor());
+                }
+                consume(T_RPAREN);
+            }
+        }
+        else {
+            paramDtors.add(parseDeconstructor());
+            while (expect(T_COMMA)) {
+                consume(T_COMMA);
+                paramDtors.add(parseDeconstructor());
+            }
+        }
+        consume(T_FAT_ARROW);
+        ASTStmt body = parseStmt();
+        return new ASTExprLambda(paramDtors, body);
+//        consume(T_KW_LAMBDA);
+//        consume(T_LPAREN);
+//        List<ASTDeconstructor> paramDtors = new ArrayList<>();
+//        if (!expect(T_RPAREN)) {
+//            // First item
+//            paramDtors.add(parseDeconstructor());
+//            // Any other items
+//            while (expect(T_COMMA)) {
+//                consume(T_COMMA);
+//                paramDtors.add(parseDeconstructor());
+//            }
+//        }
+//        consume(T_RPAREN);
+//        consume(T_EQUALS);
+//        ASTStmt body = parseStmt();
+//        ASTExprLambda lambdaDef = new ASTExprLambda(paramDtors, body);
+//        return lambdaDef;
+    }
+
     public ASTExpr parseExpr() {
         if (expect(T_NAME)) {
             if (expect(T_LPAREN, 1)) {
@@ -141,6 +184,9 @@ public class Parser {
         else if (expect(T_NONE)) {
             consume(T_NONE);
             return new ASTExprNone();
+        }
+        else if (expect(T_KW_LAMBDA)) {
+            return parseLambda();
         }
         throw new IllegalStateException("Failed to parse expression: " + peek());
     }
@@ -167,7 +213,7 @@ public class Parser {
         throw new IllegalStateException("Failed to parse deconstructor: " + peek());
     }
 
-    public ASTExprFuncDef parseFuncDef() {
+    public ASTStmtFuncDef parseFuncDef() {
         consume(T_KW_DEF);
         ASTExprName name = parseName();
         consume(T_LPAREN);
@@ -184,7 +230,7 @@ public class Parser {
         consume(T_RPAREN);
         consume(T_EQUALS);
         ASTStmt body = parseStmt();
-        ASTExprFuncDef funcDef = new ASTExprFuncDef(name, paramDtors, body);
+        ASTStmtFuncDef funcDef = new ASTStmtFuncDef(name, paramDtors, body);
         return funcDef;
     }
 
@@ -198,12 +244,12 @@ public class Parser {
         return new ASTStmtForInLoop(decon, listExpr, body);
     }
 
-    public ASTStmtAssign parseBind() {
+    public ASTStmtLet parseLet() {
         consume(T_KW_LET);
         ASTExprName name = parseName();
         consume(T_EQUALS);
         ASTExpr expr = parseExpr();
-        return new ASTStmtAssign(name, expr);
+        return new ASTStmtLet(name, expr);
     }
 
     public ASTStmt parseStmt() {
@@ -211,7 +257,7 @@ public class Parser {
             return new ASTStmtExpr(parseFuncDef());
         }
         else if (expect(T_KW_LET)) {
-            return parseBind();
+            return parseLet();
         }
         else if (expect(T_KW_FOR)) {
             return parseForInLoop();

@@ -116,14 +116,59 @@ public class Main {
                     cons(f(h), map(f, rs))
                 }
                 
-                def double(e) = [e, e]
+                def reversed([]) = []
+                def reversed(ls) = {
+                    // Inline function definition
+                    def reversed'(acc, []) = { acc }
+                    def reversed'(acc, rem) = {
+                        let h = head(rem)
+                        let rs = tail(rem)
+                        reversed'(cons(h, acc), rs)
+                    }
+                    
+                    // Code blocks implicitly return the last expression.
+                    reversed'([], ls)
+                }
                 
                 let nums = [1, 2, 3, 4]
-                let nums' = map(double, nums)
-                printAll(nums')
+                let nums' = reversed(nums)
+                print(nums)
+                print(nums')
+                """;
+        String program11 = """
+                def map(f, []) = []
+                def map(f, ls) = {
+                    let h = head(ls)
+                    let rs = tail(ls)
+                    cons(f(h), map(f, rs))
+                }
+                
+                def reversed([]) = []
+                def reversed(ls) = {
+                    // Inline function definition
+                    def reversed'(acc, []) = { acc }
+                    def reversed'(acc, rem) = {
+                        let h = head(rem)
+                        let rs = tail(rem)
+                        reversed'(cons(h, acc), rs)
+                    }
+                    
+                    // Code blocks implicitly return the last expression.
+                    reversed'([], ls)
+                }
+                
+                def pair(a, b) = [a, b]
+                
+                // Lambda expressions (anonymous function definitions)
+                let double = lambda x => pair(x, x)
+                
+                let nums = [1, 2, 3, 4]
+                // Single quotes allowed in variable names
+                let nums' = reversed(map(double, nums))
+                print(nums')
                 """;
 
-        String program = program10;
+        String program = program11;
 
         System.out.println("== Program");
         System.out.println(program);

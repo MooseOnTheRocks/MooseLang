@@ -7,7 +7,8 @@ import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprList;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprNone;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtAssign;
+import dev.foltz.mooselang.parser.ast.statements.ASTStmtFuncDef;
+import dev.foltz.mooselang.parser.ast.statements.ASTStmtLet;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtForInLoop;
 
@@ -68,6 +69,11 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
 
     @Override
     public StringBuilder visit(ASTExprList node) {
+        if (node.elements.isEmpty()) {
+            emit("List()");
+            return sb;
+        }
+
         emit("List(");
         emit();
         indent();
@@ -121,7 +127,7 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
     }
 
     @Override
-    public StringBuilder visit(ASTStmtAssign node) {
+    public StringBuilder visit(ASTStmtLet node) {
         emit("Assign(");
         emit();
         indent();
@@ -148,6 +154,28 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
     }
 
     @Override
+    public StringBuilder visit(ASTExprLambda node) {
+        emit("Lambda(");
+        emit();
+        indent();
+        emit("[");
+        for (int i = 0; i < node.paramDtors.size(); i++) {
+            ASTDeconstructor param = node.paramDtors.get(i);
+            param.accept(this);
+            if (i != node.paramDtors.size() - 1) {
+                emit(", ");
+            }
+        }
+        emit("],");
+        emit();
+        node.body.accept(this);
+        emit();
+        dedent();
+        emit(")");
+        return sb;
+    }
+
+    @Override
     public StringBuilder visit(ASTStmtExpr node) {
         node.expr.accept(this);
         emit();
@@ -155,7 +183,7 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
     }
 
     @Override
-    public StringBuilder visit(ASTExprFuncDef node) {
+    public StringBuilder visit(ASTStmtFuncDef node) {
         emit("FuncDef(");
         emit();
         indent();
