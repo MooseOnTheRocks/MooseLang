@@ -105,8 +105,25 @@ public class Main {
                 print(myList)
                 print(mappedList)
                 """;
+        String program10 = """
+                def printAll(ls) =
+                    for elem in ls do print(elem)
+                
+                def map(f, []) = []
+                def map(f, ls) = {
+                    let h = head(ls)
+                    let rs = tail(ls)
+                    cons(f(h), map(f, rs))
+                }
+                
+                def double(e) = [e, e]
+                
+                let nums = [1, 2, 3, 4]
+                let nums' = map(double, nums)
+                printAll(nums')
+                """;
 
-        String program = program9;
+        String program = program10;
 
         System.out.println("== Program");
         System.out.println(program);

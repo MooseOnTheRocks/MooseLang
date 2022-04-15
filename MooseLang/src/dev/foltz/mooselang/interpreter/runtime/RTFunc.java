@@ -2,6 +2,7 @@ package dev.foltz.mooselang.interpreter.runtime;
 
 import dev.foltz.mooselang.parser.ast.deconstructors.*;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExpr;
+import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,9 +76,9 @@ public class RTFunc extends RTObject {
 
     public static class RTFuncBranch {
         public List<ASTDeconstructor> paramDecons;
-        public ASTExpr body;
+        public ASTStmt body;
 
-        public RTFuncBranch(List<ASTDeconstructor> paramDecons, ASTExpr body) {
+        public RTFuncBranch(List<ASTDeconstructor> paramDecons, ASTStmt body) {
             this.paramDecons = paramDecons;
             this.body = body;
         }

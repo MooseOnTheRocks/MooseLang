@@ -23,7 +23,9 @@ public class Tokenizer {
         TOKEN_PARSERS.put(T_NONE, buildMatch("None"));
         TOKEN_PARSERS.put(T_NUMBER, buildSpan(Tokenizer::isNum));
         TOKEN_PARSERS.put(T_STRING, Tokenizer::matchString);
-        TOKEN_PARSERS.put(T_NAME, buildSpan(Tokenizer::isAlpha, ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum)));
+        TOKEN_PARSERS.put(T_NAME, buildSpan(
+                ((Predicate<Character>) Tokenizer::isAlpha).or(c -> "_#$'".contains("" + c)),
+                ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum).or(c -> "_#$'".contains("" + c))));
 
         TOKEN_PARSERS.put(T_ELLIPSES, buildMatch(".."));
 
@@ -70,6 +72,7 @@ public class Tokenizer {
                     case "def" -> new Token(T_KW_DEF, capture);
                     case "for" -> new Token(T_KW_FOR, capture);
                     case "in" -> new Token(T_KW_IN, capture);
+                    case "do" -> new Token(T_KW_DO, capture);
                     default -> new Token(tokenParser.getKey(), capture);
                 };
             }

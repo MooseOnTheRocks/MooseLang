@@ -8,6 +8,7 @@ public enum TokenType {
     T_KW_DEF,
     T_KW_FOR,
     T_KW_IN,
+    T_KW_DO,
 
     T_COMMENT,
     T_NAME,

@@ -16,6 +16,7 @@ import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtAssign;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
+import dev.foltz.mooselang.parser.ast.statements.ASTStmtForInLoop;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,11 @@ public class Interpreter implements ASTVisitor<RTObject> {
         ASTStmt stmt = remaining.remove(0);
         RTObject res = stmt.accept(this);
         return res;
+    }
+
+    @Override
+    public RTObject visit(ASTExprNone node) {
+        return RTNone.INSTANCE;
     }
 
     @Override
@@ -180,22 +186,6 @@ public class Interpreter implements ASTVisitor<RTObject> {
     }
 
     @Override
-    public RTObject visit(ASTStmtAssign node) {
-        RTObject binding = env.find(node.name.value);
-//        if (binding != null) {
-//            throw new IllegalStateException("Name \"" + node.name.value + "\" already bound.");
-//        }
-        RTObject value = node.expr.accept(this);
-        env.bind(node.name.value, value);
-        return value;
-    }
-
-    @Override
-    public RTObject visit(ASTStmtExpr node) {
-        return node.expr.accept(this);
-    }
-
-    @Override
     public RTObject visit(ASTExprFuncDef node) {
         String funcName = node.name.value;
         RTObject binding = env.find(funcName);
@@ -212,7 +202,46 @@ public class Interpreter implements ASTVisitor<RTObject> {
     }
 
     @Override
-    public RTObject visit(ASTExprNone node) {
+    public RTObject visit(ASTStmtAssign node) {
+        RTObject binding = env.find(node.name.value);
+//        if (binding != null) {
+//            throw new IllegalStateException("Name \"" + node.name.value + "\" already bound.");
+//        }
+        RTObject value = node.expr.accept(this);
+        env.bind(node.name.value, value);
+        return value;
+    }
+
+    @Override
+    public RTObject visit(ASTStmtExpr node) {
+        return node.expr.accept(this);
+    }
+
+    @Override
+    public RTObject visit(ASTStmtForInLoop node) {
+        ASTDeconstructor decon = node.variableDecon;
+        RTObject listExpr = node.listExpr.accept(this);
+        List<RTObject> elems = new ArrayList<>();
+        if (listExpr instanceof RTList rtList) {
+            elems = rtList.elems;
+        }
+        else {
+            throw new IllegalStateException("For-in loop iterator expression must evaluate to a list, instead got: " + listExpr);
+        }
+
+        if (decon instanceof ASTDeconName deconName) {
+            String name = deconName.name.value;
+            for (RTObject elem : elems) {
+                env.pushScope();
+                env.bind(name, elem);
+                node.body.accept(this);
+                env.popScope();
+            }
+        }
+        else {
+            throw new IllegalStateException("For-in loop variable deconstructor must be name (for now), instead got: " + decon);
+        }
+
         return RTNone.INSTANCE;
     }
 

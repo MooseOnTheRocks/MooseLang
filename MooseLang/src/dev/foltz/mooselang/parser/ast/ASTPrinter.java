@@ -9,6 +9,7 @@ import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprNone;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtAssign;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
+import dev.foltz.mooselang.parser.ast.statements.ASTStmtForInLoop;
 
 public class ASTPrinter implements ASTVisitor<StringBuilder> {
     private final StringBuilder sb;
@@ -212,6 +213,25 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
     @Override
     public StringBuilder visit(ASTExprNone node) {
         emit("None()");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTStmtForInLoop node) {
+        emit("ForInLoop(");
+        emit();
+        indent();
+        node.variableDecon.accept(this);
+        emit(", ");
+        emit();
+        node.listExpr.accept(this);
+        emit(",");
+        emit();
+        node.body.accept(this);
+        emit();
+        dedent();
+        emit(")");
+        emit();
         return sb;
     }
 }

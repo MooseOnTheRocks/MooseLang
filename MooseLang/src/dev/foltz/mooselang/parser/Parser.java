@@ -10,6 +10,7 @@ import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtAssign;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
+import dev.foltz.mooselang.parser.ast.statements.ASTStmtForInLoop;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
 
@@ -182,9 +183,19 @@ public class Parser {
         }
         consume(T_RPAREN);
         consume(T_EQUALS);
-        ASTExpr body = parseExpr();
+        ASTStmt body = parseStmt();
         ASTExprFuncDef funcDef = new ASTExprFuncDef(name, paramDtors, body);
         return funcDef;
+    }
+
+    public ASTStmtForInLoop parseForInLoop() {
+        consume(T_KW_FOR);
+        ASTDeconstructor decon = parseDeconstructor();
+        consume(T_KW_IN);
+        ASTExpr listExpr = parseExpr();
+        consume(T_KW_DO);
+        ASTExpr body = parseExpr();
+        return new ASTStmtForInLoop(decon, listExpr, body);
     }
 
     public ASTStmtAssign parseBind() {
@@ -201,6 +212,9 @@ public class Parser {
         }
         else if (expect(T_KW_LET)) {
             return parseBind();
+        }
+        else if (expect(T_KW_FOR)) {
+            return parseForInLoop();
         }
         else {
             return new ASTStmtExpr(parseExpr());
