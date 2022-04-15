@@ -252,6 +252,13 @@ public class Parser {
         return new ASTStmtLet(name, expr);
     }
 
+    public ASTStmtAssign parseAssign() {
+        ASTExprName name = parseName();
+        consume(T_EQUALS);
+        ASTExpr expr = parseExpr();
+        return new ASTStmtAssign(name, expr);
+    }
+
     public ASTStmt parseStmt() {
         if (expect(T_KW_DEF)) {
             return new ASTStmtExpr(parseFuncDef());
@@ -261,6 +268,9 @@ public class Parser {
         }
         else if (expect(T_KW_FOR)) {
             return parseForInLoop();
+        }
+        else if (expect(T_NAME) && expect(T_EQUALS, 1)) {
+            return parseAssign();
         }
         else {
             return new ASTStmtExpr(parseExpr());

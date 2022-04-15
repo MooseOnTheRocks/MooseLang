@@ -7,10 +7,7 @@ import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprList;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprNone;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtFuncDef;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtLet;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtForInLoop;
+import dev.foltz.mooselang.parser.ast.statements.*;
 
 public class ASTPrinter implements ASTVisitor<StringBuilder> {
     private final StringBuilder sb;
@@ -128,7 +125,7 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
 
     @Override
     public StringBuilder visit(ASTStmtLet node) {
-        emit("Assign(");
+        emit("Let(");
         emit();
         indent();
         node.name.accept(this);
@@ -201,6 +198,22 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
         emit();
         dedent();
         emit(")");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTStmtAssign node) {
+        emit("Assign(");
+        emit();
+        indent();
+        node.name.accept(this);
+        emit(",");
+        emit();
+        node.expr.accept(this);
+        dedent();
+        emit();
+        emit(")");
+        emit();
         return sb;
     }
 

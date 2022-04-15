@@ -146,7 +146,7 @@ public class Main {
                 def reversed([]) = []
                 def reversed(ls) = {
                     // Inline function definition
-                    def reversed'(acc, []) = { acc }
+                    def reversed'(acc, []) = acc
                     def reversed'(acc, rem) = {
                         let h = head(rem)
                         let rs = tail(rem)
@@ -167,8 +167,13 @@ public class Main {
                 let nums' = reversed(map(double, nums))
                 print(nums')
                 """;
+        String program12 = """
+                let nums = 10
+                nums = 20
+                print(nums)
+                """;
 
-        String program = program11;
+        String program = program12;
 
         System.out.println("== Program");
         System.out.println(program);

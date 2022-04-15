@@ -208,12 +208,23 @@ public class Interpreter implements ASTVisitor<RTObject> {
 
     @Override
     public RTObject visit(ASTStmtLet node) {
-        RTObject binding = env.find(node.name.value);
-//        if (binding != null) {
-//            throw new IllegalStateException("Name \"" + node.name.value + "\" already bound.");
-//        }
+        RTObject binding = env.findInScope(node.name.value);
+        if (binding != null) {
+            throw new IllegalStateException("Name \"" + node.name.value + "\" already defined in scope.");
+        }
         RTObject value = node.expr.accept(this);
         env.bind(node.name.value, value);
+        return value;
+    }
+
+    @Override
+    public RTObject visit(ASTStmtAssign node) {
+        RTObject binding = env.find(node.name.value);
+        if (binding == null) {
+            throw new IllegalStateException("Cannot reassign " + node.name + " without previous definition");
+        }
+        RTObject value = node.expr.accept(this);
+        env.reassign(node.name.value, value);
         return value;
     }
 

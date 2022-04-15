@@ -10,10 +10,7 @@ import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprList;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprNone;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtFuncDef;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtLet;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtForInLoop;
+import dev.foltz.mooselang.parser.ast.statements.*;
 
 public interface ASTVisitor<T> {
     T visit(ASTExprNone node);
@@ -29,6 +26,7 @@ public interface ASTVisitor<T> {
     T visit(ASTStmtLet node);
     T visit(ASTStmtFuncDef node);
     T visit(ASTStmtForInLoop node);
+    T visit(ASTStmtAssign node);
 
     T visit(ASTDeconInt node);
     T visit(ASTDeconName node);

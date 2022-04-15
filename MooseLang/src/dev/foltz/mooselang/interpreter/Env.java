@@ -20,6 +20,27 @@ public class Env {
         scopedBindings.remove(0);
     }
 
+    public int findIndex(String name) {
+        for (int i = 0; i < scopedBindings.size(); i++) {
+            List<Binding> scope = scopedBindings.get(i);
+            for (Binding binding : scope) {
+                if (binding.name.equals(name)) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    public RTObject findInScope(String name) {
+        for (Binding binding : scopedBindings.get(0)) {
+            if (binding.name.equals(name)) {
+                return binding.object;
+            }
+        }
+        return null;
+    }
+
     public RTObject find(String name) {
         for (List<Binding> scope : scopedBindings) {
             for (Binding binding : scope) {
@@ -29,6 +50,19 @@ public class Env {
             }
         }
         return null;
+    }
+
+    public void reassign(String name, RTObject object) {
+        int index = findIndex(name);
+        if (index == -1) {
+            throw new IllegalStateException("Cannot reassign undefined object: " + object);
+        }
+        List<Binding> scope = scopedBindings.get(index);
+        for (Binding binding : scope) {
+            if (binding.name.equals(name)) {
+                binding.object = object;
+            }
+        }
     }
 
     public void bind(String name, RTObject object) {
@@ -45,8 +79,8 @@ public class Env {
     }
 
     public static class Binding {
-        public final String name;
-        public final RTObject object;
+        public String name;
+        public RTObject object;
 
         public Binding(String name, RTObject object) {
             this.name = name;
