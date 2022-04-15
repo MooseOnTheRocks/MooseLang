@@ -9,10 +9,12 @@ public enum TokenType {
     T_KW_FOR,
     T_KW_IN,
 
+    T_COMMENT,
     T_NAME,
     T_NUMBER,
     T_STRING,
     T_NONE,
+    T_ELLIPSES,
 
     T_EQUALS,
     T_COMMA,

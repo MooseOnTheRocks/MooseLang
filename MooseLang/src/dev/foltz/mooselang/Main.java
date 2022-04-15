@@ -86,8 +86,27 @@ public class Main {
                 let ls = cons(1, cons(2, cons(3, cons(4, []))))
                 print(ls)
                 """;
+        String program9 = """
+                // Returns a list containing two of the given element.
+                def double(e) = [e, e]
+                
+                // Returns a new list with the function f applied to each element of the list.
+                def map(f, []) = []
+                def map(f, ls) = {
+                    let h = head(ls)
+                    let rs = tail(ls)
+                    cons(f(h), map(f, rs))
+                }
+                
+                // Original list
+                let myList = [1, 2, 3, 4]
+                // Mapped list
+                let mappedList = map(double, myList)
+                print(myList)
+                print(mappedList)
+                """;
 
-        String program = program8;
+        String program = program9;
 
         System.out.println("== Program");
         System.out.println(program);
@@ -98,7 +117,7 @@ public class Main {
         List<Token> tokens = new ArrayList<>();
         while (!tokenizer.isEmpty()) {
             Token token = tokenizer.nextToken();
-            if (token.type == TokenType.T_WHITESPACE || token.type == TokenType.T_NEWLINE) {
+            if (token.type == TokenType.T_WHITESPACE || token.type == TokenType.T_NEWLINE || token.type == TokenType.T_COMMENT) {
                 continue;
             }
             tokens.add(token);

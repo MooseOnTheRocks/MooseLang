@@ -19,10 +19,13 @@ public class Tokenizer {
 //        TOKEN_PARSERS.put(T_KW_FOR, buildMatch("for"));
 //        TOKEN_PARSERS.put(T_KW_IN, buildMatch("in"));
 
+        TOKEN_PARSERS.put(T_COMMENT, Tokenizer::matchComment);
         TOKEN_PARSERS.put(T_NONE, buildMatch("None"));
         TOKEN_PARSERS.put(T_NUMBER, buildSpan(Tokenizer::isNum));
         TOKEN_PARSERS.put(T_STRING, Tokenizer::matchString);
         TOKEN_PARSERS.put(T_NAME, buildSpan(Tokenizer::isAlpha, ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum)));
+
+        TOKEN_PARSERS.put(T_ELLIPSES, buildMatch(".."));
 
         TOKEN_PARSERS.put(T_EQUALS, buildMatch("="));
         TOKEN_PARSERS.put(T_COMMA, buildMatch(","));
@@ -133,6 +136,26 @@ public class Tokenizer {
 //            System.out.println("match = " + match);
             return CharSequence.compare(source.subSequence(0, match.length()), match) == 0 ? match.length() : 0;
         };
+    }
+
+    public static int matchComment(CharSequence source) {
+        if (source.isEmpty() || source.length() < 2) {
+            return 0;
+        }
+
+        if (source.subSequence(0, 2).equals("//")) {
+            int index = 2;
+            while(index < source.length()) {
+                char c = source.charAt(index);
+                if (c == '\n') {
+                    return index;
+                }
+                index++;
+            }
+            return index;
+        }
+
+        return 0;
     }
 
     public static int matchString(CharSequence source) {
