@@ -1,14 +1,20 @@
 package dev.foltz.mooselang.interpreter;
 
 import dev.foltz.mooselang.interpreter.runtime.*;
+import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncCons;
+import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncHead;
+import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncPrint;
+import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncTail;
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
-import dev.foltz.mooselang.parser.ast.destructors.ASTDestInt;
-import dev.foltz.mooselang.parser.ast.destructors.ASTDestName;
-import dev.foltz.mooselang.parser.ast.destructors.ASTDestString;
-import dev.foltz.mooselang.parser.ast.destructors.ASTDestructor;
+import dev.foltz.mooselang.parser.ast.deconstructors.*;
 import dev.foltz.mooselang.parser.ast.expressions.*;
+import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprInt;
+import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprList;
+import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
+import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprNone;
+import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtBind;
+import dev.foltz.mooselang.parser.ast.statements.ASTStmtAssign;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
 
 import java.util.ArrayList;
@@ -18,7 +24,7 @@ import java.util.stream.Collectors;
 
 public class Interpreter implements ASTVisitor<RTObject> {
     private final List<ASTStmt> remaining;
-    private final Env env;
+    public final Env env;
 
     public Interpreter(Map<String, RTObject> globals) {
         this.env = new Env();
@@ -38,7 +44,8 @@ public class Interpreter implements ASTVisitor<RTObject> {
 
     public RTObject execNext() {
         ASTStmt stmt = remaining.remove(0);
-        return stmt.accept(this);
+        RTObject res = stmt.accept(this);
+        return res;
     }
 
     @Override
@@ -62,90 +69,103 @@ public class Interpreter implements ASTVisitor<RTObject> {
 
     @Override
     public RTObject visit(ASTExprName node) {
-        return env.find(node.value);
+        RTObject binding = env.find(node.value);
+        if (binding == null) {
+            throw new IllegalStateException("Cannot find name " + node.value);
+        }
+        return binding;
     }
 
     @Override
     public RTObject visit(ASTExprCall node) {
         RTObject binding = env.find(node.name.value);
+        List<ASTExpr> params = node.params;
+        List<RTObject> evalParams = params.stream().map(param -> param.accept(this)).toList();
         if (binding instanceof RTFunc rtFunc) {
-            // Builtin function application
-            if (rtFunc.name.equals("print")) {
+            if (rtFunc instanceof RTFuncPrint rtFuncPrint) {
                 StringBuilder sb = new StringBuilder();
-                sb.append(node.params.stream()
-                        .map(param -> param.accept(this))
+                sb.append(evalParams.stream()
                         .map(RTFuncPrint::print)
                         .collect(Collectors.joining(" ")));
                 System.out.println(sb);
                 return RTNone.INSTANCE;
             }
+            else if (rtFunc instanceof RTFuncHead) {
+                if (evalParams.size() != 1) {
+                    throw new IllegalStateException("head expects 1 argument, received " + evalParams.size());
+                }
+
+                RTObject param = evalParams.get(0);
+                if (param instanceof RTList rtList) {
+                    if (rtList.elems.size() == 0) {
+                        throw new IllegalStateException("Cannot call head on empty list");
+                    }
+                    return rtList.elems.get(0);
+                }
+
+                throw new IllegalStateException("head expects list, received: " + param);
+            }
+            else if (rtFunc instanceof RTFuncTail) {
+                if (evalParams.size() != 1) {
+                    throw new IllegalStateException("tail expects 1 argument, received " + evalParams.size());
+                }
+
+                RTObject param = evalParams.get(0);
+                if (param instanceof RTList rtList) {
+                    if (rtList.elems.size() == 0) {
+                        return new RTList(new ArrayList<>());
+                    }
+
+                    List<RTObject> objs = rtList.elems.subList(1, rtList.elems.size());
+                    return new RTList(objs);
+                }
+
+                throw new IllegalStateException("tail expects list, received: " + param);
+            }
+            else if (rtFunc instanceof RTFuncCons) {
+                if (evalParams.size() != 2) {
+                    throw new IllegalStateException("cons expects 2 arguments, received " + evalParams.size());
+                }
+
+                RTObject elem = evalParams.get(0);
+                RTObject param2 = evalParams.get(1);
+
+                if (param2 instanceof RTList rtList) {
+                    List<RTObject> elems = rtList.elems;
+                    elems.add(0, elem);
+                    return new RTList(elems);
+                }
+                else {
+                    throw new IllegalStateException("cons expects list for 2nd argument, received " + param2);
+                }
+            }
             // User defined function application
-            else if (rtFunc instanceof RTFuncDef rtDef) {
-                String name = rtDef.name;
-                List<ASTExpr> params = node.params;
-                List<ASTDestructor> paramDtors = new ArrayList<>();
-                ASTExpr body = null;
-                boolean match = false;
-                for (Map.Entry<List<ASTDestructor>, ASTExpr> branch : rtDef.branches.entrySet()) {
-                    match = true;
-                    paramDtors = branch.getKey();
-                    if (paramDtors.size() != params.size()) {
-                        match = false;
-                        continue;
-                    }
+            else {
+                String name = rtFunc.name;
+//                List<RTObject> evalParams = params.stream().map(param -> param.accept(this)).toList();
+                RTFunc.RTFuncBranch branch = rtFunc.dispatch(evalParams);
+                List<ASTDeconstructor> branchDecons = branch.paramDecons;
 
-                    for (int i = 0; i < paramDtors.size(); i++) {
-                        ASTDestructor dtor = paramDtors.get(i);
-                        ASTExpr param = params.get(i);
-                        if (param instanceof ASTExprInt paramInt && dtor instanceof ASTDestInt dtorInt) {
-                            if (paramInt.value != dtorInt.literal.value) {
-                                match = false;
-                                break;
-                            }
-                        }
-                        else if (param instanceof ASTExprString paramStr && dtor instanceof ASTDestString dtorStr) {
-                            if (!paramStr.value.equals(dtorStr.value.value)) {
-                                match = false;
-                                break;
-                            }
-                        }
-                        else if (param instanceof ASTExprName paramName && dtor instanceof ASTDestName dtorName) {
-                            if (!paramName.value.equals(dtorName.name.value)) {
-                                match = false;
-                                break;
-                            }
-                        }
-                    }
-
-                    body = branch.getValue();
-                    if (match) {
-                        break;
-                    }
-                }
-
-                if (!match) {
-                    throw new IllegalStateException("Could not call function " + name + " with: " + params);
-                }
-
-                System.out.println("Calling user defined function: " + name + "(" + params + ")");
+                // System.out.println("Calling user defined function: " + name + "(" + params + ")");
                 env.pushScope();
-                for (int i = 0; i < paramDtors.size(); i++) {
-                    ASTDestructor dtor = paramDtors.get(i);
-                    if (dtor instanceof ASTDestName dtorName) {
-                        String paramName = dtorName.name.value;
-                        if (env.find(paramName) != null) {
-                            throw new IllegalStateException("Attempt to bind already bound name " + paramName);
-                        }
+                for (int i = 0; i < branchDecons.size(); i++) {
+                    ASTDeconstructor decon = branchDecons.get(i);
+                    if (decon instanceof ASTDeconName deconName) {
+                        String paramName = deconName.name.value;
+//                        if (env.find(paramName) != null) {
+//                            throw new IllegalStateException("Attempt to bind already bound name " + paramName);
+//                        }
                         ASTExpr param = params.get(i);
                         env.bind(paramName, param.accept(this));
                     }
                 }
-                RTObject result = body.accept(this);
+                RTObject result = branch.body.accept(this);
                 env.popScope();
                 return result;
             }
         }
-        throw new UnsupportedOperationException("Unrecognized function in call: " + node.name.value);
+
+        throw new IllegalStateException("Call failed on object: " + node);
     }
 
     @Override
@@ -160,13 +180,14 @@ public class Interpreter implements ASTVisitor<RTObject> {
     }
 
     @Override
-    public RTObject visit(ASTStmtBind node) {
+    public RTObject visit(ASTStmtAssign node) {
         RTObject binding = env.find(node.name.value);
-        if (binding != null && !(binding instanceof RTFuncDef)) {
-            throw new IllegalStateException("Name \"" + node.name.value + "\" already bound.");
-        }
-        env.bind(node.name.value, node.expr.accept(this));
-        return RTNone.INSTANCE;
+//        if (binding != null) {
+//            throw new IllegalStateException("Name \"" + node.name.value + "\" already bound.");
+//        }
+        RTObject value = node.expr.accept(this);
+        env.bind(node.name.value, value);
+        return value;
     }
 
     @Override
@@ -177,31 +198,41 @@ public class Interpreter implements ASTVisitor<RTObject> {
     @Override
     public RTObject visit(ASTExprFuncDef node) {
         String funcName = node.name.value;
-        RTFuncDef funcDef;
         RTObject binding = env.find(funcName);
-        if (binding instanceof RTFuncDef) {
-            funcDef = (RTFuncDef) binding;
+        RTFunc funcDef;
+        if (binding instanceof RTFunc rtFunc) {
+            funcDef = rtFunc;
         }
         else {
-            funcDef = new RTFuncDef(funcName);
+            funcDef = new RTFunc(funcName);
             env.bind(funcName, funcDef);
         }
-        funcDef.addBranch(node.paramDtors, node.body);
+        funcDef.addBranch(new RTFunc.RTFuncBranch(node.paramDtors, node.body));
         return funcDef;
     }
 
     @Override
-    public RTObject visit(ASTDestInt node) {
+    public RTObject visit(ASTExprNone node) {
+        return RTNone.INSTANCE;
+    }
+
+    @Override
+    public RTObject visit(ASTDeconInt node) {
         throw new UnsupportedOperationException("Cannot visit ASTDestInt");
     }
 
     @Override
-    public RTObject visit(ASTDestName node) {
+    public RTObject visit(ASTDeconName node) {
         throw new UnsupportedOperationException("Cannot visit ASTDestName");
     }
 
     @Override
-    public RTObject visit(ASTDestString node) {
+    public RTObject visit(ASTDeconString node) {
         throw new UnsupportedOperationException("Cannot visit ASTDestString");
+    }
+
+    @Override
+    public RTObject visit(ASTDeconList node) {
+        throw new UnsupportedOperationException("Cannot visit ASTDeconList");
     }
 }

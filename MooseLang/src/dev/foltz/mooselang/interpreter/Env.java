@@ -1,33 +1,31 @@
 package dev.foltz.mooselang.interpreter;
 
-import dev.foltz.mooselang.interpreter.runtime.RTFuncDef;
 import dev.foltz.mooselang.interpreter.runtime.RTObject;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Env {
-    private final List<Map<String, RTObject>> scopedBindings;
+    private final List<List<Binding>> scopedBindings;
 
     public Env() {
         scopedBindings = new ArrayList<>();
-        scopedBindings.add(new LinkedHashMap<>());
+        scopedBindings.add(new ArrayList<>());
     }
 
     public void pushScope() {
-        scopedBindings.add(new LinkedHashMap<>());
+        scopedBindings.add(0, new ArrayList<>());
     }
 
     public void popScope() {
-        scopedBindings.remove(scopedBindings.size() - 1);
+        scopedBindings.remove(0);
     }
 
     public RTObject find(String name) {
-        for (Map<String, RTObject> scope : scopedBindings) {
-            if (scope.containsKey(name)) {
-                return scope.get(name);
+        for (List<Binding> scope : scopedBindings) {
+            for (Binding binding : scope) {
+                if (binding.name.equals(name)) {
+                    return binding.object;
+                }
             }
         }
         return null;
@@ -35,11 +33,8 @@ public class Env {
 
     public void bind(String name, RTObject object) {
         RTObject binding = find(name);
-        if (binding != null && !(binding instanceof RTFuncDef)) {
-            throw new IllegalStateException("Multiple bindings for: " + name);
-        }
-        Map<String, RTObject> scope = scopedBindings.get(scopedBindings.size() - 1);
-        scope.put(name, object);
+        List<Binding> scope = scopedBindings.get(0);
+        scope.add(0, new Binding(name, object));
     }
 
     @Override
@@ -47,5 +42,15 @@ public class Env {
         return "Env{" +
                 "scopedBindings=" + scopedBindings +
                 '}';
+    }
+
+    public static class Binding {
+        public final String name;
+        public final RTObject object;
+
+        public Binding(String name, RTObject object) {
+            this.name = name;
+            this.object = object;
+        }
     }
 }

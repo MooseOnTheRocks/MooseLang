@@ -1,12 +1,12 @@
-package dev.foltz.mooselang.parser.ast.destructors;
+package dev.foltz.mooselang.parser.ast.deconstructors;
 
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
-import dev.foltz.mooselang.parser.ast.expressions.ASTExprInt;
+import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprInt;
 
-public class ASTDestInt extends ASTDestructor {
+public class ASTDeconInt extends ASTDeconstructor {
     public final ASTExprInt literal;
 
-    public ASTDestInt(ASTExprInt literal) {
+    public ASTDeconInt(ASTExprInt literal) {
         this.literal = literal;
     }
 

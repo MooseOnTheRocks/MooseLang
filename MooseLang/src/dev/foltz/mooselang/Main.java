@@ -1,9 +1,12 @@
 package dev.foltz.mooselang;
 
 import dev.foltz.mooselang.interpreter.Interpreter;
-import dev.foltz.mooselang.interpreter.runtime.RTFuncPrint;
+import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncCons;
+import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncHead;
+import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncPrint;
 import dev.foltz.mooselang.interpreter.runtime.RTNone;
 import dev.foltz.mooselang.interpreter.runtime.RTObject;
+import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncTail;
 import dev.foltz.mooselang.parser.ast.ASTPrinter;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
 import dev.foltz.mooselang.parser.Parser;
@@ -56,10 +59,35 @@ public class Main {
                 
                 let results = [func(0), func(1), func(2), func(3)]
                 print(results)
+                """;
+        String program6 = """
+                def print2(0, 0) = print("0", "0")
+                def print2("a", "a") = print("a", "a")
+                def print2(a, b) = print("Two objects:", a, b)
                 
+                print2(0, 0)
+                print2("a", "a")
+                print2(0, 1)
+                print2("a", "b")
+                print2(0, "a")
+                """;
+        String program7 = """
+                def foreach(f, []) = None
+                def foreach(f, ls) = {
+                    let h = head(ls)
+                    let rs = tail(ls)
+                    f(h)
+                    foreach(f, rs)
+                }
+                
+                foreach(print, [1, 2, 3, 4])
+                """;
+        String program8 = """
+                let ls = cons(1, cons(2, cons(3, cons(4, []))))
+                print(ls)
                 """;
 
-        String program = program5;
+        String program = program8;
 
         System.out.println("== Program");
         System.out.println(program);
@@ -93,7 +121,13 @@ public class Main {
 
 
         System.out.println("== Interpreter");
-        Interpreter interpreter = new Interpreter(Map.of("print", new RTFuncPrint()));
+        Map<String, RTObject> globals = Map.of(
+                "print", new RTFuncPrint(),
+                "head", new RTFuncHead(),
+                "tail", new RTFuncTail(),
+                "cons", new RTFuncCons()
+        );
+        Interpreter interpreter = new Interpreter(globals);
         stmts.forEach(interpreter::feed);
         while (!interpreter.isEmpty()) {
             RTObject res = interpreter.execNext();

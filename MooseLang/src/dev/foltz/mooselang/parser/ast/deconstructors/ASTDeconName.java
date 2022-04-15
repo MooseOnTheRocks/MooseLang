@@ -1,12 +1,12 @@
-package dev.foltz.mooselang.parser.ast.destructors;
+package dev.foltz.mooselang.parser.ast.deconstructors;
 
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
 
-public class ASTDestName extends ASTDestructor {
+public class ASTDeconName extends ASTDeconstructor {
     public final ASTExprName name;
 
-    public ASTDestName(ASTExprName name) {
+    public ASTDeconName(ASTExprName name) {
         this.name = name;
     }
 

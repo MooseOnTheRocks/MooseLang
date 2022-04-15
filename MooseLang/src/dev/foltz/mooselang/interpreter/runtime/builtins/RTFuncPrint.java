@@ -1,5 +1,9 @@
-package dev.foltz.mooselang.interpreter.runtime;
+package dev.foltz.mooselang.interpreter.runtime.builtins;
 
+import dev.foltz.mooselang.interpreter.runtime.*;
+
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class RTFuncPrint extends RTFunc {

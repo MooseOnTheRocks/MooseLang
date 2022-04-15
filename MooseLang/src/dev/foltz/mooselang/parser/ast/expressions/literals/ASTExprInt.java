@@ -1,6 +1,7 @@
-package dev.foltz.mooselang.parser.ast.expressions;
+package dev.foltz.mooselang.parser.ast.expressions.literals;
 
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
+import dev.foltz.mooselang.parser.ast.expressions.ASTExpr;
 
 public class ASTExprInt extends ASTExpr {
     public final int value;

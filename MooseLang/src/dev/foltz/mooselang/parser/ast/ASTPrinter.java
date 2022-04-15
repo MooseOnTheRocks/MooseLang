@@ -1,11 +1,13 @@
 package dev.foltz.mooselang.parser.ast;
 
-import dev.foltz.mooselang.parser.ast.destructors.ASTDestInt;
-import dev.foltz.mooselang.parser.ast.destructors.ASTDestName;
-import dev.foltz.mooselang.parser.ast.destructors.ASTDestString;
-import dev.foltz.mooselang.parser.ast.destructors.ASTDestructor;
+import dev.foltz.mooselang.parser.ast.deconstructors.*;
 import dev.foltz.mooselang.parser.ast.expressions.*;
-import dev.foltz.mooselang.parser.ast.statements.ASTStmtBind;
+import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprInt;
+import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprList;
+import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
+import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprNone;
+import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
+import dev.foltz.mooselang.parser.ast.statements.ASTStmtAssign;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmtExpr;
 
 public class ASTPrinter implements ASTVisitor<StringBuilder> {
@@ -78,7 +80,6 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
         dedent();
         emit();
         emit(")");
-        emit();
         return sb;
     }
 
@@ -115,12 +116,11 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
         dedent();
         emit();
         emit(")");
-        emit();
         return sb;
     }
 
     @Override
-    public StringBuilder visit(ASTStmtBind node) {
+    public StringBuilder visit(ASTStmtAssign node) {
         emit("Assign(");
         emit();
         indent();
@@ -143,13 +143,13 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
         node.stmts.forEach(stmt -> stmt.accept(this));
         dedent();
         emit(")");
-        emit();
         return sb;
     }
 
     @Override
     public StringBuilder visit(ASTStmtExpr node) {
         node.expr.accept(this);
+        emit();
         return sb;
     }
 
@@ -160,7 +160,7 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
         indent();
         emit("[");
         for (int i = 0; i < node.paramDtors.size(); i++) {
-            ASTDestructor param = node.paramDtors.get(i);
+            ASTDeconstructor param = node.paramDtors.get(i);
             param.accept(this);
             if (i != node.paramDtors.size() - 1) {
                 emit(", ");
@@ -169,32 +169,49 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
         emit("],");
         emit();
         node.body.accept(this);
+        emit();
         dedent();
         emit(")");
         return sb;
     }
 
     @Override
-    public StringBuilder visit(ASTDestInt node) {
-        emit("DestInt(");
+    public StringBuilder visit(ASTDeconInt node) {
+        emit("DeconInt(");
         node.literal.accept(this);
         emit(")");
         return sb;
     }
 
     @Override
-    public StringBuilder visit(ASTDestName node) {
-        emit("DestString(");
+    public StringBuilder visit(ASTDeconName node) {
+        emit("DeconString(");
         node.name.accept(this);
         emit(")");
         return sb;
     }
 
     @Override
-    public StringBuilder visit(ASTDestString node) {
-        emit("DestString(");
+    public StringBuilder visit(ASTDeconString node) {
+        emit("DeconString(");
         node.value.accept(this);
         emit(")");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTDeconList node) {
+        emit("DeconList(");
+        indent();
+        node.decons.forEach(decon -> decon.accept(this));
+        dedent();
+        emit(")");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTExprNone node) {
+        emit("None()");
         return sb;
     }
 }

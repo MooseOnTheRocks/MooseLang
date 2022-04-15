@@ -1,16 +1,16 @@
 package dev.foltz.mooselang.parser.ast.expressions;
 
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
-import dev.foltz.mooselang.parser.ast.destructors.ASTDestructor;
+import dev.foltz.mooselang.parser.ast.deconstructors.ASTDeconstructor;
 
 import java.util.List;
 
 public class ASTExprFuncDef extends ASTExpr {
     public final ASTExprName name;
-    public final List<ASTDestructor> paramDtors;
+    public final List<ASTDeconstructor> paramDtors;
     public final ASTExpr body;
 
-    public ASTExprFuncDef(ASTExprName name, List<ASTDestructor> params, ASTExpr body) {
+    public ASTExprFuncDef(ASTExprName name, List<ASTDeconstructor> params, ASTExpr body) {
         this.name = name;
         this.paramDtors = params;
         this.body = body;

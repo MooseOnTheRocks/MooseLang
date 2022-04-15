@@ -14,14 +14,15 @@ public class Tokenizer {
         TOKEN_PARSERS.put(T_NEWLINE, buildSpan(Tokenizer::isNewline));
         TOKEN_PARSERS.put(T_WHITESPACE, buildSpan(Tokenizer::isWhitespace));
 
-        TOKEN_PARSERS.put(T_KW_LET, buildMatch("let"));
-        TOKEN_PARSERS.put(T_KW_DEF, buildMatch("def"));
-        TOKEN_PARSERS.put(T_KW_FOR, buildMatch("for"));
-        TOKEN_PARSERS.put(T_KW_IN, buildMatch("in"));
+//        TOKEN_PARSERS.put(T_KW_LET, buildMatch("let"));
+//        TOKEN_PARSERS.put(T_KW_DEF, buildMatch("def"));
+//        TOKEN_PARSERS.put(T_KW_FOR, buildMatch("for"));
+//        TOKEN_PARSERS.put(T_KW_IN, buildMatch("in"));
 
-        TOKEN_PARSERS.put(T_NAME, buildSpan(Tokenizer::isAlpha, ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum)));
+        TOKEN_PARSERS.put(T_NONE, buildMatch("None"));
         TOKEN_PARSERS.put(T_NUMBER, buildSpan(Tokenizer::isNum));
         TOKEN_PARSERS.put(T_STRING, Tokenizer::matchString);
+        TOKEN_PARSERS.put(T_NAME, buildSpan(Tokenizer::isAlpha, ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum)));
 
         TOKEN_PARSERS.put(T_EQUALS, buildMatch("="));
         TOKEN_PARSERS.put(T_COMMA, buildMatch(","));
@@ -61,7 +62,13 @@ public class Tokenizer {
                         ? remainder.substring(1, index - 1)
                         : remainder.substring(0, index);
                 remainder.delete(0, index);
-                return new Token(tokenParser.getKey(), capture);
+                return switch (capture) {
+                    case "let" -> new Token(T_KW_LET, capture);
+                    case "def" -> new Token(T_KW_DEF, capture);
+                    case "for" -> new Token(T_KW_FOR, capture);
+                    case "in" -> new Token(T_KW_IN, capture);
+                    default -> new Token(tokenParser.getKey(), capture);
+                };
             }
         }
 
@@ -120,7 +127,7 @@ public class Tokenizer {
 
     public static Function<CharSequence, Integer> buildMatch(String match) {
         return source -> {
-            if (source.isEmpty()) {
+            if (source.isEmpty() || source.length() < match.length()) {
                 return 0;
             }
 //            System.out.println("match = " + match);

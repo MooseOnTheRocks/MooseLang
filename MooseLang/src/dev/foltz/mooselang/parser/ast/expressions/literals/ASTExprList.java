@@ -1,8 +1,8 @@
-package dev.foltz.mooselang.parser.ast.expressions;
+package dev.foltz.mooselang.parser.ast.expressions.literals;
 
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
+import dev.foltz.mooselang.parser.ast.expressions.ASTExpr;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class ASTExprList extends ASTExpr {
