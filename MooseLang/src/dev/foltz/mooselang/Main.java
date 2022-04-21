@@ -1,12 +1,9 @@
 package dev.foltz.mooselang;
 
 import dev.foltz.mooselang.interpreter.Interpreter;
-import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncCons;
-import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncHead;
-import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncPrint;
+import dev.foltz.mooselang.interpreter.runtime.builtins.*;
 import dev.foltz.mooselang.interpreter.runtime.RTNone;
 import dev.foltz.mooselang.interpreter.runtime.RTObject;
-import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncTail;
 import dev.foltz.mooselang.parser.ast.ASTPrinter;
 import dev.foltz.mooselang.parser.ast.statements.ASTStmt;
 import dev.foltz.mooselang.parser.Parser;
@@ -168,12 +165,76 @@ public class Main {
                 print(nums')
                 """;
         String program12 = """
-                let nums = 10
-                nums = 20
-                print(nums)
+                let a = 10
+                a = 20
+                let b = 20
+                {
+                    a = 30
+                    let b = "B"
+                    print(a, b)
+                }
+                print(a, b)
                 """;
-
-        String program = program12;
+        String program13 = """
+                def length([]) = 0
+                def length(ls) =
+                    let len = 0 in
+                        for _ in ls do
+                            len = sum(len, 1)
+                
+                def indices(ls) = range(length(ls))
+                
+                def printLen(ls) {
+                    print("List:", ls)
+                    print("Length:", length(ls))
+                }
+                
+                let nums = [1, 2, 3, 4, 3, 2, 1]
+                printLen(nums)
+                """;
+        String program14 = """
+                def length([]) = 0
+                def length(ls) =
+                    let len = 0 in
+                        for _ in ls do
+                            len = sum(len, 1)
+                
+                def map(f, []) = []
+                def map(f, ls) =
+                    let h = f(head(ls)) in
+                    let rs = map(f, tail(ls)) in
+                        cons(h, rs)
+                
+                def double(x) = sum(x, x)
+                
+                def repeat(0, _) = []
+                def repeat(n, x) =
+                    let n' = sum(n, -1) in
+                        cons(x, repeat(n', x))
+                
+                def take(0, _) = []
+                def take(n, ls) =
+                    let n' = sum(n, -1) in
+                    let h = head(ls) in
+                    let rs = tail(ls) in
+                        cons(h, take(n', rs))
+                
+                def drop(0, ls) = ls
+                def drop(n, ls) =
+                    let n' = sum(n, -1) in
+                    let rs = tail(ls) in
+                        drop(n', rs)
+                
+                let nums = range(10)
+                print(nums)
+                let nums2 = map(double, nums)
+                print(nums2)
+                print(length(nums), length(nums2))
+                print(repeat(5, "apple"))
+                print(take(5, nums2))
+                print(drop(5, range(10)))
+                """;
+        String program = program14;
 
         System.out.println("== Program");
         System.out.println(program);
@@ -211,7 +272,9 @@ public class Main {
                 "print", new RTFuncPrint(),
                 "head", new RTFuncHead(),
                 "tail", new RTFuncTail(),
-                "cons", new RTFuncCons()
+                "cons", new RTFuncCons(),
+                "range", new RTFuncRange(),
+                "sum", new RTFuncSum()
         );
         Interpreter interpreter = new Interpreter(globals);
         stmts.forEach(interpreter::feed);

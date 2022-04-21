@@ -1,14 +1,12 @@
-package dev.foltz.mooselang.parser.ast.statements;
+package dev.foltz.mooselang.parser.ast.expressions;
 
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
-import dev.foltz.mooselang.parser.ast.expressions.ASTExpr;
-import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
 
-public class ASTStmtAssign extends ASTStmt {
+public class ASTExprAssign extends ASTExpr {
     public final ASTExprName name;
     public final ASTExpr expr;
 
-    public ASTStmtAssign(ASTExprName name, ASTExpr body) {
+    public ASTExprAssign(ASTExprName name, ASTExpr body) {
         this.name = name;
         this.expr = body;
     }
@@ -20,7 +18,7 @@ public class ASTStmtAssign extends ASTStmt {
 
     @Override
     public String toString() {
-        return "ASTStmtAssign{" +
+        return "ASTExprAssign{" +
                 "name=" + name +
                 ", body=" + expr +
                 '}';

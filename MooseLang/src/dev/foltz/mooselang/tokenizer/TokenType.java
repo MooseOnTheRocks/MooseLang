@@ -16,9 +16,12 @@ public enum TokenType {
     T_NUMBER,
     T_STRING,
     T_NONE,
+
     T_ELLIPSES,
     T_FAT_ARROW,
 
+    T_MINUS,
+    T_DOT,
     T_EQUALS,
     T_COMMA,
 

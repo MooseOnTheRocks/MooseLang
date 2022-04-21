@@ -1,16 +1,14 @@
-package dev.foltz.mooselang.parser.ast.statements;
+package dev.foltz.mooselang.parser.ast.expressions;
 
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
 import dev.foltz.mooselang.parser.ast.deconstructors.ASTDeconstructor;
-import dev.foltz.mooselang.parser.ast.expressions.ASTExpr;
-import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
 
-public class ASTStmtForInLoop extends ASTStmt {
+public class ASTExprForInLoop extends ASTExpr {
     public ASTDeconstructor variableDecon;
     public ASTExpr listExpr;
     public ASTExpr body;
 
-    public ASTStmtForInLoop(ASTDeconstructor variableDecon, ASTExpr listExpr, ASTExpr body) {
+    public ASTExprForInLoop(ASTDeconstructor variableDecon, ASTExpr listExpr, ASTExpr body) {
         this.variableDecon = variableDecon;
         this.listExpr = listExpr;
         this.body = body;

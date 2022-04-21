@@ -141,23 +141,6 @@ public class Parser {
         consume(T_FAT_ARROW);
         ASTStmt body = parseStmt();
         return new ASTExprLambda(paramDtors, body);
-//        consume(T_KW_LAMBDA);
-//        consume(T_LPAREN);
-//        List<ASTDeconstructor> paramDtors = new ArrayList<>();
-//        if (!expect(T_RPAREN)) {
-//            // First item
-//            paramDtors.add(parseDeconstructor());
-//            // Any other items
-//            while (expect(T_COMMA)) {
-//                consume(T_COMMA);
-//                paramDtors.add(parseDeconstructor());
-//            }
-//        }
-//        consume(T_RPAREN);
-//        consume(T_EQUALS);
-//        ASTStmt body = parseStmt();
-//        ASTExprLambda lambdaDef = new ASTExprLambda(paramDtors, body);
-//        return lambdaDef;
     }
 
     public ASTExpr parseExpr() {
@@ -165,9 +148,16 @@ public class Parser {
             if (expect(T_LPAREN, 1)) {
                 return parseCall();
             }
+            else if (expect(T_EQUALS, 1)) {
+                return parseAssign();
+            }
             else {
                 return parseName();
             }
+        }
+        else if (expect(T_MINUS)) {
+            consume(T_MINUS);
+            return new ASTExprNegate(parseExpr());
         }
         else if (expect(T_NUMBER)) {
             return parseNumber();
@@ -188,6 +178,12 @@ public class Parser {
         else if (expect(T_KW_LAMBDA)) {
             return parseLambda();
         }
+        else if (expect(T_KW_LET)) {
+            return parseLetIn();
+        }
+        else if (expect(T_KW_FOR)) {
+            return parseForInLoop();
+        }
         throw new IllegalStateException("Failed to parse expression: " + peek());
     }
 
@@ -204,8 +200,12 @@ public class Parser {
         else if (expect(T_LBRACKET)) {
             consume(T_LBRACKET);
             List<ASTDeconstructor> decons = new ArrayList<>();
-            while (!expect(T_RBRACKET)) {
+            if (!expect(T_RBRACKET)) {
                 decons.add(parseDeconstructor());
+                while (expect(T_COMMA)) {
+                    consume(T_COMMA);
+                    decons.add(parseDeconstructor());
+                }
             }
             consume(T_RBRACKET);
             return new ASTDeconList(decons);
@@ -228,35 +228,64 @@ public class Parser {
             }
         }
         consume(T_RPAREN);
-        consume(T_EQUALS);
+        if (expect(T_EQUALS)) {
+            consume(T_EQUALS);
+        }
         ASTStmt body = parseStmt();
         ASTStmtFuncDef funcDef = new ASTStmtFuncDef(name, paramDtors, body);
         return funcDef;
     }
 
-    public ASTStmtForInLoop parseForInLoop() {
+    public ASTExprForInLoop parseForInLoop() {
         consume(T_KW_FOR);
         ASTDeconstructor decon = parseDeconstructor();
         consume(T_KW_IN);
         ASTExpr listExpr = parseExpr();
         consume(T_KW_DO);
         ASTExpr body = parseExpr();
-        return new ASTStmtForInLoop(decon, listExpr, body);
+        return new ASTExprForInLoop(decon, listExpr, body);
     }
 
-    public ASTStmtLet parseLet() {
+    public Object parseLetMaybeIn() {
         consume(T_KW_LET);
         ASTExprName name = parseName();
         consume(T_EQUALS);
         ASTExpr expr = parseExpr();
-        return new ASTStmtLet(name, expr);
+        if (expect(T_KW_IN)) {
+            consume(T_KW_IN);
+            ASTExpr body = parseExpr();
+            return new ASTExprLetIn(name, expr, body);
+        }
+        else {
+            return new ASTStmtLet(name, expr);
+        }
     }
 
-    public ASTStmtAssign parseAssign() {
+    public ASTExprLetIn parseLetIn() {
+        consume(T_KW_LET);
         ASTExprName name = parseName();
         consume(T_EQUALS);
         ASTExpr expr = parseExpr();
-        return new ASTStmtAssign(name, expr);
+        if (expect(T_KW_IN)) {
+            consume(T_KW_IN);
+        }
+        ASTExpr body = parseExpr();
+        return new ASTExprLetIn(name, expr, body);
+    }
+
+//    public ASTStmtLet parseLet() {
+//        consume(T_KW_LET);
+//        ASTExprName name = parseName();
+//        consume(T_EQUALS);
+//        ASTExpr expr = parseExpr();
+//        return new ASTStmtLet(name, expr);
+//    }
+
+    public ASTExprAssign parseAssign() {
+        ASTExprName name = parseName();
+        consume(T_EQUALS);
+        ASTExpr expr = parseExpr();
+        return new ASTExprAssign(name, expr);
     }
 
     public ASTStmt parseStmt() {
@@ -264,17 +293,19 @@ public class Parser {
             return new ASTStmtExpr(parseFuncDef());
         }
         else if (expect(T_KW_LET)) {
-            return parseLet();
-        }
-        else if (expect(T_KW_FOR)) {
-            return parseForInLoop();
-        }
-        else if (expect(T_NAME) && expect(T_EQUALS, 1)) {
-            return parseAssign();
+            Object letMaybeIn = parseLetMaybeIn();
+            if (letMaybeIn instanceof ASTStmtLet stmtLet) {
+                return stmtLet;
+            }
+            else if (letMaybeIn instanceof ASTExprLetIn exprLetIn) {
+                return new ASTStmtExpr(exprLetIn);
+            }
         }
         else {
             return new ASTStmtExpr(parseExpr());
         }
+
+        throw new IllegalStateException("Failed to parse statement: " + peek());
     }
 
     public ASTExprBlock parseBlock() {

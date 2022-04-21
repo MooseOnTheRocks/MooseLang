@@ -140,6 +140,25 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
     }
 
     @Override
+    public StringBuilder visit(ASTExprLetIn node) {
+        emit("LetIn(");
+        emit();
+        indent();
+        node.name.accept(this);
+        emit(",");
+        emit();
+        node.expr.accept(this);
+        emit(",");
+        emit();
+        node.body.accept(this);
+        dedent();
+        emit();
+        emit(")");
+        emit();
+        return sb;
+    }
+
+    @Override
     public StringBuilder visit(ASTExprBlock node) {
         emit("Block(");
         emit();
@@ -202,7 +221,7 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
     }
 
     @Override
-    public StringBuilder visit(ASTStmtAssign node) {
+    public StringBuilder visit(ASTExprAssign node) {
         emit("Assign(");
         emit();
         indent();
@@ -258,7 +277,7 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
     }
 
     @Override
-    public StringBuilder visit(ASTStmtForInLoop node) {
+    public StringBuilder visit(ASTExprForInLoop node) {
         emit("ForInLoop(");
         emit();
         indent();
@@ -273,6 +292,14 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
         dedent();
         emit(")");
         emit();
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTExprNegate node) {
+        emit("Negate(");
+        node.expr.accept(this);
+        emit(")");
         return sb;
     }
 }

@@ -52,7 +52,14 @@ public class RTFunc extends RTObject {
                     }
                 }
                 else if (decon instanceof ASTDeconList deconList && param instanceof RTList rtList) {
-                    if (!(deconList.decons.isEmpty() && rtList.elems.isEmpty())) {
+                    if (deconList.decons.isEmpty() && rtList.elems.isEmpty()) {
+                        continue;
+                    }
+                    else if (deconList.decons.size() != rtList.elems.size()) {
+                        match = false;
+                        break;
+                    }
+                    else {
                         match = false;
                         break;
                     }

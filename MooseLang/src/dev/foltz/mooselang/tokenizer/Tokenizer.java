@@ -30,6 +30,8 @@ public class Tokenizer {
         TOKEN_PARSERS.put(T_ELLIPSES, buildMatch(".."));
         TOKEN_PARSERS.put(T_FAT_ARROW, buildMatch("=>"));
 
+        TOKEN_PARSERS.put(T_MINUS, buildMatch("-"));
+        TOKEN_PARSERS.put(T_DOT, buildMatch("."));
         TOKEN_PARSERS.put(T_EQUALS, buildMatch("="));
         TOKEN_PARSERS.put(T_COMMA, buildMatch(","));
 

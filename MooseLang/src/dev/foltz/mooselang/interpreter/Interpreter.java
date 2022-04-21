@@ -1,10 +1,7 @@
 package dev.foltz.mooselang.interpreter;
 
 import dev.foltz.mooselang.interpreter.runtime.*;
-import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncCons;
-import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncHead;
-import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncPrint;
-import dev.foltz.mooselang.interpreter.runtime.builtins.RTFuncTail;
+import dev.foltz.mooselang.interpreter.runtime.builtins.*;
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
 import dev.foltz.mooselang.parser.ast.deconstructors.*;
 import dev.foltz.mooselang.parser.ast.expressions.*;
@@ -143,6 +140,53 @@ public class Interpreter implements ASTVisitor<RTObject> {
                     throw new IllegalStateException("cons expects list for 2nd argument, received " + param2);
                 }
             }
+            else if (rtFunc instanceof RTFuncRange funcRange) {
+                int from;
+                int to;
+
+                if (evalParams.size() == 1) {
+                    RTObject p0 = evalParams.get(0);
+                    if (p0 instanceof RTInt int0) {
+                        from = 0;
+                        to = int0.value;
+                    }
+                    else {
+                        throw new IllegalStateException("range expects int for 1st argument, received " + p0);
+                    }
+                }
+                else if (evalParams.size() == 2) {
+                    RTObject p0 = evalParams.get(0);
+                    RTObject p1 = evalParams.get(1);
+                    if (p0 instanceof RTInt int0 && p1 instanceof RTInt int1) {
+                        from = int0.value;
+                        to = int1.value;
+                    }
+                    else {
+                        throw new IllegalStateException("range expects int for 1st and 2nd argument, received + " + p0 + ", " + p1);
+                    }
+                }
+                else {
+                    throw new IllegalStateException("range expects 1 or 2 arguments, received: " + evalParams.size());
+                }
+
+                List<RTObject> elems = new ArrayList<>();
+                for (int i = from; i < to; i++) {
+                    elems.add(new RTInt(i));
+                }
+                return new RTList(elems);
+            }
+            else if (rtFunc instanceof RTFuncSum) {
+                int sum = 0;
+                for (RTObject param : evalParams) {
+                    if (param instanceof RTInt rtInt) {
+                        sum += rtInt.value;
+                    }
+                    else {
+                        throw new IllegalStateException("sum expects arguments of type Int, received: " + param);
+                    }
+                }
+                return new RTInt(sum);
+            }
             // User defined function application
             else {
                 String name = rtFunc.name;
@@ -191,6 +235,26 @@ public class Interpreter implements ASTVisitor<RTObject> {
     }
 
     @Override
+    public RTObject visit(ASTExprAssign node) {
+        RTObject binding = env.find(node.name.value);
+        if (binding == null) {
+            throw new IllegalStateException("Cannot reassign " + node.name + " without previous definition");
+        }
+        RTObject value = node.expr.accept(this);
+        env.reassign(node.name.value, value);
+        return value;
+    }
+
+    @Override
+    public RTObject visit(ASTExprNegate node) {
+        RTObject evalExpr = node.expr.accept(this);
+        if (evalExpr instanceof RTInt rtInt) {
+            return new RTInt(-rtInt.value);
+        }
+        throw new IllegalStateException("Cannot negate non-int object: " + evalExpr);
+    }
+
+    @Override
     public RTObject visit(ASTStmtFuncDef node) {
         String funcName = node.name.value;
         RTObject binding = env.find(funcName);
@@ -218,14 +282,17 @@ public class Interpreter implements ASTVisitor<RTObject> {
     }
 
     @Override
-    public RTObject visit(ASTStmtAssign node) {
-        RTObject binding = env.find(node.name.value);
-        if (binding == null) {
-            throw new IllegalStateException("Cannot reassign " + node.name + " without previous definition");
+    public RTObject visit(ASTExprLetIn node) {
+        RTObject binding = env.findInScope(node.name.value);
+        if (binding != null) {
+            throw new IllegalStateException("Name \"" + node.name.value + "\" already defined in scope.");
         }
         RTObject value = node.expr.accept(this);
-        env.reassign(node.name.value, value);
-        return value;
+        env.pushScope();
+        env.bind(node.name.value, value);
+        RTObject result = node.body.accept(this);
+        env.popScope();
+        return result;
     }
 
     @Override
@@ -234,7 +301,7 @@ public class Interpreter implements ASTVisitor<RTObject> {
     }
 
     @Override
-    public RTObject visit(ASTStmtForInLoop node) {
+    public RTObject visit(ASTExprForInLoop node) {
         ASTDeconstructor decon = node.variableDecon;
         RTObject listExpr = node.listExpr.accept(this);
         List<RTObject> elems = new ArrayList<>();
@@ -245,12 +312,13 @@ public class Interpreter implements ASTVisitor<RTObject> {
             throw new IllegalStateException("For-in loop iterator expression must evaluate to a list, instead got: " + listExpr);
         }
 
+        RTObject lastResult = RTNone.INSTANCE;
         if (decon instanceof ASTDeconName deconName) {
             String name = deconName.name.value;
             for (RTObject elem : elems) {
                 env.pushScope();
                 env.bind(name, elem);
-                node.body.accept(this);
+                lastResult = node.body.accept(this);
                 env.popScope();
             }
         }
@@ -258,7 +326,7 @@ public class Interpreter implements ASTVisitor<RTObject> {
             throw new IllegalStateException("For-in loop variable deconstructor must be name (for now), instead got: " + decon);
         }
 
-        return RTNone.INSTANCE;
+        return lastResult;
     }
 
     @Override
