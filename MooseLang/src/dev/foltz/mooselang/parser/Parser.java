@@ -2,11 +2,8 @@ package dev.foltz.mooselang.parser;
 
 import dev.foltz.mooselang.parser.ast.deconstructors.*;
 import dev.foltz.mooselang.parser.ast.expressions.*;
-import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprInt;
-import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprList;
+import dev.foltz.mooselang.parser.ast.expressions.literals.*;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
-import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprNone;
-import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
 import dev.foltz.mooselang.parser.ast.statements.*;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
@@ -16,12 +13,6 @@ import java.util.List;
 
 import static dev.foltz.mooselang.tokenizer.TokenType.*;
 
-/*
- * program = [expr]
- * expr = name '=' expr
- *      | name
- *      | number
- */
 
 public class Parser {
     private List<Token> remainder;
@@ -114,6 +105,10 @@ public class Parser {
         return new ASTExprString(consume(T_STRING).value);
     }
 
+    public ASTExprString parseChar() {
+        return new ASTExprString(consume(T_CHAR).value);
+    }
+
     public ASTExprLambda parseLambda() {
         consume(T_KW_LAMBDA);
         List<ASTDeconstructor> paramDtors = new ArrayList<>();
@@ -131,7 +126,7 @@ public class Parser {
                 consume(T_RPAREN);
             }
         }
-        else {
+        else if (!expect(T_FAT_ARROW)) {
             paramDtors.add(parseDeconstructor());
             while (expect(T_COMMA)) {
                 consume(T_COMMA);
@@ -141,6 +136,27 @@ public class Parser {
         consume(T_FAT_ARROW);
         ASTStmt body = parseStmt();
         return new ASTExprLambda(paramDtors, body);
+    }
+
+    public ASTExprBool parseBool() {
+        if (expect(T_TRUE)) {
+            consume(T_TRUE);
+            return new ASTExprBool(true);
+        }
+        else {
+            consume(T_FALSE);
+            return new ASTExprBool(false);
+        }
+    }
+
+    public ASTExprIfThenElse parseIfThenElse() {
+        consume(T_KW_IF);
+        ASTExpr exprCond = parseExpr();
+        consume(T_KW_THEN);
+        ASTExpr exprTrue = parseExpr();
+        consume(T_KW_ELSE);
+        ASTExpr exprFalse = parseExpr();
+        return new ASTExprIfThenElse(exprCond, exprTrue, exprFalse);
     }
 
     public ASTExpr parseExpr() {
@@ -165,6 +181,9 @@ public class Parser {
         else if (expect(T_STRING)) {
             return parseString();
         }
+        else if (expect(T_CHAR)) {
+            return parseChar();
+        }
         else if (expect(T_LBRACKET)) {
             return parseList();
         }
@@ -182,7 +201,13 @@ public class Parser {
             return parseLetIn();
         }
         else if (expect(T_KW_FOR)) {
-            return parseForInLoop();
+            return parseForInThenElse();
+        }
+        else if (expect(T_TRUE) || expect(T_FALSE)) {
+            return parseBool();
+        }
+        else if (expect(T_KW_IF)) {
+            return parseIfThenElse();
         }
         throw new IllegalStateException("Failed to parse expression: " + peek());
     }
@@ -236,14 +261,45 @@ public class Parser {
         return funcDef;
     }
 
-    public ASTExprForInLoop parseForInLoop() {
+    public Object parseForIn_Do_ThenElse() {
+        consume(T_KW_FOR);
+        ASTDeconstructor decon = parseDeconstructor();
+        consume(T_KW_IN);
+        ASTExpr listExpr = parseExpr();
+        if (expect(T_KW_THEN)) {
+            consume(T_KW_THEN);
+            ASTExpr bodyLoop = parseExpr();
+            consume(T_KW_ELSE);
+            ASTExpr bodyElse = parseExpr();
+            return new ASTExprForInThenElse(decon, listExpr, bodyLoop, bodyElse);
+        }
+        else {
+            consume(T_KW_DO);
+            ASTExpr bodyLoop = parseExpr();
+            return new ASTStmtForInDo(decon, listExpr, bodyLoop);
+        }
+    }
+
+    public ASTExprForInThenElse parseForInThenElse() {
+        consume(T_KW_FOR);
+        ASTDeconstructor decon = parseDeconstructor();
+        consume(T_KW_IN);
+        ASTExpr listExpr = parseExpr();
+        consume(T_KW_THEN);
+        ASTExpr bodyLoop = parseExpr();
+        consume(T_KW_ELSE);
+        ASTExpr bodyElse = parseExpr();
+        return new ASTExprForInThenElse(decon, listExpr, bodyLoop, bodyElse);
+    }
+
+    public ASTStmtForInDo parseForInDo() {
         consume(T_KW_FOR);
         ASTDeconstructor decon = parseDeconstructor();
         consume(T_KW_IN);
         ASTExpr listExpr = parseExpr();
         consume(T_KW_DO);
         ASTExpr body = parseExpr();
-        return new ASTExprForInLoop(decon, listExpr, body);
+        return new ASTStmtForInDo(decon, listExpr, body);
     }
 
     public Object parseLetMaybeIn() {
@@ -288,6 +344,33 @@ public class Parser {
         return new ASTExprAssign(name, expr);
     }
 
+//    public ASTStmtIfDo parseIfDo() {
+//        consume(T_KW_IF);
+//        ASTExpr exprCond = parseExpr();
+//        consume(T_KW_DO);
+//        ASTExpr exprTrue = parseExpr();
+//        return new ASTStmtIfDo(exprCond, exprTrue);
+//    }
+
+    public Object parseIf_Do_ThenElse() {
+        consume(T_KW_IF);
+        ASTExpr exprCond = parseExpr();
+        if (expect(T_KW_DO)) {
+            consume(T_KW_DO);
+            ASTExpr exprTrue = parseExpr();
+            return new ASTStmtIfDo(exprCond, exprTrue);
+        }
+        else if (expect(T_KW_THEN)) {
+            consume(T_KW_THEN);
+            ASTExpr exprTrue = parseExpr();
+            consume(T_KW_ELSE);
+            ASTExpr exprFalse = parseExpr();
+            return new ASTExprIfThenElse(exprCond, exprTrue, exprFalse);
+        }
+
+        throw new IllegalStateException("Expected T_KW_DO or T_KW_THEN while parsing If, received: " + peek());
+    }
+
     public ASTStmt parseStmt() {
         if (expect(T_KW_DEF)) {
             return new ASTStmtExpr(parseFuncDef());
@@ -299,6 +382,24 @@ public class Parser {
             }
             else if (letMaybeIn instanceof ASTExprLetIn exprLetIn) {
                 return new ASTStmtExpr(exprLetIn);
+            }
+        }
+        else if (expect(T_KW_IF)) {
+            Object ifMaybeElse = parseIf_Do_ThenElse();
+            if (ifMaybeElse instanceof ASTStmtIfDo stmtIfDo) {
+                return stmtIfDo;
+            }
+            else if (ifMaybeElse instanceof ASTExprIfThenElse exprIfThenElse) {
+                return new ASTStmtExpr(exprIfThenElse);
+            }
+        }
+        else if (expect(T_KW_FOR)) {
+            Object forIn = parseForIn_Do_ThenElse();
+            if (forIn instanceof ASTStmtForInDo stmtForInDo) {
+                return stmtForInDo;
+            }
+            else if (forIn instanceof ASTExprForInThenElse exprForInThenElse) {
+                return new ASTStmtExpr(exprForInThenElse);
             }
         }
         else {

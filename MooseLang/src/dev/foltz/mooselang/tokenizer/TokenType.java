@@ -10,12 +10,19 @@ public enum TokenType {
     T_KW_IN,
     T_KW_DO,
     T_KW_LAMBDA,
+    T_KW_IF,
+    T_KW_THEN,
+    T_KW_ELSE,
+
 
     T_COMMENT,
     T_NAME,
     T_NUMBER,
+    T_CHAR,
     T_STRING,
     T_NONE,
+    T_TRUE,
+    T_FALSE,
 
     T_ELLIPSES,
     T_FAT_ARROW,

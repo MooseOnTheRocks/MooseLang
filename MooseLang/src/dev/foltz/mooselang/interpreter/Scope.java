@@ -4,10 +4,21 @@ import dev.foltz.mooselang.interpreter.runtime.RTObject;
 
 import java.util.*;
 
-public class Env {
+public class Scope {
     private final List<List<Binding>> scopedBindings;
 
-    public Env() {
+    public Scope(Scope other) {
+        this.scopedBindings = new ArrayList<>();
+        for (List<Binding> otherScopedBindings : other.scopedBindings) {
+            List<Binding> bindings = new ArrayList<>();
+            for (Binding otherBinding : otherScopedBindings) {
+                bindings.add(new Binding(otherBinding.name, otherBinding.object));
+            }
+            this.scopedBindings.add(bindings);
+        }
+    }
+
+    public Scope() {
         scopedBindings = new ArrayList<>();
         scopedBindings.add(new ArrayList<>());
     }
@@ -20,7 +31,7 @@ public class Env {
         scopedBindings.remove(0);
     }
 
-    public int findIndex(String name) {
+    private int findIndex(String name) {
         for (int i = 0; i < scopedBindings.size(); i++) {
             List<Binding> scope = scopedBindings.get(i);
             for (Binding binding : scope) {
@@ -41,7 +52,7 @@ public class Env {
         return null;
     }
 
-    public RTObject find(String name) {
+    public RTObject findAnyScope(String name) {
         for (List<Binding> scope : scopedBindings) {
             for (Binding binding : scope) {
                 if (binding.name.equals(name)) {
@@ -66,14 +77,14 @@ public class Env {
     }
 
     public void bind(String name, RTObject object) {
-        RTObject binding = find(name);
+        RTObject binding = findAnyScope(name);
         List<Binding> scope = scopedBindings.get(0);
         scope.add(0, new Binding(name, object));
     }
 
     @Override
     public String toString() {
-        return "Env{" +
+        return "Scope{" +
                 "scopedBindings=" + scopedBindings +
                 '}';
     }

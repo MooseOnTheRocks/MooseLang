@@ -234,7 +234,46 @@ public class Main {
                 print(take(5, nums2))
                 print(drop(5, range(10)))
                 """;
-        String program = program14;
+        String program15 = """
+                
+                // Notice no curly braces required
+                def length(ls)
+                    // This entire function body is one expression.
+                    // let <binding> in
+                    //     for <binding> in <list> then
+                    //         <exprLoop>
+                    //     else
+                    //         <exprElse>
+                    //
+                    // Will return either the last evaluated <exprLoop>,
+                    // or <exprElse> if <list> is empty.
+                    let len = 0 in
+                    for _ in ls then
+                        len = sum(len, 1)
+                    else 0
+                
+                // Curly braces required!
+                def length(ls) {
+                    // This let binding is a statement.
+                    let len = 0
+                    // This for-in-do loop is a statement
+                    for _ in ls do
+                        len = sum(len, 1)
+                    // Code blocks return the last expression in them
+                    len
+                }
+                
+                let nums = [1, 2, 3, 4, 5]
+                
+                print(length(nums))
+                print(length([]))
+                
+                """;
+        String program16 = """
+                print("Hello", "World", [1, 2, 3], 'h, 'i, 'm)
+                """;
+
+        String program = program16;
 
         System.out.println("== Program");
         System.out.println(program);
@@ -269,12 +308,7 @@ public class Main {
 
         System.out.println("== Interpreter");
         Map<String, RTObject> globals = Map.of(
-                "print", new RTFuncPrint(),
-                "head", new RTFuncHead(),
-                "tail", new RTFuncTail(),
-                "cons", new RTFuncCons(),
-                "range", new RTFuncRange(),
-                "sum", new RTFuncSum()
+                "print", new RTFuncBuiltinPrint().createDispatcher()
         );
         Interpreter interpreter = new Interpreter(globals);
         stmts.forEach(interpreter::feed);

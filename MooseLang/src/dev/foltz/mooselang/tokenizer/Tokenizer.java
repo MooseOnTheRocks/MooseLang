@@ -21,7 +21,10 @@ public class Tokenizer {
 
         TOKEN_PARSERS.put(T_COMMENT, Tokenizer::matchComment);
         TOKEN_PARSERS.put(T_NONE, buildMatch("None"));
+        TOKEN_PARSERS.put(T_TRUE, buildMatch("True"));
+        TOKEN_PARSERS.put(T_FALSE, buildMatch("False"));
         TOKEN_PARSERS.put(T_NUMBER, buildSpan(Tokenizer::isNum));
+        TOKEN_PARSERS.put(T_CHAR, Tokenizer::matchChar);
         TOKEN_PARSERS.put(T_STRING, Tokenizer::matchString);
         TOKEN_PARSERS.put(T_NAME, buildSpan(
                 ((Predicate<Character>) Tokenizer::isAlpha).or(c -> "_#$'".contains("" + c)),
@@ -66,9 +69,11 @@ public class Tokenizer {
         for (Map.Entry<TokenType, Function<CharSequence, Integer>> tokenParser : TOKEN_PARSERS.entrySet()) {
             int index = tokenParser.getValue().apply(remainder);
             if (index > 0) {
-                String capture = tokenParser.getKey() == T_STRING
-                        ? remainder.substring(1, index - 1)
-                        : remainder.substring(0, index);
+                String capture = switch(tokenParser.getKey()) {
+                    case T_STRING -> remainder.substring(1, index - 1);
+                    case T_CHAR -> remainder.substring(1, index);
+                    default -> remainder.substring(0, index);
+                };
                 remainder.delete(0, index);
                 return switch (capture) {
                     case "let" -> new Token(T_KW_LET, capture);
@@ -77,6 +82,9 @@ public class Tokenizer {
                     case "in" -> new Token(T_KW_IN, capture);
                     case "do" -> new Token(T_KW_DO, capture);
                     case "lambda" -> new Token(T_KW_LAMBDA, capture);
+                    case "if" -> new Token(T_KW_IF, capture);
+                    case "then" -> new Token(T_KW_THEN, capture);
+                    case "else" -> new Token(T_KW_ELSE, capture);
                     default -> new Token(tokenParser.getKey(), capture);
                 };
             }
@@ -160,6 +168,22 @@ public class Tokenizer {
                 index++;
             }
             return index;
+        }
+
+        return 0;
+    }
+
+    public static int matchChar(CharSequence source) {
+        if (source.isEmpty()) {
+            return 0;
+        }
+
+        if (source.charAt(0) != '\'') {
+            return 0;
+        }
+
+        if (source.length() >= 2) {
+            return 2;
         }
 
         return 0;
