@@ -31,7 +31,7 @@ public class Parser {
     }
 
     private boolean expect(TokenType type) {
-        return expect(type, 0);
+        return !remainder.isEmpty() && expect(type, 0);
     }
 
     private boolean expect(TokenType type, int lookahead) {
@@ -222,6 +222,9 @@ public class Parser {
         else if (expect(T_STRING)) {
             return new ASTDeconString(parseString());
         }
+        else if (expect(T_CHAR)) {
+            return new ASTDeconChar(parseChar());
+        }
         else if (expect(T_LBRACKET)) {
             consume(T_LBRACKET);
             List<ASTDeconstructor> decons = new ArrayList<>();
@@ -265,7 +268,7 @@ public class Parser {
         consume(T_KW_FOR);
         ASTDeconstructor decon = parseDeconstructor();
         consume(T_KW_IN);
-        ASTExpr listExpr = parseExpr();
+        ASTExpr listExpr = new ASTExprCall(new ASTExprName("iter"), List.of(parseExpr()));
         if (expect(T_KW_THEN)) {
             consume(T_KW_THEN);
             ASTExpr bodyLoop = parseExpr();
@@ -284,7 +287,7 @@ public class Parser {
         consume(T_KW_FOR);
         ASTDeconstructor decon = parseDeconstructor();
         consume(T_KW_IN);
-        ASTExpr listExpr = parseExpr();
+        ASTExpr listExpr = new ASTExprCall(new ASTExprName("iter"), List.of(parseExpr()));
         consume(T_KW_THEN);
         ASTExpr bodyLoop = parseExpr();
         consume(T_KW_ELSE);

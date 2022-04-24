@@ -31,5 +31,6 @@ public interface ASTVisitor<T> {
     T visit(ASTDeconInt node);
     T visit(ASTDeconName node);
     T visit(ASTDeconString node);
+    T visit(ASTDeconChar node);
     T visit(ASTDeconList node);
 }

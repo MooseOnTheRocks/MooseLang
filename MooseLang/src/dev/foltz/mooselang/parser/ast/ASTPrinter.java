@@ -300,6 +300,14 @@ public class ASTPrinter implements ASTVisitor<StringBuilder> {
     }
 
     @Override
+    public StringBuilder visit(ASTDeconChar node) {
+        emit("DeconChar(");
+        node.literal.accept(this);
+        emit(")");
+        return sb;
+    }
+
+    @Override
     public StringBuilder visit(ASTDeconList node) {
         emit("DeconList(");
         indent();

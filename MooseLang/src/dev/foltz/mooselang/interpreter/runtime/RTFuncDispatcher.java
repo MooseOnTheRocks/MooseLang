@@ -26,6 +26,7 @@ public class RTFuncDispatcher extends RTObject {
         // TODO: Better function dispatch based on arguments.
         //       Currently just returning the first matching function.
         for (RTFuncDef funcDef : funcDefs) {
+//            System.out.println("Comparing: " + funcDef.funcParams);
             if (funcDef.accepts(args)) {
                 return Optional.of(funcDef);
             }

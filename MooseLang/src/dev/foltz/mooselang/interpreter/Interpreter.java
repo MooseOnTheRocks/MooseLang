@@ -101,6 +101,7 @@ public class Interpreter implements ASTVisitor<RTObject> {
 
         if (binding instanceof RTFuncDispatcher dispatcher) {
             List<RTObject> evalParams = node.params.stream().map(param -> param.accept(this)).toList();
+//            System.out.println("With: " + evalParams);
             RTFunc rtFunc = dispatcher.dispatch(evalParams).orElseThrow();
             if (rtFunc.accepts(evalParams)) {
                 RTObject result;
@@ -130,7 +131,7 @@ public class Interpreter implements ASTVisitor<RTObject> {
 
     @Override
     public RTObject visit(ASTExprLambda node) {
-        RTFuncDef funcDef = new RTFuncDef("<lambda>", node.paramDtors, node.body, new Scope());
+        RTFuncDef funcDef = new RTFuncDef("<lambda>", node.paramDtors, node.body, new Scope(env));
         RTFuncDispatcher dispatcher = new RTFuncDispatcher("<lambda>");
         dispatcher.addFuncDef(funcDef);
         return dispatcher;
@@ -289,17 +290,22 @@ public class Interpreter implements ASTVisitor<RTObject> {
 
     @Override
     public RTObject visit(ASTDeconInt node) {
-        throw new UnsupportedOperationException("Cannot visit ASTDestInt");
+        throw new UnsupportedOperationException("Cannot visit ASTDeconInt");
     }
 
     @Override
     public RTObject visit(ASTDeconName node) {
-        throw new UnsupportedOperationException("Cannot visit ASTDestName");
+        throw new UnsupportedOperationException("Cannot visit ASTDeconName");
     }
 
     @Override
     public RTObject visit(ASTDeconString node) {
-        throw new UnsupportedOperationException("Cannot visit ASTDestString");
+        throw new UnsupportedOperationException("Cannot visit ASTDeconString");
+    }
+
+    @Override
+    public RTObject visit(ASTDeconChar node) {
+        throw new UnsupportedOperationException("Cannot visit ASTDeconChar");
     }
 
     @Override

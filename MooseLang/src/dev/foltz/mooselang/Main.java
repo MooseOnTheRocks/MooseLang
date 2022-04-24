@@ -259,13 +259,6 @@ public class Main {
                 
                 """;
         String program16 = """
-                def add(a, b) = sum(a, b)
-                def add(ls) =
-                    let total = 0 in
-                    for e in ls then
-                        total = add(total, e)
-                    else 0
-                
                 def counter(n) {
                     let maxCount = n
                     let count = 0
@@ -278,28 +271,141 @@ public class Main {
                     }
                 }
                 
-                let c1 = counter(10)
-                print(c1())
-                print(c1())
+                let C = counter(5)
+                for _ in range(7) do
+                    C()
+                """;
+        String program17 = """
+                def upper('a) = 'A
+                def upper('b) = 'B
+                def upper('c) = 'C
+                def upper('d) = 'D
+                def upper('e) = 'E
+                def upper('f) = 'F
+                def upper('g) = 'G
+                def upper('h) = 'H
+                def upper('i) = 'I
+                def upper('j) = 'J
+                def upper('k) = 'K
+                def upper('l) = 'L
+                def upper('m) = 'M
+                def upper('n) = 'N
+                def upper('o) = 'O
+                def upper('p) = 'P
+                def upper('q) = 'Q
+                def upper('r) = 'R
+                def upper('s) = 'S
+                def upper('t) = 'T
+                def upper('u) = 'u
+                def upper('v) = 'V
+                def upper('w) = 'W
+                def upper('x) = 'X
+                def upper('y) = 'Y
+                def upper('z) = 'Z
+                def upper(c) = c
+                
+                let greeting = "Hello, World!"
+                print(greeting)
+                print(reduce(concat, "", map(upper, greeting)))
+                """;
+        String program18 = """
+                let list = [1, 2, 3, 4]
+                print(join(-1, list))
+                """;
+        String program19 = """
+                let fruits = ["apple", "banana", "orange", "grape"]
+                def indices(ls) = range(length(ls))
+                
+                def zip(a, b) {
+                    def zip'(acc, [], []) = acc
+                    def zip'(acc, remA, remB) {
+                        let headA = head(remA)
+                        let headB = head(remB)
+                        let tailA = tail(remA)
+                        let tailB = tail(remB)
+                        let pair = [headA, headB]
+                        zip'(cons(pair, acc), tailA, tailB)
+                    }
+                    
+                    reversed(zip'([], iter(a), iter(b)))
+                }
+                
+                let a1 = [1, 2, 3]
+                let a2 = ['a, 'b, 'c]
+                print(a1, a2)
+                print(zip(a1, a2))
+                
+                print(zip(indices(fruits), fruits))
+                
+                def enum(ls) = zip(indices(ls), ls)
+                print(enum(fruits))
                 """;
 
         String stdlib = """
+                // Builtins:
+                //     cons
+                //     head
+                //     tail
+                //     range
+                //     sum
+                
                 def map(f, []) = []
                 def map(f, ls) =
-                    let h = head(ls) in
-                    let ts = tail(ls) in
+                    let it = iter(ls) in
+                    let h = head(it) in
+                    let ts = tail(it) in
                     cons(f(h), map(f, ts))
+                
+                def filter(f, ls) =
+                    let it = iter(ls) in
+                    let h = head(it) in
+                    let ts = tail(it) in
+                    let rem = filter(f, ts) in
+                    if f(h) then cons(h, rem)
+                    else rem
+                
+                def reduce(f, init, ls) =
+                    let acc = init in
+                    for e in ls then
+                        acc = f(acc, e)
+                    else acc
                 
                 def length(ls) =
                     let len = 0 in
-                    for _ in ls then len = sum(len, 1)
-                    else 0
+                    for _ in ls then
+                        len = sum(len, 1)
+                    else len
+                
+                def empty(ls) {
+                    def empty'(0) = True
+                    def empty'(_) = False
+                    empty'(length(ls))
+                }
+                
+                def reversed(ls) =
+                    let list = [] in
+                    for e in ls then
+                        list = cons(e, list)
+                    else list
+                
+                def join(_, []) = []
+                def join(sep, ls) {
+                    let h = head(ls)
+                    let ts = tail(ls)
+                    def join'(acc, s) = cons(s, cons(sep, acc))
+                    
+                    reversed(reduce(join', [h], ts))
+                }
                 
                 def id(x) = x
                 
+                def const(x) = lambda _ => x
+                
+                def repeat(e, n) = map(const(e), range(n))
+                
                 """;
 
-        String program = program16;
+        String program = program19;
 
         System.out.println("== Program");
         System.out.println(program);
@@ -340,7 +446,9 @@ public class Main {
                 "tail", new RTFuncBuiltinTail().createDispatcher(),
                 "cons", new RTFuncBuiltinCons().createDispatcher(),
                 "sum", new RTFuncBuiltinSum().createDispatcher(),
-                "range", new RTFuncBuiltinRange().createDispatcher()
+                "range", new RTFuncBuiltinRange().createDispatcher(),
+                "iter", new RTFuncBuiltinIter().createDispatcher(),
+                "concat", new RTFuncBuiltinConcat().createDispatcher()
         );
         Interpreter interpreter = new Interpreter(globals);
         stmts.forEach(interpreter::feed);

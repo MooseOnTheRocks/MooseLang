@@ -8,17 +8,17 @@ import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
 
 import java.util.Objects;
 
-public class ASTDeconString extends ASTDeconstructor {
+public class ASTDeconChar extends ASTDeconstructor {
     public final ASTExprString literal;
 
-    public ASTDeconString(ASTExprString literal) {
+    public ASTDeconChar(ASTExprString literal) {
         this.literal = literal;
     }
 
     @Override
     public RTObject deconstruct(RTObject rtObj, Scope scope) {
         if (!matches(rtObj)) {
-            throw new IllegalStateException("String deconstructor cannot accept: " + rtObj);
+            throw new IllegalStateException("Char deconstructor cannot accept: " + rtObj);
         }
 
         return rtObj;
@@ -60,7 +60,7 @@ public class ASTDeconString extends ASTDeconstructor {
 
     @Override
     public String toString() {
-        return "ASTDeconString{" +
+        return "ASTDeconDecon{" +
                 "literal=" + literal +
                 '}';
     }
