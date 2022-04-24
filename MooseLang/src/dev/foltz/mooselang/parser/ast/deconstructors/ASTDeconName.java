@@ -5,6 +5,8 @@ import dev.foltz.mooselang.interpreter.runtime.RTObject;
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
 import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
 
+import java.util.Objects;
+
 public class ASTDeconName extends ASTDeconstructor {
     public final ASTExprName name;
 
@@ -30,6 +32,17 @@ public class ASTDeconName extends ASTDeconstructor {
     @Override
     public <T> T accept(ASTVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        return o != null && getClass() == o.getClass();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name);
     }
 
     @Override

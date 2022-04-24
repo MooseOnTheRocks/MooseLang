@@ -179,8 +179,9 @@ public class Main {
                 def length([]) = 0
                 def length(ls) =
                     let len = 0 in
-                        for _ in ls do
+                        for _ in ls then
                             len = sum(len, 1)
+                        else 0
                 
                 def indices(ls) = range(length(ls))
                 
@@ -193,18 +194,6 @@ public class Main {
                 printLen(nums)
                 """;
         String program14 = """
-                def length([]) = 0
-                def length(ls) =
-                    let len = 0 in
-                        for _ in ls do
-                            len = sum(len, 1)
-                
-                def map(f, []) = []
-                def map(f, ls) =
-                    let h = f(head(ls)) in
-                    let rs = map(f, tail(ls)) in
-                        cons(h, rs)
-                
                 def double(x) = sum(x, x)
                 
                 def repeat(0, _) = []
@@ -270,7 +259,44 @@ public class Main {
                 
                 """;
         String program16 = """
-                print("Hello", "World", [1, 2, 3], 'h, 'i, 'm)
+                def add(a, b) = sum(a, b)
+                def add(ls) =
+                    let total = 0 in
+                    for e in ls then
+                        total = add(total, e)
+                    else 0
+                
+                def counter(n) {
+                    let maxCount = n
+                    let count = 0
+                    
+                    def counter'() {
+                        let count' = count
+                        count = sum(1, count)
+                        print("Count:", count', "/", maxCount)
+                        count'
+                    }
+                }
+                
+                let c1 = counter(10)
+                print(c1())
+                print(c1())
+                """;
+
+        String stdlib = """
+                def map(f, []) = []
+                def map(f, ls) =
+                    let h = head(ls) in
+                    let ts = tail(ls) in
+                    cons(f(h), map(f, ts))
+                
+                def length(ls) =
+                    let len = 0 in
+                    for _ in ls then len = sum(len, 1)
+                    else 0
+                
+                def id(x) = x
+                
                 """;
 
         String program = program16;
@@ -280,6 +306,7 @@ public class Main {
         System.out.println();
 
         Tokenizer tokenizer = new Tokenizer();
+        tokenizer.feed(stdlib);
         tokenizer.feed(program);
         List<Token> tokens = new ArrayList<>();
         while (!tokenizer.isEmpty()) {
@@ -289,35 +316,40 @@ public class Main {
             }
             tokens.add(token);
         }
-        System.out.println("== Tokens");
-        System.out.println(tokens);
-        System.out.println();
+//        System.out.println("== Tokens");
+//        System.out.println(tokens);
+//        System.out.println();
 
 
         Parser parser = new Parser();
         tokens.forEach(parser::feed);
         List<ASTStmt> stmts = parser.parse();
-        System.out.println("== AST");
-        stmts.forEach(System.out::println);
-        System.out.println();
-        ASTPrinter printer = new ASTPrinter();
-        stmts.forEach(stmt -> stmt.accept(printer));
-        System.out.println(printer);
-        System.out.println();
+//        System.out.println("== AST");
+//        stmts.forEach(System.out::println);
+//        System.out.println();
+//        ASTPrinter printer = new ASTPrinter();
+//        stmts.forEach(stmt -> stmt.accept(printer));
+//        System.out.println(printer);
+//        System.out.println();
 
 
         System.out.println("== Interpreter");
         Map<String, RTObject> globals = Map.of(
-                "print", new RTFuncBuiltinPrint().createDispatcher()
+                "print", new RTFuncBuiltinPrint().createDispatcher(),
+                "head", new RTFuncBuiltinHead().createDispatcher(),
+                "tail", new RTFuncBuiltinTail().createDispatcher(),
+                "cons", new RTFuncBuiltinCons().createDispatcher(),
+                "sum", new RTFuncBuiltinSum().createDispatcher(),
+                "range", new RTFuncBuiltinRange().createDispatcher()
         );
         Interpreter interpreter = new Interpreter(globals);
         stmts.forEach(interpreter::feed);
         while (!interpreter.isEmpty()) {
             RTObject res = interpreter.execNext();
-            if (res instanceof RTNone) {
-                continue;
-            }
-            System.out.println("==> " + res);
+//            if (res instanceof RTNone) {
+//                continue;
+//            }
+//            System.out.println("==> " + res);
         }
     }
 }

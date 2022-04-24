@@ -6,6 +6,8 @@ import dev.foltz.mooselang.interpreter.runtime.RTString;
 import dev.foltz.mooselang.parser.ast.ASTVisitor;
 import dev.foltz.mooselang.parser.ast.expressions.literals.ASTExprString;
 
+import java.util.Objects;
+
 public class ASTDeconString extends ASTDeconstructor {
     public final ASTExprString literal;
 
@@ -34,6 +36,19 @@ public class ASTDeconString extends ASTDeconstructor {
     @Override
     public <T> T accept(ASTVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ASTDeconString that = (ASTDeconString) o;
+        return Objects.equals(literal.value, that.literal.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(literal);
     }
 
     @Override

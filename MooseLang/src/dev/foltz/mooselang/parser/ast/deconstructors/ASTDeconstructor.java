@@ -7,4 +7,5 @@ import dev.foltz.mooselang.parser.ast.ASTNode;
 public abstract class ASTDeconstructor extends ASTNode {
     public abstract boolean matches(RTObject rtObj);
     public abstract RTObject deconstruct(RTObject rtObj, Scope scope);
+    public abstract boolean equals(Object obj);
 }

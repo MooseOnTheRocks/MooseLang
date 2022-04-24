@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 
 public class Interpreter implements ASTVisitor<RTObject> {
     private final List<ASTStmt> remaining;
-    public final Scope env;
+    public Scope env;
 
     public Interpreter(Map<String, RTObject> globals) {
         this.env = new Scope();
@@ -97,30 +97,32 @@ public class Interpreter implements ASTVisitor<RTObject> {
     @Override
     public RTObject visit(ASTExprCall node) {
         RTObject binding = env.findAnyScope(node.name.value);
-        System.out.println("Calling: " + node.name + " => " + binding);
+//        System.out.println("Calling: " + node.name + " => " + binding);
 
         if (binding instanceof RTFuncDispatcher dispatcher) {
             List<RTObject> evalParams = node.params.stream().map(param -> param.accept(this)).toList();
             RTFunc rtFunc = dispatcher.dispatch(evalParams).orElseThrow();
-            RTObject result;
-            env.pushScope();
-            if (rtFunc instanceof RTFuncBuiltin builtinFunc) {
-                result = builtinFunc.call(this, evalParams);
-            }
-            else if (rtFunc instanceof RTFuncDef funcDef) {
-                for (int i = 0; i < evalParams.size(); i++) {
-                    RTObject arg = evalParams.get(i);
-                    ASTDeconstructor decon = funcDef.funcParams.get(i);
-                    decon.deconstruct(arg, env);
+            if (rtFunc.accepts(evalParams)) {
+                RTObject result;
+                if (rtFunc instanceof RTFuncBuiltin builtinFunc) {
+                    result = builtinFunc.call(this, evalParams);
                 }
-                result = funcDef.funcBody.accept(this);
+                else if (rtFunc instanceof RTFuncDef funcDef) {
+                    Scope saveEnv = env;
+                    env = funcDef.externalScope;
+                    for (int i = 0; i < evalParams.size(); i++) {
+                        RTObject arg = evalParams.get(i);
+                        ASTDeconstructor decon = funcDef.funcParams.get(i);
+                        decon.deconstruct(arg, env);
+                    }
+                    result = funcDef.funcBody.accept(this);
+                    env = saveEnv;
+                }
+                else {
+                    throw new IllegalStateException("Cannot dispatch function on " + node.name.value + " with arguments: " + evalParams);
+                }
+                return result;
             }
-            else {
-                env.popScope();
-                throw new IllegalStateException("Cannot dispatch function on " + node.name.value + " with arguments: " + evalParams);
-            }
-            env.popScope();
-            return result;
         }
 
         throw new IllegalStateException("Call failed on object: " + node);
@@ -178,7 +180,8 @@ public class Interpreter implements ASTVisitor<RTObject> {
             env.bind(funcName, funcDispatcher);
         }
 
-        funcDispatcher.addFuncDef(new RTFuncDef(funcName, node.paramDtors, node.body, new Scope()));
+
+        funcDispatcher.addFuncDef(new RTFuncDef(funcName, node.paramDtors, node.body, new Scope(this.env)));
         return funcDispatcher;
     }
 

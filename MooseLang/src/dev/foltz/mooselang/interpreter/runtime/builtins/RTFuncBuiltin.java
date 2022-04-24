@@ -22,6 +22,11 @@ public abstract class RTFuncBuiltin extends RTFunc {
             public Optional<RTFunc> dispatch(List<RTObject> args) {
                 return Optional.of(RTFuncBuiltin.this);
             }
+
+            @Override
+            public void addFuncDef(RTFuncDef rtFuncDef) {
+                throw new IllegalStateException("Cannot override builtin function (for now): " + name);
+            }
         };
     }
 

@@ -14,6 +14,11 @@ public class RTFuncDispatcher extends RTObject {
     }
 
     public void addFuncDef(RTFuncDef rtFuncDef) {
+        for (RTFuncDef funcDef : funcDefs) {
+            if (funcDef.funcParams.equals(rtFuncDef.funcParams)) {
+                throw new IllegalStateException("Cannot add function definition with same parameters: " + rtFuncDef.funcName + ": " + rtFuncDef.funcParams);
+            }
+        }
         funcDefs.add(rtFuncDef);
     }
 

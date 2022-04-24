@@ -7,6 +7,7 @@ import dev.foltz.mooselang.parser.ast.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class ASTDeconList extends ASTDeconstructor {
     public List<ASTDeconstructor> decons;
@@ -50,6 +51,19 @@ public class ASTDeconList extends ASTDeconstructor {
     @Override
     public <T> T accept(ASTVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ASTDeconList that = (ASTDeconList) o;
+        return Objects.equals(decons, that.decons);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(decons);
     }
 
     @Override
