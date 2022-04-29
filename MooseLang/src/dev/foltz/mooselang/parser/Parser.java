@@ -1,15 +1,15 @@
 package dev.foltz.mooselang.parser;
 
-import dev.foltz.mooselang.parser.ast.deconstructors.*;
-import dev.foltz.mooselang.parser.ast.expressions.*;
-import dev.foltz.mooselang.parser.ast.expressions.literals.*;
-import dev.foltz.mooselang.parser.ast.expressions.ASTExprName;
-import dev.foltz.mooselang.parser.ast.statements.*;
+import dev.foltz.mooselang.ast.expression.*;
+import dev.foltz.mooselang.ast.expression.literals.*;
+import dev.foltz.mooselang.ast.expression.ASTExprName;
+import dev.foltz.mooselang.ast.statement.*;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static dev.foltz.mooselang.tokenizer.TokenType.*;
 
@@ -25,8 +25,8 @@ public class Parser {
         return remainder.isEmpty();
     }
 
-    public Parser feed(Token token) {
-        remainder.add(token);
+    public Parser feed(List<Token> tokens) {
+        remainder.addAll(tokens);
         return this;
     }
 
@@ -111,31 +111,31 @@ public class Parser {
 
     public ASTExprLambda parseLambda() {
         consume(T_KW_LAMBDA);
-        List<ASTDeconstructor> paramDtors = new ArrayList<>();
+        List<ASTExprName> paramNames = new ArrayList<>();
         if (expect(T_LPAREN)) {
             consume(T_LPAREN);
             if (expect(T_RPAREN)) {
                consume(T_RPAREN);
             }
             else {
-                paramDtors.add(parseDeconstructor());
+                paramNames.add(parseName());
                 while (expect(T_COMMA)) {
                     consume(T_COMMA);
-                    paramDtors.add(parseDeconstructor());
+                    paramNames.add(parseName());
                 }
                 consume(T_RPAREN);
             }
         }
         else if (!expect(T_FAT_ARROW)) {
-            paramDtors.add(parseDeconstructor());
+            paramNames.add(parseName());
             while (expect(T_COMMA)) {
                 consume(T_COMMA);
-                paramDtors.add(parseDeconstructor());
+                paramNames.add(parseName());
             }
         }
         consume(T_FAT_ARROW);
         ASTStmt body = parseStmt();
-        return new ASTExprLambda(paramDtors, body);
+        return new ASTExprLambda(paramNames, body);
     }
 
     public ASTExprBool parseBool() {
@@ -212,47 +212,18 @@ public class Parser {
         throw new IllegalStateException("Failed to parse expression: " + peek());
     }
 
-    public ASTDeconstructor parseDeconstructor() {
-        if (expect(T_NAME)) {
-            return new ASTDeconName(parseName());
-        }
-        else if (expect(T_NUMBER)) {
-            return new ASTDeconInt(parseNumber());
-        }
-        else if (expect(T_STRING)) {
-            return new ASTDeconString(parseString());
-        }
-        else if (expect(T_CHAR)) {
-            return new ASTDeconChar(parseChar());
-        }
-        else if (expect(T_LBRACKET)) {
-            consume(T_LBRACKET);
-            List<ASTDeconstructor> decons = new ArrayList<>();
-            if (!expect(T_RBRACKET)) {
-                decons.add(parseDeconstructor());
-                while (expect(T_COMMA)) {
-                    consume(T_COMMA);
-                    decons.add(parseDeconstructor());
-                }
-            }
-            consume(T_RBRACKET);
-            return new ASTDeconList(decons);
-        }
-        throw new IllegalStateException("Failed to parse deconstructor: " + peek());
-    }
-
     public ASTStmtFuncDef parseFuncDef() {
         consume(T_KW_DEF);
         ASTExprName name = parseName();
         consume(T_LPAREN);
-        List<ASTDeconstructor> paramDtors = new ArrayList<>();
+        List<ASTExprName> paramNames = new ArrayList<>();
         if (!expect(T_RPAREN)) {
             // First item
-            paramDtors.add(parseDeconstructor());
+            paramNames.add(parseName());
             // Any other items
             while (expect(T_COMMA)) {
                 consume(T_COMMA);
-                paramDtors.add(parseDeconstructor());
+                paramNames.add(parseName());
             }
         }
         consume(T_RPAREN);
@@ -260,13 +231,13 @@ public class Parser {
             consume(T_EQUALS);
         }
         ASTStmt body = parseStmt();
-        ASTStmtFuncDef funcDef = new ASTStmtFuncDef(name, paramDtors, body);
+        ASTStmtFuncDef funcDef = new ASTStmtFuncDef(name, paramNames, body);
         return funcDef;
     }
 
     public Object parseForIn_Do_ThenElse() {
         consume(T_KW_FOR);
-        ASTDeconstructor decon = parseDeconstructor();
+        ASTExprName decon = parseName();
         consume(T_KW_IN);
         ASTExpr listExpr = new ASTExprCall(new ASTExprName("iter"), List.of(parseExpr()));
         if (expect(T_KW_THEN)) {
@@ -285,24 +256,24 @@ public class Parser {
 
     public ASTExprForInThenElse parseForInThenElse() {
         consume(T_KW_FOR);
-        ASTDeconstructor decon = parseDeconstructor();
+        ASTExprName name = parseName();
         consume(T_KW_IN);
         ASTExpr listExpr = new ASTExprCall(new ASTExprName("iter"), List.of(parseExpr()));
         consume(T_KW_THEN);
         ASTExpr bodyLoop = parseExpr();
         consume(T_KW_ELSE);
         ASTExpr bodyElse = parseExpr();
-        return new ASTExprForInThenElse(decon, listExpr, bodyLoop, bodyElse);
+        return new ASTExprForInThenElse(name, listExpr, bodyLoop, bodyElse);
     }
 
     public ASTStmtForInDo parseForInDo() {
         consume(T_KW_FOR);
-        ASTDeconstructor decon = parseDeconstructor();
+        ASTExprName name = parseName();
         consume(T_KW_IN);
         ASTExpr listExpr = parseExpr();
         consume(T_KW_DO);
         ASTExpr body = parseExpr();
-        return new ASTStmtForInDo(decon, listExpr, body);
+        return new ASTStmtForInDo(name, listExpr, body);
     }
 
     public Object parseLetMaybeIn() {
@@ -428,5 +399,9 @@ public class Parser {
             nodes.add(parseStmt());
         }
         return nodes;
+    }
+
+    public static Stream<ASTStmt> parse(List<Token> tokens) {
+        return new Parser().feed(tokens).parse().stream();
     }
 }

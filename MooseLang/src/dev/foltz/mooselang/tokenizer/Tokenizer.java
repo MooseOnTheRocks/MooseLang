@@ -3,6 +3,7 @@ package dev.foltz.mooselang.tokenizer;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static dev.foltz.mooselang.tokenizer.TokenType.*;
 import static java.util.Map.entry;
@@ -50,6 +51,10 @@ public class Tokenizer {
 
     public Tokenizer() {
         remainder = new StringBuffer();
+    }
+
+    public static Stream<Token> tokenize(String source) {
+        return new Tokenizer().feed(source).tokenize().stream();
     }
 
     public List<Token> tokenize() {
