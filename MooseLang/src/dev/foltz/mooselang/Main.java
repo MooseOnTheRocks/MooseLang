@@ -2,13 +2,16 @@ package dev.foltz.mooselang;
 
 import dev.foltz.mooselang.ast.ASTPrinter;
 import dev.foltz.mooselang.ast.statement.ASTStmt;
+import dev.foltz.mooselang.interpreter.ASTEvaluator;
+import dev.foltz.mooselang.interpreter.FlatScope;
+import dev.foltz.mooselang.interpreter.rt.RTBuiltinPrint;
+import dev.foltz.mooselang.interpreter.rt.RTObject;
 import dev.foltz.mooselang.parser.Parser;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
 import dev.foltz.mooselang.tokenizer.Tokenizer;
 
 import java.util.List;
-import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
@@ -17,7 +20,16 @@ public class Main {
 
 
         // -- Program source
-        String program = Programs.program21;
+        String program = """
+                let a = 100
+                
+                def foo(x) {
+                    let c = 20
+                    print(x, c)
+                }
+                
+                foo()
+                """;
 
         System.out.println("== Program Source");
         System.out.println(program);
@@ -41,12 +53,21 @@ public class Main {
 
         System.out.println("== Program AST");
         stmts.stream()
-                .map(ASTPrinter::asString)
+                .map(ASTPrinter::print)
                 .forEach(System.out::println);
         System.out.println();
 
 
         // -- Interpretation
+        FlatScope globalScope = new FlatScope();
+        globalScope.bind("print", new RTBuiltinPrint());
 
+        ASTEvaluator evaluator = new ASTEvaluator(globalScope);
+
+        System.out.println("== Interpreter");
+        for (ASTStmt stmt : stmts) {
+            RTObject result = stmt.accept(evaluator);
+//            System.out.println(result);
+        }
     }
 }

@@ -330,6 +330,8 @@ public class Programs {
                 """;
     public static final String program21 = """
                 let m = 10
+                
+                let b = 35
                 """;
 
     public static final String stdlib = """
