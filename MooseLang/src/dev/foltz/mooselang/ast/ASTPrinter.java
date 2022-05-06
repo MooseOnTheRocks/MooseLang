@@ -4,6 +4,8 @@ import dev.foltz.mooselang.ast.expression.ASTExprBlock;
 import dev.foltz.mooselang.ast.expression.ASTExprCall;
 import dev.foltz.mooselang.ast.expression.ASTExprName;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprInt;
+import dev.foltz.mooselang.ast.expression.literals.ASTExprList;
+import dev.foltz.mooselang.ast.expression.literals.ASTExprString;
 import dev.foltz.mooselang.ast.statement.ASTStmtExpr;
 import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
@@ -98,6 +100,20 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
         emit("ExprCall(", node.name(), ", (");
         emitJoin(", ", node.params());
         emit("))");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTExprString node) {
+        emit("ExprString(\"", node.value(), "\")");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTExprList node) {
+        emit("ExprList(");
+        emitJoin(", ", node.elements());
+        emit(")");
         return sb;
     }
 }

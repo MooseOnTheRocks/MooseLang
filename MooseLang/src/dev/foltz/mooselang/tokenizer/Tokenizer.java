@@ -11,6 +11,7 @@ import static java.util.Map.entry;
 
 public class Tokenizer {
     public static final Map<TokenType, Function<CharSequence, Integer>> TOKEN_PARSERS = new LinkedHashMap<>();
+
     static {
         TOKEN_PARSERS.put(T_NEWLINE, buildSpan(Tokenizer::isNewline));
         TOKEN_PARSERS.put(T_WHITESPACE, buildSpan(Tokenizer::isWhitespace));
@@ -48,6 +49,7 @@ public class Tokenizer {
     }
 
     private final StringBuffer remainder;
+    private int consumed = 0;
 
     public Tokenizer() {
         remainder = new StringBuffer();
@@ -74,6 +76,10 @@ public class Tokenizer {
         for (Map.Entry<TokenType, Function<CharSequence, Integer>> tokenParser : TOKEN_PARSERS.entrySet()) {
             int index = tokenParser.getValue().apply(remainder);
             if (index > 0) {
+                int from = consumed;
+                consumed += index;
+                int to = consumed;
+                String sourceMatch = remainder.substring(0, index);
                 String capture = switch(tokenParser.getKey()) {
                     case T_STRING -> remainder.substring(1, index - 1);
                     case T_CHAR -> remainder.substring(1, index);
@@ -81,16 +87,16 @@ public class Tokenizer {
                 };
                 remainder.delete(0, index);
                 return switch (capture) {
-                    case "let" -> new Token(T_KW_LET, capture);
-                    case "def" -> new Token(T_KW_DEF, capture);
-                    case "for" -> new Token(T_KW_FOR, capture);
-                    case "in" -> new Token(T_KW_IN, capture);
-                    case "do" -> new Token(T_KW_DO, capture);
-                    case "lambda" -> new Token(T_KW_LAMBDA, capture);
-                    case "if" -> new Token(T_KW_IF, capture);
-                    case "then" -> new Token(T_KW_THEN, capture);
-                    case "else" -> new Token(T_KW_ELSE, capture);
-                    default -> new Token(tokenParser.getKey(), capture);
+                    case "let" -> new Token(T_KW_LET, capture, from, to, sourceMatch);
+                    case "def" -> new Token(T_KW_DEF, capture, from, to, sourceMatch);
+                    case "for" -> new Token(T_KW_FOR, capture, from, to, sourceMatch);
+                    case "in" -> new Token(T_KW_IN, capture, from, to, sourceMatch);
+                    case "do" -> new Token(T_KW_DO, capture, from, to, sourceMatch);
+                    case "lambda" -> new Token(T_KW_LAMBDA, capture, from, to, sourceMatch);
+                    case "if" -> new Token(T_KW_IF, capture, from, to, sourceMatch);
+                    case "then" -> new Token(T_KW_THEN, capture, from, to, sourceMatch);
+                    case "else" -> new Token(T_KW_ELSE, capture, from, to, sourceMatch);
+                    default -> new Token(tokenParser.getKey(), capture, from, to, sourceMatch);
                 };
             }
         }

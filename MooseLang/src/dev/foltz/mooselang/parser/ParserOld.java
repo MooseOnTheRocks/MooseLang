@@ -14,10 +14,10 @@ import java.util.stream.Stream;
 import static dev.foltz.mooselang.tokenizer.TokenType.*;
 
 
-public class Parser {
+public class ParserOld {
     private List<Token> remainder;
 
-    public Parser() {
+    public ParserOld() {
         this.remainder = new ArrayList<>();
     }
 
@@ -25,7 +25,7 @@ public class Parser {
         return remainder.isEmpty();
     }
 
-    public Parser feed(List<Token> tokens) {
+    public ParserOld feed(List<Token> tokens) {
         remainder.addAll(tokens);
         return this;
     }
@@ -402,6 +402,6 @@ public class Parser {
     }
 
     public static Stream<ASTStmt> parse(List<Token> tokens) {
-        return new Parser().feed(tokens).parse().stream();
+        return new ParserOld().feed(tokens).parse().stream();
     }
 }
