@@ -3,6 +3,9 @@ package dev.foltz.mooselang.ast;
 import dev.foltz.mooselang.ast.expression.*;
 import dev.foltz.mooselang.ast.expression.literals.*;
 import dev.foltz.mooselang.ast.statement.*;
+import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
+import dev.foltz.mooselang.ast.typing.ASTTypeName;
+import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
 
 import java.util.function.Function;
 
@@ -34,77 +37,31 @@ public class ASTDefaultVisitor<T> implements ASTVisitor<T> {
     }
 
     @Override
-    public T visit(ASTExprList node) {
-        return defaultOp.apply(node);
-    }
-
-    @Override
     public T visit(ASTExprName node) {
         return defaultOp.apply(node);
     }
 
-    @Override
-    public T visit(ASTExprCall node) {
-        return defaultOp.apply(node);
-    }
 
-    @Override
-    public T visit(ASTExprBlock node) {
-        return defaultOp.apply(node);
-    }
-
-    @Override
-    public T visit(ASTExprAssign node) {
-        return defaultOp.apply(node);
-    }
-
-    @Override
-    public T visit(ASTExprLetIn node) {
-        return defaultOp.apply(node);
-    }
-
-    @Override
-    public T visit(ASTExprIfThenElse node) {
-        return defaultOp.apply(node);
-    }
-
-    @Override
-    public T visit(ASTExprForInThenElse node) {
-        return defaultOp.apply(node);
-    }
-
-    @Override
-    public T visit(ASTExprLambda node) {
-        return defaultOp.apply(node);
-    }
-
-    @Override
-    public T visit(ASTExprNegate node) {
-        return defaultOp.apply(node);
-    }
-
-    @Override
-    public T visit(ASTStmtExpr node) {
-        return defaultOp.apply(node);
-    }
-
-    @Override
-    public T visit(ASTStmtFuncDef node) {
-        return defaultOp.apply(node);
-    }
 
     @Override
     public T visit(ASTStmtLet node) {
         return defaultOp.apply(node);
     }
 
+
+
     @Override
-    public T visit(ASTStmtIfDo node) {
+    public T visit(ASTTypeName node) {
         return defaultOp.apply(node);
     }
 
     @Override
-    public T visit(ASTStmtForInDo node) {
+    public T visit(ASTTypeUnion node) {
+        return defaultOp.apply(node);
+    }
+
+    @Override
+    public T visit(ASTTypeLiteral node) {
         return defaultOp.apply(node);
     }
 }

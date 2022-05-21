@@ -1,9 +1,14 @@
-package dev.foltz.mooselang.ast.statement;
+package dev.foltz.mooselang.ast.typing;
 
 import dev.foltz.mooselang.ast.ASTVisitor;
 import dev.foltz.mooselang.ast.expression.ASTExpr;
 
-public record ASTStmtExpr(ASTExpr expr) implements ASTStmt {
+public class ASTTypeLiteral implements ASTType {
+    public ASTExpr literal;
+
+    public ASTTypeLiteral(ASTExpr literal) {
+        this.literal = literal;
+    }
 
     @Override
     public <T> T accept(ASTVisitor<T> visitor) {

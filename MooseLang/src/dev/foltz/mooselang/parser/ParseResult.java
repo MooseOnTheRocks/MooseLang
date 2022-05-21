@@ -1,10 +1,6 @@
 package dev.foltz.mooselang.parser;
 
-import dev.foltz.mooselang.tokenizer.Token;
-
-import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.function.Function;
 
 public abstract class ParseResult<T> {
@@ -15,6 +11,8 @@ public abstract class ParseResult<T> {
     }
 
     public abstract T get();
+
+    public abstract String getMsg();
 
     public abstract <R> ParseResult<R> map(Function<T, R> f);
 
@@ -28,8 +26,8 @@ public abstract class ParseResult<T> {
         return new Success<>(state, value);
     }
 
-    public static <T> ParseResult<T> failure(ParseState state) {
-        return new Failure<>(state);
+    public static <T> ParseResult<T> failure(ParseState state, String errorMsg) {
+        return new Failure<>(state, errorMsg);
     }
 
     public static final class Success<T> extends ParseResult<T> {
@@ -54,11 +52,19 @@ public abstract class ParseResult<T> {
         public T get() {
             return value;
         }
+
+        @Override
+        public String getMsg() {
+            return "Successful";
+        }
     }
 
     public static final class Failure<T> extends ParseResult<T> {
-        private Failure(ParseState state) {
+        public final String errorMsg;
+
+        private Failure(ParseState state, String errorMsg) {
             super(state);
+            this.errorMsg = errorMsg;
         }
 
         @Override
@@ -68,12 +74,17 @@ public abstract class ParseResult<T> {
 
         @Override
         public <R> ParseResult<R> map(Function<T, R> f) {
-            return failure(state);
+            return failure(state, errorMsg);
         }
 
         @Override
         public T get() {
             throw new NoSuchElementException("get() on failed parse result.");
+        }
+
+        @Override
+        public String getMsg() {
+            return errorMsg;
         }
     }
 }

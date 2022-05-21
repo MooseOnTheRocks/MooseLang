@@ -2,29 +2,30 @@ package dev.foltz.mooselang.ast;
 
 import dev.foltz.mooselang.ast.expression.*;
 import dev.foltz.mooselang.ast.expression.literals.*;
-import dev.foltz.mooselang.ast.expression.ASTExprName;
 import dev.foltz.mooselang.ast.statement.*;
+import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
+import dev.foltz.mooselang.ast.typing.ASTTypeName;
+import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
 
 public interface ASTVisitor<T> {
+    // == Expressions
+    // -- Literals (value and type known)
     T visit(ASTExprNone node);
     T visit(ASTExprBool node);
     T visit(ASTExprInt node);
     T visit(ASTExprString node);
-    T visit(ASTExprList node);
-
+    // -- Named reference (lookup type & value in context)
     T visit(ASTExprName node);
-    T visit(ASTExprCall node);
-    T visit(ASTExprBlock node);
-    T visit(ASTExprAssign node);
-    T visit(ASTExprLetIn node);
-    T visit(ASTExprIfThenElse node);
-    T visit(ASTExprForInThenElse node);
-    T visit(ASTExprLambda node);
-    T visit(ASTExprNegate node);
 
-    T visit(ASTStmtExpr node);
-    T visit(ASTStmtFuncDef node);
+    // == Statements
+    // -- Let binding (bind type & value to context)
     T visit(ASTStmtLet node);
-    T visit(ASTStmtIfDo node);
-    T visit(ASTStmtForInDo node);
+
+    // == Typing
+    // -- Named type (lookup type definition in context)
+    T visit(ASTTypeName node);
+    // -- Union type
+    T visit(ASTTypeUnion node);
+    // -- Literal type (singleton type of given value)
+    T visit(ASTTypeLiteral node);
 }

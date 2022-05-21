@@ -1,12 +1,11 @@
-package dev.foltz.mooselang.ast.expression;
+package dev.foltz.mooselang.ast.typing;
 
-import dev.foltz.mooselang.ast.ASTNode;
 import dev.foltz.mooselang.ast.ASTVisitor;
 
-public class ASTExprName extends ASTExprWithTypeHint {
+public class ASTTypeName implements ASTType {
     public final String name;
 
-    public ASTExprName(String name) {
+    public ASTTypeName(String name) {
         this.name = name;
     }
 

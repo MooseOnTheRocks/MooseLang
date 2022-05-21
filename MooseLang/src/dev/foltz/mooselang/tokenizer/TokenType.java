@@ -13,6 +13,7 @@ public enum TokenType {
     T_KW_IF,
     T_KW_THEN,
     T_KW_ELSE,
+    T_KW_TYPE,
 
 
     T_COMMENT,
@@ -26,11 +27,13 @@ public enum TokenType {
 
     T_ELLIPSES,
     T_FAT_ARROW,
+    T_COLON,
 
     T_MINUS,
     T_DOT,
     T_EQUALS,
     T_COMMA,
+    T_BAR,
 
     T_LPAREN,
     T_RPAREN,

@@ -1,19 +1,17 @@
 package dev.foltz.mooselang.ast;
 
-import dev.foltz.mooselang.ast.expression.ASTExprBlock;
-import dev.foltz.mooselang.ast.expression.ASTExprCall;
-import dev.foltz.mooselang.ast.expression.ASTExprName;
+import dev.foltz.mooselang.ast.expression.*;
+import dev.foltz.mooselang.ast.expression.literals.ASTExprBool;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprInt;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprList;
+import dev.foltz.mooselang.ast.expression.literals.ASTExprNone;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprString;
-import dev.foltz.mooselang.ast.statement.ASTStmtExpr;
-import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
+import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
+import dev.foltz.mooselang.ast.typing.ASTTypeName;
+import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
     private final StringBuilder sb;
@@ -21,11 +19,6 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
     public ASTPrinter() {
         super((astNode) -> { throw new UnsupportedOperationException("Printer cannot visit " + astNode); });
         sb = new StringBuilder();
-    }
-
-    public static String print(ASTNode node) {
-        ASTPrinter printer = new ASTPrinter();
-        return node.accept(printer).toString();
     }
 
     protected void emit() {
@@ -53,53 +46,43 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
         }
     }
 
+    public static String print(ASTNode node) {
+        ASTPrinter printer = new ASTPrinter();
+        return node.accept(printer).toString();
+    }
+
+    @Override
+    public StringBuilder visit(ASTStmtLet node) {
+        emit("StmtLet(", node.name, ", ", node.body, ")");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTExprNone node) {
+        emit("ExprNone()");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTExprBool node) {
+        emit("ExprBool(", node.value(), ")");
+        return sb;
+    }
+
     @Override
     public StringBuilder visit(ASTExprInt node) {
-        emit("ExprInt(");
-        emit(node.value());
-        emit(")");
+        emit("ExprInt(", node.value(), ")");
         return sb;
     }
 
     @Override
     public StringBuilder visit(ASTExprName node) {
-        emit("ExprName(", node.value(), ")");
-        return sb;
-    }
-
-    @Override
-    public StringBuilder visit(ASTStmtLet node) {
-        emit("StmtLet(", node.name(), ", ", node.expr(), ")");
-        return sb;
-    }
-
-    @Override
-    public StringBuilder visit(ASTStmtExpr node) {
-        emit("StmtExpr(", node.expr(), ")");
-        return sb;
-    }
-
-    @Override
-    public StringBuilder visit(ASTExprBlock node) {
-        emit("ExprBlock(");
-        emitJoin(", ", node.stmts());
-        emit(")");
-        return sb;
-    }
-
-    @Override
-    public StringBuilder visit(ASTStmtFuncDef node) {
-        emit("StmtFuncDef(", node.name(), ", (");
-        emitJoin(", ", node.params());
-        emit("), ", node.body(), ")");
-        return sb;
-    }
-
-    @Override
-    public StringBuilder visit(ASTExprCall node) {
-        emit("ExprCall(", node.name(), ", (");
-        emitJoin(", ", node.params());
-        emit("))");
+        if (node.typeHint().isPresent()) {
+            emit("ExprName(", node.name, ": ", node.typeHint().get(), ")");
+        }
+        else {
+            emit("ExprName(", node.name, ")");
+        }
         return sb;
     }
 
@@ -110,10 +93,22 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
     }
 
     @Override
-    public StringBuilder visit(ASTExprList node) {
-        emit("ExprList(");
-        emitJoin(", ", node.elements());
+    public StringBuilder visit(ASTTypeName node) {
+        emit("TypeName(", node.name, ")");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTTypeUnion node) {
+        emit("TypeUnion(");
+        emitJoin(", ", node.types);
         emit(")");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTTypeLiteral node) {
+        emit("TypeLiteral(", node.literal, ")");
         return sb;
     }
 }

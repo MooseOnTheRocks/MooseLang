@@ -1,12 +1,14 @@
 package dev.foltz.mooselang.tokenizer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static dev.foltz.mooselang.tokenizer.TokenType.*;
-import static java.util.Map.entry;
 
 
 public class Tokenizer {
@@ -16,16 +18,8 @@ public class Tokenizer {
         TOKEN_PARSERS.put(T_NEWLINE, buildSpan(Tokenizer::isNewline));
         TOKEN_PARSERS.put(T_WHITESPACE, buildSpan(Tokenizer::isWhitespace));
 
-//        TOKEN_PARSERS.put(T_KW_LET, buildMatch("let"));
-//        TOKEN_PARSERS.put(T_KW_DEF, buildMatch("def"));
-//        TOKEN_PARSERS.put(T_KW_FOR, buildMatch("for"));
-//        TOKEN_PARSERS.put(T_KW_IN, buildMatch("in"));
-
         TOKEN_PARSERS.put(T_COMMENT, Tokenizer::matchComment);
-        TOKEN_PARSERS.put(T_NONE, buildMatch("None"));
-        TOKEN_PARSERS.put(T_TRUE, buildMatch("True"));
-        TOKEN_PARSERS.put(T_FALSE, buildMatch("False"));
-        TOKEN_PARSERS.put(T_NUMBER, buildSpan(Tokenizer::isNum));
+        TOKEN_PARSERS.put(T_NUMBER, Tokenizer::matchNumber);
         TOKEN_PARSERS.put(T_CHAR, Tokenizer::matchChar);
         TOKEN_PARSERS.put(T_STRING, Tokenizer::matchString);
         TOKEN_PARSERS.put(T_NAME, buildSpan(
@@ -34,11 +28,13 @@ public class Tokenizer {
 
         TOKEN_PARSERS.put(T_ELLIPSES, buildMatch(".."));
         TOKEN_PARSERS.put(T_FAT_ARROW, buildMatch("=>"));
+        TOKEN_PARSERS.put(T_COLON, buildMatch(":"));
 
         TOKEN_PARSERS.put(T_MINUS, buildMatch("-"));
         TOKEN_PARSERS.put(T_DOT, buildMatch("."));
         TOKEN_PARSERS.put(T_EQUALS, buildMatch("="));
         TOKEN_PARSERS.put(T_COMMA, buildMatch(","));
+        TOKEN_PARSERS.put(T_BAR, buildMatch("|"));
 
         TOKEN_PARSERS.put(T_LPAREN, buildMatch("("));
         TOKEN_PARSERS.put(T_RPAREN, buildMatch(")"));
@@ -96,6 +92,7 @@ public class Tokenizer {
                     case "if" -> new Token(T_KW_IF, capture, from, to, sourceMatch);
                     case "then" -> new Token(T_KW_THEN, capture, from, to, sourceMatch);
                     case "else" -> new Token(T_KW_ELSE, capture, from, to, sourceMatch);
+                    case "type" -> new Token(T_KW_TYPE, capture, from, to, sourceMatch);
                     default -> new Token(tokenParser.getKey(), capture, from, to, sourceMatch);
                 };
             }
@@ -221,5 +218,64 @@ public class Tokenizer {
             }
         }
         return index;
+    }
+
+    public static int matchBinNumber(CharSequence source) {
+        if (source.length() < 3 || !source.subSequence(0, 2).equals("0b")) {
+            return 0;
+        }
+
+        int index = 2;
+        char c = source.charAt(index);
+        while (index <= source.length() && "01".contains("" + c)) {
+            index += 1;
+            c = source.charAt(index);
+        }
+        return index > 2 ? index : 0;
+    }
+
+    public static int matchHexNumber(CharSequence source) {
+        if (source.length() < 3 || !source.subSequence(0, 2).equals("0x")) {
+            return 0;
+        }
+
+        int index = 2;
+        char c = source.charAt(index);
+        while (index <= source.length() && "0123456789abcdefABCDEF".contains("" + c)) {
+            index += 1;
+            c = source.charAt(index);
+        }
+        return index > 2 ? index : 0;
+    }
+
+    public static int matchNumber(CharSequence source) {
+        if (source.isEmpty()) {
+            return 0;
+        }
+
+        char c = source.charAt(0);
+        // Either 0 or a prefix e.g. 0x, 0b
+        if (c == '0') {
+            // Match 0
+            if (source.length() == 1) {
+                return 1;
+            }
+            c = source.charAt(1);
+            // Match 0b
+            if (c == 'b') {
+                return matchBinNumber(source);
+            }
+            // Match 0x
+            else if (c == 'x') {
+                System.out.println("HEX");
+                return matchHexNumber(source);
+            }
+            else {
+                return 1;
+            }
+        }
+
+        // Match integer
+        return buildSpan(d -> "0123456789".contains("" + d)).apply(source);
     }
 }

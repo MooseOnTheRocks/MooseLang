@@ -3,34 +3,110 @@ package dev.foltz.mooselang.parser;
 import dev.foltz.mooselang.ast.expression.ASTExpr;
 import dev.foltz.mooselang.ast.expression.ASTExprName;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprInt;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprList;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprString;
 import dev.foltz.mooselang.ast.statement.ASTStmt;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
+import dev.foltz.mooselang.ast.typing.ASTType;
+import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
+import dev.foltz.mooselang.ast.typing.ASTTypeName;
+import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
+import dev.foltz.mooselang.parser.expression.ExpressionParsers;
+import dev.foltz.mooselang.parser.statement.StatementParsers;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
+import dev.foltz.mooselang.typing.type.builtin.BuiltinTypes;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static dev.foltz.mooselang.parser.ParseResult.failure;
 import static dev.foltz.mooselang.parser.ParseResult.success;
+import static dev.foltz.mooselang.parser.expression.ExpressionParsers.parseExprBool;
+import static dev.foltz.mooselang.parser.expression.ExpressionParsers.parseExprNone;
 
 public class Parsers {
+    public static final IParser<List<ASTStmt>> parseProgram = StatementParsers.parseProgram;
+    public static final IParser<ASTStmt> parseStmt = StatementParsers.parseStmt;
+    public static final IParser<ASTStmtLet> parseStmtLet = StatementParsers.parseStmtLet;
 
-    public static final IParser<ASTExprInt> parseExprInt = Parsers::parseExprInt;
-    public static final IParser<ASTExprString> parseExprString = Parsers::parseExprString;
-    public static final IParser<ASTExprName> parseExprName = Parsers::parseExprName;
-    public static final IParser<ASTExprList> parseExprList = Parsers::parseExprList;
-    public static final IParser<ASTExpr> parseExpr = Parsers::parseExpr;
+    public static final IParser<ASTExpr> parseExpr = ExpressionParsers.parseExpr;
+    public static final IParser<ASTExprInt> parseExprInt = ExpressionParsers.parseExprInt;
+    public static final IParser<ASTExprString> parseExprString = ExpressionParsers.parseExprString;
+    public static final IParser<ASTExprName> parseExprName = ExpressionParsers.parseExprName;
+    public static final IParser<ASTExprName> parseExprNameWithType = ExpressionParsers.parseExprNameWithType;
+    public static final IParser<ASTType> parseTypeAnnotation = ExpressionParsers.parseTypeAnnotation;
 
-    public static final IParser<ASTStmtLet> parseStmtLet = Parsers::parseStmtLet;
-    public static final IParser<ASTStmt> parseStmt = Parsers::parseStmt;
+    public static final IParser<ASTType> parseTypeTopLevel = Parsers::parseTypeTopLevel;
+    public static final IParser<ASTType> parseType = Parsers::parseType;
+    public static final IParser<ASTTypeName> parseTypeName = Parsers::parseTypeName;
+    public static final IParser<ASTTypeUnion> parseTypeUnion = Parsers::parseTypeUnion;
+    public static final IParser<ASTType> parseTypeLiteral = Parsers::parseTypeLiteral;
+
+    public static ParseResult<ASTTypeName> parseTypeName(ParseState state) {
+        return parseExprName.map(name -> new ASTTypeName(name.name)).parse(state);
+    }
+
+    public static ParseResult<ASTTypeUnion> parseTypeUnion(ParseState state) {
+        return sepBy1(parseType, expect("|")).map(types -> new ASTTypeUnion((List<ASTType>) types)).parse(state);
+    }
+
+    public static ParseResult<ASTType> parseTypeLiteral(ParseState state) {
+        return any(
+            parseExprNone.map(n -> BuiltinTypes.TYPE_NONE),
+            parseExprBool.map(ASTTypeLiteral::new),
+            parseExprInt.map(ASTTypeLiteral::new),
+            parseExprString.map(ASTTypeLiteral::new)
+        ).map(t -> (ASTType) t).parse(state);
+    }
+
+    public static ParseResult<ASTType> parseType(ParseState state) {
+        return any(
+            parseTypeName,
+            parseTypeLiteral
+        ).map(t -> (ASTType) t).parse(state);
+    }
+
+    public static ParseResult<ASTType> parseTypeTopLevel(ParseState state) {
+        return any(
+            parseTypeUnion,
+            parseType
+        ).map(t -> (ASTType) t).parse(state);
+    }
+
+    public static IParser<Token> expect(TokenType type, String value) {
+        return state -> {
+            if (state.isEmpty()) {
+                return failure(state, "expect(" + type + ", " + value + ") failed, state is empty");
+            }
+
+            Token token = state.peek();
+            if (token.type == type && token.value.equals(value)) {
+                return success(state.next(), token);
+            }
+
+            return failure(state, "expect(" + type + ", " + value + ") failed, next token is " + token);
+        };
+    }
+
+    public static IParser<Token> expect(String value) {
+        return state -> {
+            if (state.isEmpty()) {
+                return failure(state, "expect(" + value + ") failed, state is empty.");
+            }
+
+            Token token = state.peek();
+            if (value.equals(token.value)) {
+                return success(state.next(), token);
+            }
+
+            return failure(state, "expect(" + value +") failed, next token is " + token);
+        };
+    }
 
     public static IParser<Token> expect(TokenType type) {
         return state -> {
             if (state.isEmpty()) {
-                return failure(state);
+                return failure(state, "expect(" + type.name() + ") failed, state is empty.");
             }
 
             Token token = state.peek();
@@ -38,18 +114,25 @@ public class Parsers {
                 return success(state.next(), token);
             }
 
-            return failure(state);
+            return failure(state, "expect(" + type.name() + ") failed, next token is " + token);
         };
     }
 
-    public static IParser<List<?>> sequence(List<IParser<?>> parsers) {
+    public static <T> IParser<T> optional(IParser<T> p) {
+        return state -> {
+            var r = p.parse(state);
+            return r.isSuccess() ? r : success(state, null);
+        };
+    }
+
+    public static IParser<List<?>> sequence(IParser<?> ...parsers) {
         return state -> {
             List<Object> results = new ArrayList<>();
             ParseResult<?> r = success(state, null);
             for (IParser<?> p : parsers) {
                 r = p.parse(r.state);
                 if (r.failed()) {
-                    return failure(r.state);
+                    return failure(r.state, "sequence(...) failed: " + r.getMsg());
                 }
                 results.add(r.get());
             }
@@ -57,7 +140,7 @@ public class Parsers {
         };
     }
 
-    public static IParser<Object> any(List<IParser<?>> parsers) {
+    public static IParser<Object> any(IParser<?> ...parsers) {
         return state -> {
             for (IParser<?> p : parsers) {
                 var r = p.parse(state);
@@ -65,7 +148,7 @@ public class Parsers {
                     return success(r.state, r.get());
                 }
             }
-            return failure(state);
+            return failure(state, "any(...) failed");
         };
     }
 
@@ -81,77 +164,49 @@ public class Parsers {
         };
     }
 
-    public static ParseResult<ASTExprInt> parseExprInt(ParseState state) {
-        return expect(TokenType.T_NUMBER).parse(state)
-                .map(t -> new ASTExprInt(Integer.parseInt(t.value)));
+    public static IParser<List<?>> all(IParser<?> parser) {
+        return state -> {
+            List<Object> results = new ArrayList<>();
+            var r = parser.parse(state);
+            while (r.isSuccess()) {
+                results.add(r.get());
+                r = parser.parse(r.state);
+            }
+            if (r.failed() && r.state.isEmpty()) {
+                return success(r.state, results);
+            }
+            return failure(r.state, "all(...) failed: " + r.getMsg());
+        };
     }
 
-    public static ParseResult<ASTExprString> parseExprString(ParseState state) {
-        return expect(TokenType.T_STRING).parse(state)
-                .map(t -> new ASTExprString(t.value));
+    public static IParser<List<?>> many1(IParser<?> parser) {
+        return sequence(parser, many(parser)).map(objs -> {
+            List<Object> ls = new ArrayList<>();
+            ls.add(objs.get(0));
+            ls.addAll((List<?>) objs.get(1));
+            return ls;
+        });
     }
 
-    public static ParseResult<ASTExprName> parseExprName(ParseState state) {
-        return expect(TokenType.T_NAME).parse(state)
-                .map(t -> new ASTExprName(t.value));
+    public static <T> IParser<List<T>> sepBy1(IParser<T> parser, IParser<?> sep) {
+        var sepThenP = sequence(sep, parser).map(objs -> (T) objs.get(1));
+        return sequence(parser, many1(sepThenP))
+            .map(objs -> {
+                List<T> results = new ArrayList<>();
+                results.add((T) objs.get(0));
+                results.addAll((List<T>) objs.get(1));
+                return results;
+            });
     }
 
-    public static ParseResult<ASTExprList> parseExprList(ParseState state) {
-        var r1 = expect(TokenType.T_LBRACKET).parse(state);
-        if (r1.failed()) {
-            return failure(r1.state);
-        }
-
-        List<ASTExpr> exprs = new ArrayList<>();
-        var nextExpr = parseExpr(r1.state);
-        if (nextExpr.isSuccess()) {
-            exprs.add(nextExpr.get());
-            var comma = expect(TokenType.T_COMMA).parse(nextExpr.state);
-            do {
-                nextExpr = parseExpr(comma.state);
-                if (nextExpr.failed()) {
-                    return failure(nextExpr.state);
-                }
-                exprs.add(nextExpr.get());
-                comma = expect(TokenType.T_COMMA).parse(nextExpr.state);
-            } while (comma.isSuccess());
-        }
-
-        var r2 = expect(TokenType.T_RBRACKET).parse(nextExpr.failed() ? r1.state : nextExpr.state);
-        if (r2.failed()) {
-            return failure(r2.state);
-        }
-
-        return success(r2.state, new ASTExprList(exprs));
-    }
-
-    public static ParseResult<ASTExpr> parseExpr(ParseState state) {
-        List<IParser<?>> exprs = List.of(
-                parseExprInt,
-                parseExprString,
-                parseExprList
-        );
-        return any(exprs).parse(state).map(expr -> (ASTExpr) expr);
-    }
-
-    public static ParseResult<ASTStmtLet> parseStmtLet(ParseState state) {
-        return sequence(List.of(
-                expect(TokenType.T_KW_LET),
-                parseExprName,
-                expect(TokenType.T_EQUALS),
-                parseExpr
-        )).map(objs -> {
-            var name = (ASTExprName) objs.get(1);
-            var expr = (ASTExpr) objs.get(3);
-            return new ASTStmtLet(name, expr);
-        }).parse(state);
-    }
-
-    public static ParseResult<ASTStmt> parseStmt(ParseState state) {
-        List<IParser<?>> stmts = List.of(
-                parseStmtLet
-        );
-
-        return any(stmts).parse(state).map(stmt -> (ASTStmt) stmt);
+    public static <T> IParser<List<T>> sepBy(IParser<T> parser, IParser<?> sep) {
+        var sepThenP = sequence(sep, parser).map(objs -> (T) objs.get(1));
+        return sequence(parser, many(sepThenP))
+            .map(objs -> {
+                List<T> results = new ArrayList<>();
+                results.add((T) objs.get(0));
+                results.addAll((List<T>) objs.get(1));
+                return results;
+            });
     }
 }
