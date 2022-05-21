@@ -1,4 +1,4 @@
-package dev.foltz.mooselang.parser.statement;
+package dev.foltz.mooselang.parser.parsers;
 
 import dev.foltz.mooselang.ast.expression.ASTExpr;
 import dev.foltz.mooselang.ast.expression.ASTExprName;
@@ -12,7 +12,7 @@ import dev.foltz.mooselang.tokenizer.TokenType;
 import java.util.List;
 
 import static dev.foltz.mooselang.parser.ParseResult.failure;
-import static dev.foltz.mooselang.parser.Parsers.*;
+import static dev.foltz.mooselang.parser.parsers.Parsers.*;
 
 public class StatementParsers {
     public static final IParser<List<ASTStmt>> parseProgram = StatementParsers::parseProgram;

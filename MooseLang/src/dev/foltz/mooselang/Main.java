@@ -13,7 +13,7 @@ import dev.foltz.mooselang.typing.type.literal.TypeLiteralInt;
 
 import java.util.List;
 
-import static dev.foltz.mooselang.parser.Parsers.parseProgram;
+import static dev.foltz.mooselang.parser.parsers.Parsers.parseProgram;
 
 public class Main {
     public static void main(String[] args) {

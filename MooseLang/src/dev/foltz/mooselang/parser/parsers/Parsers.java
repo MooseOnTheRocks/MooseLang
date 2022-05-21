@@ -1,4 +1,4 @@
-package dev.foltz.mooselang.parser;
+package dev.foltz.mooselang.parser.parsers;
 
 import dev.foltz.mooselang.ast.expression.ASTExpr;
 import dev.foltz.mooselang.ast.expression.ASTExprName;
@@ -10,8 +10,9 @@ import dev.foltz.mooselang.ast.typing.ASTType;
 import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
 import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
-import dev.foltz.mooselang.parser.expression.ExpressionParsers;
-import dev.foltz.mooselang.parser.statement.StatementParsers;
+import dev.foltz.mooselang.parser.IParser;
+import dev.foltz.mooselang.parser.ParseResult;
+import dev.foltz.mooselang.parser.ParseState;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
 import dev.foltz.mooselang.typing.type.builtin.BuiltinTypes;
@@ -21,8 +22,8 @@ import java.util.List;
 
 import static dev.foltz.mooselang.parser.ParseResult.failure;
 import static dev.foltz.mooselang.parser.ParseResult.success;
-import static dev.foltz.mooselang.parser.expression.ExpressionParsers.parseExprBool;
-import static dev.foltz.mooselang.parser.expression.ExpressionParsers.parseExprNone;
+import static dev.foltz.mooselang.parser.parsers.ExpressionParsers.parseExprBool;
+import static dev.foltz.mooselang.parser.parsers.ExpressionParsers.parseExprNone;
 
 public class Parsers {
     public static final IParser<List<ASTStmt>> parseProgram = StatementParsers.parseProgram;

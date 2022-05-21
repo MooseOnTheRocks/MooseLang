@@ -1,4 +1,4 @@
-package dev.foltz.mooselang.parser.expression;
+package dev.foltz.mooselang.parser.parsers;
 
 import dev.foltz.mooselang.ast.expression.ASTExpr;
 import dev.foltz.mooselang.ast.expression.ASTExprName;
@@ -13,7 +13,7 @@ import dev.foltz.mooselang.parser.ParseState;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
 
-import static dev.foltz.mooselang.parser.Parsers.*;
+import static dev.foltz.mooselang.parser.parsers.Parsers.*;
 
 public class ExpressionParsers {
     public static final IParser<ASTExpr> parseExpr = ExpressionParsers::parseExpr;
