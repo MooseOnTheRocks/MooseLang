@@ -5,6 +5,7 @@ import dev.foltz.mooselang.ast.expression.literals.*;
 import dev.foltz.mooselang.ast.statement.*;
 import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
+import dev.foltz.mooselang.ast.typing.ASTTypeRecord;
 import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
 
 import java.util.function.Function;
@@ -33,6 +34,11 @@ public class ASTDefaultVisitor<T> implements ASTVisitor<T> {
 
     @Override
     public T visit(ASTExprString node) {
+        return defaultOp.apply(node);
+    }
+
+    @Override
+    public T visit(ASTExprRecord node) {
         return defaultOp.apply(node);
     }
 
@@ -80,6 +86,11 @@ public class ASTDefaultVisitor<T> implements ASTVisitor<T> {
 
     @Override
     public T visit(ASTTypeUnion node) {
+        return defaultOp.apply(node);
+    }
+
+    @Override
+    public T visit(ASTTypeRecord node) {
         return defaultOp.apply(node);
     }
 

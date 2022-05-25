@@ -5,6 +5,7 @@ import dev.foltz.mooselang.ast.expression.literals.*;
 import dev.foltz.mooselang.ast.statement.*;
 import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
+import dev.foltz.mooselang.ast.typing.ASTTypeRecord;
 import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
 
 public interface ASTVisitor<T> {
@@ -14,6 +15,7 @@ public interface ASTVisitor<T> {
     T visit(ASTExprBool node);
     T visit(ASTExprInt node);
     T visit(ASTExprString node);
+    T visit(ASTExprRecord node);
     // -- Named reference (lookup type & value in context)
     T visit(ASTExprName node);
     // -- If _ Then _ Else _
@@ -36,6 +38,8 @@ public interface ASTVisitor<T> {
     T visit(ASTTypeName node);
     // -- Union type
     T visit(ASTTypeUnion node);
+    // -- Record type
+    T visit(ASTTypeRecord node);
     // -- Literal type (singleton type of given value)
     T visit(ASTTypeLiteral node);
 }

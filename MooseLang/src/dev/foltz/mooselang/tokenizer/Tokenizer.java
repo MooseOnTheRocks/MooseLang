@@ -112,6 +112,7 @@ public class Tokenizer {
                         case "then" -> new Token(T_KW_THEN, capture, from, to, sourceMatch);
                         case "else" -> new Token(T_KW_ELSE, capture, from, to, sourceMatch);
                         case "type" -> new Token(T_KW_TYPE, capture, from, to, sourceMatch);
+                        case "new" -> new Token(T_KW_NEW, capture, from, to, sourceMatch);
                         default -> new Token(tokenParser.getKey(), capture, from, to, sourceMatch);
                     };
                 }

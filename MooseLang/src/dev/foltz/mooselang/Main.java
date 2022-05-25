@@ -25,8 +25,8 @@ public class Main {
 
         // -- Program source
         String program = """
-            type Person = { fname: String, lname: String }
-            def Person(fname': String, lname': String) = new { fname = fname', lname = lname'}
+            type Person = { fname: String, lname: String, age: Int }
+            let p = new { fname = "Sam", lname = "Foltz", age = 10, job = "Miner" }: Person
             """;
 
         System.out.println("== Program Source");
@@ -63,7 +63,8 @@ public class Main {
             entry("Any", AnyType.INSTANCE),
             entry("Int", TypeInt.INSTANCE),
             entry("Bool", TypeBool.INSTANCE),
-            entry("None", TypeNone.INSTANCE)
+            entry("None", TypeNone.INSTANCE),
+            entry("String", TypeString.INSTANCE)
         );
 
         Map<String, Type> globals = Map.ofEntries(

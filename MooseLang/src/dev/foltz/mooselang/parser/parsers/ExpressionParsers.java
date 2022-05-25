@@ -1,10 +1,7 @@
 package dev.foltz.mooselang.parser.parsers;
 
 import dev.foltz.mooselang.ast.expression.*;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprBool;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprInt;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprNone;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprString;
+import dev.foltz.mooselang.ast.expression.literals.*;
 import dev.foltz.mooselang.ast.typing.ASTType;
 import dev.foltz.mooselang.parser.IParser;
 import dev.foltz.mooselang.parser.ParseResult;
@@ -12,7 +9,10 @@ import dev.foltz.mooselang.parser.ParseState;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
 
+import java.util.AbstractMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static dev.foltz.mooselang.parser.parsers.Parsers.*;
 
@@ -28,6 +28,7 @@ public class ExpressionParsers {
     public static final IParser<ASTExprTyped<ASTExprName>> parseExprNameWithType = ExpressionParsers::parseExprNameWithType;
     public static final IParser<ASTExprCall> parseExprBinOp = ExpressionParsers::parseExprBinOp;
     public static final IParser<ASTExprCall> parseExprCall = ExpressionParsers::parseExprCall;
+    public static final IParser<ASTExprRecord> parseExprRecord = ExpressionParsers::parseExprRecord;
 
     public static final IParser<ASTType> parseTypeAnnotation = ExpressionParsers::parseTypeAnnotation;
 
@@ -129,6 +130,7 @@ public class ExpressionParsers {
             parseExprBool,
             parseExprInt,
             parseExprString,
+            parseExprRecord,
             parseExprCall,
             parseExprName,
             parseExprIfThenElse,
@@ -168,6 +170,26 @@ public class ExpressionParsers {
             var exprTrue = (ASTExpr) objs.get(3);
             var exprFalse = (ASTExpr) objs.get(5);
             return new ASTExprIfThenElse(predicate, exprTrue, exprFalse);
+        }).parse(state);
+    }
+
+    public static ParseResult<ASTExprRecord> parseExprRecord(ParseState state) {
+        return sequence(
+            expect("new"),
+            expect("{"),
+            sepBy1(
+                sequence(
+                    parseExprName,
+                    expect("="),
+                    parseExpr
+                ).map(objs -> List.of(objs.get(0), objs.get(2))),
+                expect(",")
+            ),
+            expect("}")
+        ).map(objs -> {
+            var nameValues = (List<List<ASTExpr>>) objs.get(2);
+            var fields = nameValues.stream().map(tn -> new AbstractMap.SimpleEntry<>((ASTExprName) tn.get(0), (ASTExpr) tn.get(1)));
+            return new ASTExprRecord(fields.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         }).parse(state);
     }
 }

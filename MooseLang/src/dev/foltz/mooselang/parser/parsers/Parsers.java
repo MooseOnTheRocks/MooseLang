@@ -4,23 +4,24 @@ import dev.foltz.mooselang.ast.expression.ASTExpr;
 import dev.foltz.mooselang.ast.expression.ASTExprName;
 import dev.foltz.mooselang.ast.expression.ASTExprTyped;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprInt;
+import dev.foltz.mooselang.ast.expression.literals.ASTExprRecord;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprString;
 import dev.foltz.mooselang.ast.statement.ASTStmt;
 import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
 import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
-import dev.foltz.mooselang.ast.typing.ASTType;
-import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
-import dev.foltz.mooselang.ast.typing.ASTTypeName;
-import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
+import dev.foltz.mooselang.ast.typing.*;
 import dev.foltz.mooselang.parser.IParser;
 import dev.foltz.mooselang.parser.ParseResult;
 import dev.foltz.mooselang.parser.ParseState;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static dev.foltz.mooselang.parser.ParseResult.failure;
 import static dev.foltz.mooselang.parser.ParseResult.success;
@@ -42,11 +43,13 @@ public class Parsers {
     public static final IParser<ASTExprName> parseExprName = ExpressionParsers.parseExprName;
     public static final IParser<ASTExprTyped<ASTExprName>> parseExprNameWithType = ExpressionParsers.parseExprNameWithType;
     public static final IParser<ASTType> parseTypeAnnotation = ExpressionParsers.parseTypeAnnotation;
+    public static final IParser<ASTExprRecord> parseExprRecord = ExpressionParsers.parseExprRecord;
 
     public static final IParser<ASTType> parseTypeTopLevel = Parsers::parseTypeTopLevel;
     public static final IParser<ASTType> parseType = Parsers::parseType;
     public static final IParser<ASTTypeName> parseTypeName = Parsers::parseTypeName;
     public static final IParser<ASTTypeUnion> parseTypeUnion = Parsers::parseTypeUnion;
+    public static final IParser<ASTTypeRecord> parseTypeRecord = Parsers::parseTypeRecord;
     public static final IParser<ASTType> parseTypeLiteral = Parsers::parseTypeLiteral;
 
     public static ParseResult<ASTTypeName> parseTypeName(ParseState state) {
@@ -55,6 +58,22 @@ public class Parsers {
 
     public static ParseResult<ASTTypeUnion> parseTypeUnion(ParseState state) {
         return sepBy1(parseType, expect("|")).map(types -> new ASTTypeUnion((List<ASTType>) types)).parse(state);
+    }
+
+    public static ParseResult<ASTTypeRecord> parseTypeRecord(ParseState state) {
+        return sequence(
+            expect("{"),
+            sepBy1(
+                parseExprNameWithType,
+                expect(",")
+            ),
+            expect("}")
+        ).map(objs -> {
+            var typedNames = (List<ASTExprTyped<ASTExprName>>) objs.get(1);
+            var fieldTypes = typedNames.stream()
+                .map(tn -> new AbstractMap.SimpleEntry<>(tn.expr, tn.type));
+            return new ASTTypeRecord(fieldTypes.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        }).parse(state);
     }
 
     public static ParseResult<ASTType> parseTypeLiteral(ParseState state) {
@@ -76,6 +95,7 @@ public class Parsers {
     public static ParseResult<ASTType> parseTypeTopLevel(ParseState state) {
         return any(
             parseTypeUnion,
+            parseTypeRecord,
             parseType
         ).map(t -> (ASTType) t).parse(state);
     }

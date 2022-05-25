@@ -2,20 +2,17 @@ package dev.foltz.mooselang.typing;
 
 import dev.foltz.mooselang.ast.ASTDefaultVisitor;
 import dev.foltz.mooselang.ast.expression.*;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprBool;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprInt;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprNone;
+import dev.foltz.mooselang.ast.expression.literals.*;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
 import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
 import dev.foltz.mooselang.ast.typing.ASTType;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
+import dev.foltz.mooselang.ast.typing.ASTTypeRecord;
 import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
 import dev.foltz.mooselang.typing.types.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
     public final Map<String, Type> namedTypes;
@@ -54,6 +51,25 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
             }
         }
 
+        if (sub instanceof TypeRecord tuSub && sup instanceof TypeRecord tuSup) {
+            Map<String, Type> remaining = new HashMap<>(tuSup.fields);
+            for (Map.Entry<String, Type> entry : tuSub.fields.entrySet()) {
+                var name = entry.getKey();
+                var type = entry.getValue();
+                if (remaining.containsKey(name)) {
+                    if (isSubtype(type, remaining.get(name))) {
+                        remaining.remove(name);
+                    }
+                    else {
+                        System.out.println("isSubtype failed on record, field names have differing types: " + name + " :: " + type + " vs. " + remaining.get(name));
+                        return false;
+                    }
+                }
+            }
+
+            return remaining.isEmpty();
+        }
+
         return equalTypes(sub, sup);
     }
 
@@ -86,6 +102,14 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
         }
 
         return false;
+    }
+
+    @Override
+    public Type visit(ASTTypeRecord node) {
+        var fields = node.fields.entrySet().stream()
+            .map(f -> new AbstractMap.SimpleEntry<>(f.getKey().name(), evalType(f.getValue())))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        return new TypeRecord(fields);
     }
 
     @Override
@@ -169,6 +193,11 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
     }
 
     @Override
+    public Type visit(ASTExprString node) {
+        return TypeString.INSTANCE;
+    }
+
+    @Override
     public Type visit(ASTExprName node) {
         //TODO: Store map of solved type names with TypeChecker to determine previously derived types of names.
         var name = node.name();
@@ -176,6 +205,25 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
             return scopedTypedNames.get(name);
         }
         return NoType.INSTANCE;
+    }
+
+    @Override
+    public Type visit(ASTExprRecord node) {
+        var typedFields = node.fields.entrySet().stream()
+            .map(e -> {
+                var name = e.getKey();
+                var value = e.getValue();
+
+                var typeValue = evalType(value);
+                return new AbstractMap.SimpleEntry<>(name.name(), typeValue);
+            })
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        if (typedFields.values().stream().anyMatch(t -> t == NoType.INSTANCE)) {
+            return NoType.INSTANCE;
+        }
+
+        return new TypeRecord(typedFields);
     }
 
     @Override

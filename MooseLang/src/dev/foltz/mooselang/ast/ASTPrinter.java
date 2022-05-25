@@ -1,15 +1,13 @@
 package dev.foltz.mooselang.ast;
 
 import dev.foltz.mooselang.ast.expression.*;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprBool;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprInt;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprNone;
-import dev.foltz.mooselang.ast.expression.literals.ASTExprString;
+import dev.foltz.mooselang.ast.expression.literals.*;
 import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
 import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
 import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
+import dev.foltz.mooselang.ast.typing.ASTTypeRecord;
 import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
 
 import java.util.Arrays;
@@ -51,6 +49,14 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
     public static String print(ASTNode node) {
         ASTPrinter printer = new ASTPrinter();
         return node.accept(printer).toString();
+    }
+
+    @Override
+    public StringBuilder visit(ASTTypeRecord node) {
+        emit("TypeRecord(");
+        emitJoin(", ", node.fields.entrySet().stream().map(f -> f.getKey() + ": " + f.getValue()).toList());
+        emit(")");
+        return sb;
     }
 
     @Override
@@ -140,6 +146,14 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
     @Override
     public StringBuilder visit(ASTTypeLiteral node) {
         emit("TypeLiteral(", node.literal(), ")");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTExprRecord node) {
+        emit("ExprRecord(");
+        emitJoin(", ", node.fields.entrySet().stream().map(e -> e.getKey() + " = " + e.getValue()).toList());
+        emit(")");
         return sb;
     }
 }

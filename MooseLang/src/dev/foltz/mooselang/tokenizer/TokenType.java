@@ -14,6 +14,7 @@ public enum TokenType {
     T_KW_THEN,
     T_KW_ELSE,
     T_KW_TYPE,
+    T_KW_NEW,
 
 
     T_COMMENT,
