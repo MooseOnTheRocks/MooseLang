@@ -4,6 +4,7 @@ import dev.foltz.mooselang.ast.expression.ASTExprName;
 import dev.foltz.mooselang.ast.expression.ASTExprTyped;
 import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
+import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
 import dev.foltz.mooselang.typing.types.NoType;
 import dev.foltz.mooselang.typing.types.Type;
 import dev.foltz.mooselang.typing.types.TypeFunc;
@@ -94,5 +95,18 @@ public class TypeChecker {
         }
 
         return NoType.INSTANCE;
+    }
+
+    public Type typeCheck(ASTStmtTypeDef typeDef) {
+        var name = typeDef.name.name();
+        if (namedTypes.containsKey(name)) {
+            throw new IllegalStateException("Cannot redefine type: " + name);
+        }
+        var localChecker = new ASTLocalTypeChecker(namedTypes, globalTypedNames);
+        var type = localChecker.evalType(typeDef.type);
+        if (type != NoType.INSTANCE) {
+            bindType(name, type);
+        }
+        return type;
     }
 }

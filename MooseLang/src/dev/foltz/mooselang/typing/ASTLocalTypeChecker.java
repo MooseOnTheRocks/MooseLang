@@ -6,11 +6,15 @@ import dev.foltz.mooselang.ast.expression.literals.ASTExprBool;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprInt;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprNone;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
+import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
 import dev.foltz.mooselang.ast.typing.ASTType;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
+import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
 import dev.foltz.mooselang.typing.types.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
@@ -39,8 +43,15 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
         if (sup == AnyType.INSTANCE) {
             return true;
         }
+
         if (sub == NoType.INSTANCE) {
             return false;
+        }
+
+        if (sup instanceof TypeUnion tu) {
+            if (tu.types.stream().anyMatch(t -> isSubtype(sub, t))) {
+                return true;
+            }
         }
 
         return equalTypes(sub, sup);
@@ -52,6 +63,25 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
         }
 
         if (a.equals(b) || b.equals(a)) {
+            return true;
+        }
+
+        if (a instanceof TypeUnion ta && b instanceof TypeUnion tb) {
+            var tas = ta.types;
+            var tab = tb.types;
+            if (tas.size() != tab.size()) {
+                return false;
+            }
+
+            List<Type> remaining = new ArrayList<>(ta.types);
+            for (Type t : tab) {
+                int index = remaining.indexOf(t);
+                if (index == -1) {
+                    return false;
+                }
+                remaining.remove(index);
+            }
+
             return true;
         }
 
@@ -123,6 +153,12 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
     }
 
     @Override
+    public Type visit(ASTTypeUnion node) {
+        var types = node.types().stream().map(this::evalType).toList();
+        return new TypeUnion(types);
+    }
+
+    @Override
     public Type visit(ASTExprBool node) {
         return TypeBool.INSTANCE;
     }
@@ -180,5 +216,15 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
         else {
             return NoType.INSTANCE;
         }
+    }
+
+    @Override
+    public Type visit(ASTStmtTypeDef node) {
+        var name = node.name.name();
+        if (namedTypes.containsKey(name)) {
+            throw new IllegalStateException("Cannot redefine type: " + name);
+        }
+        var type = evalType(node.type);
+        return type;
     }
 }

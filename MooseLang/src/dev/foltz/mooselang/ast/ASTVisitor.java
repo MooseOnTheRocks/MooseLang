@@ -28,6 +28,8 @@ public interface ASTVisitor<T> {
     T visit(ASTStmtLet node);
     // -- Function definition
     T visit(ASTStmtFuncDef node);
+    // -- Type definition
+    T visit(ASTStmtTypeDef node);
 
     // == Typing
     // -- Named type (lookup type definition in context)

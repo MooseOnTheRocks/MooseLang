@@ -4,6 +4,7 @@ import dev.foltz.mooselang.ast.ASTPrinter;
 import dev.foltz.mooselang.ast.statement.ASTStmt;
 import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
+import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
 import dev.foltz.mooselang.parser.ParseState;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
@@ -24,12 +25,8 @@ public class Main {
 
         // -- Program source
         String program = """
-            def not(a: Bool) = if a then False else True
-            def and(a: Bool, b: Bool) = if a then if b then True else False else False
-            def or(a: Bool, b: Bool) = if a then True else if b then True else False
-            
-            let a = 20 + 2
-            let b = not(False)
+            type Person = { fname: String, lname: String }
+            def Person(fname': String, lname': String) = new { fname = fname', lname = lname'}
             """;
 
         System.out.println("== Program Source");
@@ -85,6 +82,12 @@ public class Main {
             }
             else if (stmt instanceof ASTStmtFuncDef stmtFuncDef) {
                 Type t = typeChecker.typeCheck(stmtFuncDef);
+                System.out.println(ASTPrinter.print(stmt));
+                System.out.println("    :: " + t);
+                System.out.println();
+            }
+            else if (stmt instanceof ASTStmtTypeDef stmtTypeDef) {
+                Type t = typeChecker.typeCheck(stmtTypeDef);
                 System.out.println(ASTPrinter.print(stmt));
                 System.out.println("    :: " + t);
                 System.out.println();

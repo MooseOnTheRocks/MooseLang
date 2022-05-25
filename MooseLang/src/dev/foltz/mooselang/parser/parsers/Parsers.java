@@ -8,6 +8,7 @@ import dev.foltz.mooselang.ast.expression.literals.ASTExprString;
 import dev.foltz.mooselang.ast.statement.ASTStmt;
 import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
+import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
 import dev.foltz.mooselang.ast.typing.ASTType;
 import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
@@ -31,6 +32,7 @@ public class Parsers {
     public static final IParser<ASTStmt> parseStmt = StatementParsers.parseStmt;
     public static final IParser<ASTStmtLet> parseStmtLet = StatementParsers.parseStmtLet;
     public static final IParser<ASTStmtFuncDef> parseStmtFuncDef = StatementParsers.parseStmtFuncDef;
+    public static final IParser<ASTStmtTypeDef> parseStmtTypeDef = StatementParsers.parseStmtTypeDef;
 
     public static final IParser<ASTExpr> parseExpr = ExpressionParsers::parseExpr;
     public static final IParser<ASTExpr> parseExprSimple = ExpressionParsers.parseExprSimple;

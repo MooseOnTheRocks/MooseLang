@@ -6,6 +6,7 @@ import dev.foltz.mooselang.ast.expression.ASTExprTyped;
 import dev.foltz.mooselang.ast.statement.ASTStmt;
 import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
+import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
 import dev.foltz.mooselang.ast.typing.ASTType;
 import dev.foltz.mooselang.parser.IParser;
 import dev.foltz.mooselang.parser.ParseResult;
@@ -22,6 +23,7 @@ public class StatementParsers {
     public static final IParser<ASTStmt> parseStmt = StatementParsers::parseStmt;
     public static final IParser<ASTStmtLet> parseStmtLet = StatementParsers::parseStmtLet;
     public static final IParser<ASTStmtFuncDef> parseStmtFuncDef = StatementParsers::parseStmtFuncDef;
+    public static final IParser<ASTStmtTypeDef> parseStmtTypeDef = StatementParsers::parseStmtTypeDef;
 
     public static ParseResult<List<ASTStmt>> parseProgram(ParseState state) {
         var r = all(parseStmt).map(ls -> (List<ASTStmt>) ls).parse(state);
@@ -34,7 +36,8 @@ public class StatementParsers {
     public static ParseResult<ASTStmt> parseStmt(ParseState state) {
         return any(
             parseStmtLet,
-            parseStmtFuncDef
+            parseStmtFuncDef,
+            parseStmtTypeDef
         ).map(stmt -> (ASTStmt) stmt).mapErrorMsg(s -> "parseStmt failed: " + s).parse(state);
     }
 
@@ -80,6 +83,19 @@ public class StatementParsers {
             var retType = (ASTType) objs.get(3);
             var body = (ASTExpr) objs.get(5);
             return new ASTStmtFuncDef(name, typedParams, retType, body);
+        }).parse(state);
+    }
+
+    public static ParseResult<ASTStmtTypeDef> parseStmtTypeDef(ParseState state) {
+        return sequence(
+            expect("type"),
+            parseExprName,
+            expect("="),
+            parseTypeTopLevel
+        ).map(objs -> {
+            var name = (ASTExprName) objs.get(1);
+            var type = (ASTType) objs.get(3);
+            return new ASTStmtTypeDef(name, type);
         }).parse(state);
     }
 }

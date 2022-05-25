@@ -7,6 +7,7 @@ import dev.foltz.mooselang.ast.expression.literals.ASTExprNone;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprString;
 import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
+import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
 import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
 import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
@@ -50,6 +51,12 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
     public static String print(ASTNode node) {
         ASTPrinter printer = new ASTPrinter();
         return node.accept(printer).toString();
+    }
+
+    @Override
+    public StringBuilder visit(ASTStmtTypeDef node) {
+        emit("StmtTypeDef(", node.name, ", ", node.type, ")");
+        return sb;
     }
 
     @Override

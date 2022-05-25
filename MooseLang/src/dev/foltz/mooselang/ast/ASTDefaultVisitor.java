@@ -67,6 +67,11 @@ public class ASTDefaultVisitor<T> implements ASTVisitor<T> {
         return defaultOp.apply(node);
     }
 
+    @Override
+    public T visit(ASTStmtTypeDef node) {
+        return defaultOp.apply(node);
+    }
+
 
     @Override
     public T visit(ASTTypeName node) {
