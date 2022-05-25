@@ -4,9 +4,7 @@ import dev.foltz.mooselang.ast.ASTVisitor;
 
 import java.util.List;
 
-public class ASTTypeUnion implements ASTType {
-    public final List<ASTType> types;
-
+public record ASTTypeUnion(List<ASTType> types) implements ASTType {
     public ASTTypeUnion(List<ASTType> types) {
         this.types = List.copyOf(types);
     }

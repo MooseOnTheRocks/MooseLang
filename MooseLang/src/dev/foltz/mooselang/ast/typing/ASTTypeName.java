@@ -2,12 +2,7 @@ package dev.foltz.mooselang.ast.typing;
 
 import dev.foltz.mooselang.ast.ASTVisitor;
 
-public class ASTTypeName implements ASTType {
-    public final String name;
-
-    public ASTTypeName(String name) {
-        this.name = name;
-    }
+public record ASTTypeName(String name) implements ASTType {
 
     @Override
     public <T> T accept(ASTVisitor<T> visitor) {

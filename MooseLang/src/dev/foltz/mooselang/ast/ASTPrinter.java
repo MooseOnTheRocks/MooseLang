@@ -5,6 +5,7 @@ import dev.foltz.mooselang.ast.expression.literals.ASTExprBool;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprInt;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprNone;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprString;
+import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
 import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
@@ -52,8 +53,30 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
     }
 
     @Override
+    public StringBuilder visit(ASTExprCall node) {
+        emit("ExprCall(", node.name, ", [");
+        emitJoin(", ", node.params);
+        emit("])");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTExprTyped<? extends ASTExpr> node) {
+        emit(node.expr, ": ", node.type);
+        return sb;
+    }
+
+    @Override
     public StringBuilder visit(ASTStmtLet node) {
-        emit("StmtLet(", node.name, ", ", node.body, ")");
+        emit("StmtLet(", node.getName(), ", ", node.body, ")");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTStmtFuncDef node) {
+        emit("StmtFuncDef(", node.name, ", (");
+        emitJoin(", ", node.typedParams);
+        emit("), ", node.retType, ", ", node.body, ")");
         return sb;
     }
 
@@ -77,12 +100,7 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
 
     @Override
     public StringBuilder visit(ASTExprName node) {
-        if (node.typeHint().isPresent()) {
-            emit("ExprName(", node.name, ": ", node.typeHint().get(), ")");
-        }
-        else {
-            emit("ExprName(", node.name, ")");
-        }
+        emit("ExprName(", node.name(), ")");
         return sb;
     }
 
@@ -93,22 +111,28 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
     }
 
     @Override
+    public StringBuilder visit(ASTExprIfThenElse node) {
+        emit("ExprIfThenElse(", node.predicate(), ", ", node.exprTrue(), ", ", node.exprFalse(), ")");
+        return sb;
+    }
+
+    @Override
     public StringBuilder visit(ASTTypeName node) {
-        emit("TypeName(", node.name, ")");
+        emit("TypeName(", node.name(), ")");
         return sb;
     }
 
     @Override
     public StringBuilder visit(ASTTypeUnion node) {
         emit("TypeUnion(");
-        emitJoin(", ", node.types);
+        emitJoin(", ", node.types());
         emit(")");
         return sb;
     }
 
     @Override
     public StringBuilder visit(ASTTypeLiteral node) {
-        emit("TypeLiteral(", node.literal, ")");
+        emit("TypeLiteral(", node.literal(), ")");
         return sb;
     }
 }

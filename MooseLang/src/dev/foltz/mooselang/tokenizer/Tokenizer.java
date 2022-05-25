@@ -13,35 +13,31 @@ import static dev.foltz.mooselang.tokenizer.TokenType.*;
 
 public class Tokenizer {
     public static final Map<TokenType, Function<CharSequence, Integer>> TOKEN_PARSERS = new LinkedHashMap<>();
+    public static final String SYMBOLS = "=.:~!@#$%^&*-+|/;";
 
     static {
         TOKEN_PARSERS.put(T_NEWLINE, buildSpan(Tokenizer::isNewline));
         TOKEN_PARSERS.put(T_WHITESPACE, buildSpan(Tokenizer::isWhitespace));
-
         TOKEN_PARSERS.put(T_COMMENT, Tokenizer::matchComment);
-        TOKEN_PARSERS.put(T_NUMBER, Tokenizer::matchNumber);
-        TOKEN_PARSERS.put(T_CHAR, Tokenizer::matchChar);
-        TOKEN_PARSERS.put(T_STRING, Tokenizer::matchString);
-        TOKEN_PARSERS.put(T_NAME, buildSpan(
-                ((Predicate<Character>) Tokenizer::isAlpha).or(c -> "_#$'".contains("" + c)),
-                ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum).or(c -> "_#$'".contains("" + c))));
 
-        TOKEN_PARSERS.put(T_ELLIPSES, buildMatch(".."));
-        TOKEN_PARSERS.put(T_FAT_ARROW, buildMatch("=>"));
-        TOKEN_PARSERS.put(T_COLON, buildMatch(":"));
-
-        TOKEN_PARSERS.put(T_MINUS, buildMatch("-"));
-        TOKEN_PARSERS.put(T_DOT, buildMatch("."));
-        TOKEN_PARSERS.put(T_EQUALS, buildMatch("="));
         TOKEN_PARSERS.put(T_COMMA, buildMatch(","));
-        TOKEN_PARSERS.put(T_BAR, buildMatch("|"));
-
         TOKEN_PARSERS.put(T_LPAREN, buildMatch("("));
         TOKEN_PARSERS.put(T_RPAREN, buildMatch(")"));
         TOKEN_PARSERS.put(T_LBRACE, buildMatch("{"));
         TOKEN_PARSERS.put(T_RBRACE, buildMatch("}"));
         TOKEN_PARSERS.put(T_LBRACKET, buildMatch("["));
         TOKEN_PARSERS.put(T_RBRACKET, buildMatch("]"));
+
+        TOKEN_PARSERS.put(T_NAME_SYMBOLIC, buildSpan(c -> SYMBOLS.contains("" + c)));
+
+        TOKEN_PARSERS.put(T_NUMBER, Tokenizer::matchNumber);
+        TOKEN_PARSERS.put(T_CHAR, Tokenizer::matchChar);
+        TOKEN_PARSERS.put(T_STRING, Tokenizer::matchString);
+        TOKEN_PARSERS.put(T_TRUE, buildMatch("True"));
+        TOKEN_PARSERS.put(T_FALSE, buildMatch("False"));
+        TOKEN_PARSERS.put(T_NAME, buildSpan(
+                ((Predicate<Character>) Tokenizer::isAlpha).or(c -> "_#$'".contains("" + c)),
+                ((Predicate<Character>) Tokenizer::isAlpha).or(Tokenizer::isNum).or(c -> "_#$'".contains("" + c))));
     }
 
     private final StringBuffer remainder;
@@ -82,19 +78,43 @@ public class Tokenizer {
                     default -> remainder.substring(0, index);
                 };
                 remainder.delete(0, index);
-                return switch (capture) {
-                    case "let" -> new Token(T_KW_LET, capture, from, to, sourceMatch);
-                    case "def" -> new Token(T_KW_DEF, capture, from, to, sourceMatch);
-                    case "for" -> new Token(T_KW_FOR, capture, from, to, sourceMatch);
-                    case "in" -> new Token(T_KW_IN, capture, from, to, sourceMatch);
-                    case "do" -> new Token(T_KW_DO, capture, from, to, sourceMatch);
-                    case "lambda" -> new Token(T_KW_LAMBDA, capture, from, to, sourceMatch);
-                    case "if" -> new Token(T_KW_IF, capture, from, to, sourceMatch);
-                    case "then" -> new Token(T_KW_THEN, capture, from, to, sourceMatch);
-                    case "else" -> new Token(T_KW_ELSE, capture, from, to, sourceMatch);
-                    case "type" -> new Token(T_KW_TYPE, capture, from, to, sourceMatch);
-                    default -> new Token(tokenParser.getKey(), capture, from, to, sourceMatch);
-                };
+
+                //        TOKEN_PARSERS.put(T_ELLIPSES, buildMatch(".."));
+//        TOKEN_PARSERS.put(T_FAT_ARROW, buildMatch("=>"));
+//        TOKEN_PARSERS.put(T_COLON, buildMatch(":"));
+
+//        TOKEN_PARSERS.put(T_MINUS, buildMatch("-"));
+//        TOKEN_PARSERS.put(T_DOT, buildMatch("."));
+//        TOKEN_PARSERS.put(T_EQUALS, buildMatch("="));
+//        TOKEN_PARSERS.put(T_BAR, buildMatch("|"));
+
+                if (tokenParser.getKey() == T_NAME_SYMBOLIC) {
+                    return switch (capture) {
+                        case ".." -> new Token(T_ELLIPSES, capture, from, to, sourceMatch);
+                        case "." -> new Token(T_DOT, capture, from, to, sourceMatch);
+                        case "=>" -> new Token(T_FAT_ARROW, capture, from, to, sourceMatch);
+                        case "=" -> new Token(T_EQUALS, capture, from, to, sourceMatch);
+                        case ":" -> new Token(T_COLON, capture, from, to, sourceMatch);
+                        case "-" -> new Token(T_MINUS, capture, from, to, sourceMatch);
+                        case "|" -> new Token(T_BAR, capture, from, to, sourceMatch);
+                        default -> new Token(T_NAME_SYMBOLIC, capture, from, to, sourceMatch);
+                    };
+                }
+                else {
+                    return switch (capture) {
+                        case "let" -> new Token(T_KW_LET, capture, from, to, sourceMatch);
+                        case "def" -> new Token(T_KW_DEF, capture, from, to, sourceMatch);
+                        case "for" -> new Token(T_KW_FOR, capture, from, to, sourceMatch);
+                        case "in" -> new Token(T_KW_IN, capture, from, to, sourceMatch);
+                        case "do" -> new Token(T_KW_DO, capture, from, to, sourceMatch);
+                        case "lambda" -> new Token(T_KW_LAMBDA, capture, from, to, sourceMatch);
+                        case "if" -> new Token(T_KW_IF, capture, from, to, sourceMatch);
+                        case "then" -> new Token(T_KW_THEN, capture, from, to, sourceMatch);
+                        case "else" -> new Token(T_KW_ELSE, capture, from, to, sourceMatch);
+                        case "type" -> new Token(T_KW_TYPE, capture, from, to, sourceMatch);
+                        default -> new Token(tokenParser.getKey(), capture, from, to, sourceMatch);
+                    };
+                }
             }
         }
 

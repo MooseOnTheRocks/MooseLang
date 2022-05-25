@@ -41,6 +41,20 @@ public class ASTDefaultVisitor<T> implements ASTVisitor<T> {
         return defaultOp.apply(node);
     }
 
+    @Override
+    public T visit(ASTExprIfThenElse node) {
+        return defaultOp.apply(node);
+    }
+
+    @Override
+    public T visit(ASTExprTyped<? extends ASTExpr> node) {
+        return defaultOp.apply(node);
+    }
+
+    @Override
+    public T visit(ASTExprCall node) {
+        return defaultOp.apply(node);
+    }
 
 
     @Override
@@ -48,6 +62,10 @@ public class ASTDefaultVisitor<T> implements ASTVisitor<T> {
         return defaultOp.apply(node);
     }
 
+    @Override
+    public T visit(ASTStmtFuncDef node) {
+        return defaultOp.apply(node);
+    }
 
 
     @Override

@@ -16,10 +16,18 @@ public interface ASTVisitor<T> {
     T visit(ASTExprString node);
     // -- Named reference (lookup type & value in context)
     T visit(ASTExprName node);
+    // -- If _ Then _ Else _
+    T visit(ASTExprIfThenElse node);
+    // -- Type annotations
+    T visit(ASTExprTyped<? extends ASTExpr> node);
+    // -- Function call/application
+    T visit(ASTExprCall node);
 
     // == Statements
     // -- Let binding (bind type & value to context)
     T visit(ASTStmtLet node);
+    // -- Function definition
+    T visit(ASTStmtFuncDef node);
 
     // == Typing
     // -- Named type (lookup type definition in context)

@@ -2,7 +2,9 @@ package dev.foltz.mooselang.ast.expression;
 
 import dev.foltz.mooselang.ast.ASTVisitor;
 
-public record ASTExprName(String name) implements ASTExpr {
+public record ASTExprIfThenElse(ASTExpr predicate,
+                                ASTExpr exprTrue,
+                                ASTExpr exprFalse) implements ASTExpr {
 
     @Override
     public <T> T accept(ASTVisitor<T> visitor) {

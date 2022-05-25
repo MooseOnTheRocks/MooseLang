@@ -2,18 +2,20 @@ package dev.foltz.mooselang;
 
 import dev.foltz.mooselang.ast.ASTPrinter;
 import dev.foltz.mooselang.ast.statement.ASTStmt;
+import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
+import dev.foltz.mooselang.ast.statement.ASTStmtLet;
 import dev.foltz.mooselang.parser.ParseState;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
 import dev.foltz.mooselang.tokenizer.Tokenizer;
-import dev.foltz.mooselang.typing.ASTTypeChecker;
-import dev.foltz.mooselang.typing.type.TypeUnion;
-import dev.foltz.mooselang.typing.type.builtin.BuiltinTypes;
-import dev.foltz.mooselang.typing.type.literal.TypeLiteralInt;
+import dev.foltz.mooselang.typing.TypeChecker;
+import dev.foltz.mooselang.typing.types.*;
 
 import java.util.List;
+import java.util.Map;
 
 import static dev.foltz.mooselang.parser.parsers.Parsers.parseProgram;
+import static java.util.Map.entry;
 
 public class Main {
     public static void main(String[] args) {
@@ -22,11 +24,12 @@ public class Main {
 
         // -- Program source
         String program = """
-            let a: Bool = True
-            let b: Int = 0x42
-            let c: None = None
-            let d: String = "Hello, World!"
-            let divResult: Int | None = None
+            def not(a: Bool) = if a then False else True
+            def and(a: Bool, b: Bool) = if a then if b then True else False else False
+            def or(a: Bool, b: Bool) = if a then True else if b then True else False
+            
+            let a = 20 + 2
+            let b = not(False)
             """;
 
         System.out.println("== Program Source");
@@ -59,18 +62,37 @@ public class Main {
 
 
         // -- Type Checking
-        ASTTypeChecker typeChecker = new ASTTypeChecker();
-        typeChecker.bindType("None", BuiltinTypes.TYPE_NONE);
-        typeChecker.bindType("Bool", BuiltinTypes.TYPE_BOOL);
-        typeChecker.bindType("Int", BuiltinTypes.TYPE_INT);
-        typeChecker.bindType("String", BuiltinTypes.TYPE_STRING);
-        typeChecker.bindType("Binary", new TypeUnion(List.of(new TypeLiteralInt(0), new TypeLiteralInt(1))));
+        Map<String, Type> builtinTypes = Map.ofEntries(
+            entry("Any", AnyType.INSTANCE),
+            entry("Int", TypeInt.INSTANCE),
+            entry("Bool", TypeBool.INSTANCE),
+            entry("None", TypeNone.INSTANCE)
+        );
 
-        System.out.println("== Type Checking");
+        Map<String, Type> globals = Map.ofEntries(
+            entry("+", new TypeFunc(List.of(TypeInt.INSTANCE, TypeInt.INSTANCE), TypeInt.INSTANCE)),
+            entry("&&", new TypeFunc(List.of(TypeBool.INSTANCE, TypeBool.INSTANCE), TypeBool.INSTANCE)),
+            entry("==", new TypeFunc(List.of(AnyType.INSTANCE, AnyType.INSTANCE), TypeBool.INSTANCE))
+        );
+
+        TypeChecker typeChecker = new TypeChecker(builtinTypes, globals);
         for (ASTStmt stmt : stmts) {
-            var typeCheck = typeChecker.evalType(stmt);
-            System.out.println(typeCheck);
+            if (stmt instanceof ASTStmtLet stmtLet) {
+                Type t = typeChecker.typeCheck(stmtLet);
+                System.out.println(ASTPrinter.print(stmt));
+                System.out.println("    :: " + t);
+                System.out.println();
+            }
+            else if (stmt instanceof ASTStmtFuncDef stmtFuncDef) {
+                Type t = typeChecker.typeCheck(stmtFuncDef);
+                System.out.println(ASTPrinter.print(stmt));
+                System.out.println("    :: " + t);
+                System.out.println();
+            }
+            else {
+                System.out.println("Cannot type check: " + stmt);
+                break;
+            }
         }
-        System.out.println();
     }
 }

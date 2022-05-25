@@ -17,6 +17,7 @@ public enum TokenType {
 
 
     T_COMMENT,
+    T_NAME_SYMBOLIC,
     T_NAME,
     T_NUMBER,
     T_CHAR,

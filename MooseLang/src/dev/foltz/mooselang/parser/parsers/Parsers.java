@@ -2,9 +2,11 @@ package dev.foltz.mooselang.parser.parsers;
 
 import dev.foltz.mooselang.ast.expression.ASTExpr;
 import dev.foltz.mooselang.ast.expression.ASTExprName;
+import dev.foltz.mooselang.ast.expression.ASTExprTyped;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprInt;
 import dev.foltz.mooselang.ast.expression.literals.ASTExprString;
 import dev.foltz.mooselang.ast.statement.ASTStmt;
+import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
 import dev.foltz.mooselang.ast.typing.ASTType;
 import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
@@ -15,7 +17,6 @@ import dev.foltz.mooselang.parser.ParseResult;
 import dev.foltz.mooselang.parser.ParseState;
 import dev.foltz.mooselang.tokenizer.Token;
 import dev.foltz.mooselang.tokenizer.TokenType;
-import dev.foltz.mooselang.typing.type.builtin.BuiltinTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,12 +30,15 @@ public class Parsers {
     public static final IParser<List<ASTStmt>> parseProgram = StatementParsers.parseProgram;
     public static final IParser<ASTStmt> parseStmt = StatementParsers.parseStmt;
     public static final IParser<ASTStmtLet> parseStmtLet = StatementParsers.parseStmtLet;
+    public static final IParser<ASTStmtFuncDef> parseStmtFuncDef = StatementParsers.parseStmtFuncDef;
 
-    public static final IParser<ASTExpr> parseExpr = ExpressionParsers.parseExpr;
+    public static final IParser<ASTExpr> parseExpr = ExpressionParsers::parseExpr;
+    public static final IParser<ASTExpr> parseExprSimple = ExpressionParsers.parseExprSimple;
+    public static final IParser<ASTExpr> parseExprParen = ExpressionParsers.parseExprParen;
     public static final IParser<ASTExprInt> parseExprInt = ExpressionParsers.parseExprInt;
     public static final IParser<ASTExprString> parseExprString = ExpressionParsers.parseExprString;
     public static final IParser<ASTExprName> parseExprName = ExpressionParsers.parseExprName;
-    public static final IParser<ASTExprName> parseExprNameWithType = ExpressionParsers.parseExprNameWithType;
+    public static final IParser<ASTExprTyped<ASTExprName>> parseExprNameWithType = ExpressionParsers.parseExprNameWithType;
     public static final IParser<ASTType> parseTypeAnnotation = ExpressionParsers.parseTypeAnnotation;
 
     public static final IParser<ASTType> parseTypeTopLevel = Parsers::parseTypeTopLevel;
@@ -44,7 +48,7 @@ public class Parsers {
     public static final IParser<ASTType> parseTypeLiteral = Parsers::parseTypeLiteral;
 
     public static ParseResult<ASTTypeName> parseTypeName(ParseState state) {
-        return parseExprName.map(name -> new ASTTypeName(name.name)).parse(state);
+        return parseExprName.map(name -> new ASTTypeName(name.name())).parse(state);
     }
 
     public static ParseResult<ASTTypeUnion> parseTypeUnion(ParseState state) {
@@ -53,7 +57,7 @@ public class Parsers {
 
     public static ParseResult<ASTType> parseTypeLiteral(ParseState state) {
         return any(
-            parseExprNone.map(n -> BuiltinTypes.TYPE_NONE),
+            parseExprNone.map(ASTTypeLiteral::new),
             parseExprBool.map(ASTTypeLiteral::new),
             parseExprInt.map(ASTTypeLiteral::new),
             parseExprString.map(ASTTypeLiteral::new)
