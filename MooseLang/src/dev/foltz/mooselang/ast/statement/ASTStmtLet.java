@@ -3,27 +3,23 @@ package dev.foltz.mooselang.ast.statement;
 import dev.foltz.mooselang.ast.ASTVisitor;
 import dev.foltz.mooselang.ast.expression.ASTExpr;
 import dev.foltz.mooselang.ast.expression.ASTExprName;
-import dev.foltz.mooselang.ast.expression.ASTExprTyped;
+import dev.foltz.mooselang.ast.typing.ASTType;
+
+import java.util.Optional;
 
 public class ASTStmtLet implements ASTStmt {
-    private final ASTExprName name;
-    private final ASTExprTyped<ASTExprName> typedName;
+    public final ASTExprName name;
+    public final Optional<ASTType> typeAnnotation;
     public final ASTExpr body;
 
-    public ASTStmtLet(ASTExprTyped<ASTExprName> typedName, ASTExpr body) {
-        this.typedName = typedName;
+    public ASTStmtLet(ASTExprName name, ASTType typeAnnotation, ASTExpr body) {
+        this.name = name;
+        this.typeAnnotation = Optional.ofNullable(typeAnnotation);
         this.body = body;
-        this.name = null;
     }
 
     public ASTStmtLet(ASTExprName name, ASTExpr body) {
-        this.name = name;
-        this.body = body;
-        this.typedName = null;
-    }
-
-    public final ASTExpr getName() {
-        return name == null ? typedName : name;
+        this(name, null, body);
     }
 
     @Override

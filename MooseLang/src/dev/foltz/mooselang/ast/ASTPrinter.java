@@ -5,7 +5,7 @@ import dev.foltz.mooselang.ast.expression.literals.*;
 import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
 import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
-import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
+import dev.foltz.mooselang.ast.typing.ASTTypeValue;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
 import dev.foltz.mooselang.ast.typing.ASTTypeRecord;
 import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
@@ -144,8 +144,8 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
     }
 
     @Override
-    public StringBuilder visit(ASTTypeLiteral node) {
-        emit("TypeLiteral(", node.literal(), ")");
+    public StringBuilder visit(ASTTypeValue node) {
+        emit("TypeLiteral(", node.value(), ")");
         return sb;
     }
 
@@ -154,6 +154,12 @@ public class ASTPrinter extends ASTDefaultVisitor<StringBuilder> {
         emit("ExprRecord(");
         emitJoin(", ", node.fields.entrySet().stream().map(e -> e.getKey() + " = " + e.getValue()).toList());
         emit(")");
+        return sb;
+    }
+
+    @Override
+    public StringBuilder visit(ASTExprFieldAccess node) {
+        emit("ExprFieldAccess(", node.lhs, ", ", node.fieldName, ")");
         return sb;
     }
 }

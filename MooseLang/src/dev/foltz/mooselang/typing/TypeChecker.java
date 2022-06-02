@@ -5,6 +5,7 @@ import dev.foltz.mooselang.ast.expression.ASTExprTyped;
 import dev.foltz.mooselang.ast.statement.ASTStmtFuncDef;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
 import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
+import dev.foltz.mooselang.interpreter.Env;
 import dev.foltz.mooselang.typing.types.NoType;
 import dev.foltz.mooselang.typing.types.Type;
 import dev.foltz.mooselang.typing.types.TypeFunc;
@@ -14,22 +15,26 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TypeChecker {
-    public final Map<String, Type> namedTypes;
-    public final Map<String, Type> globalTypedNames;
+    public final Env<Type> namedTypes;
+    public final Env<Type> globalTypedNames;
 
-    public TypeChecker(Map<String, Type> namedTypes, Map<String, Type> globals) {
-        this.namedTypes = new HashMap<>(namedTypes);
-        this.globalTypedNames = new HashMap<>(globals);
+    private TypeChecker(Env<Type> namedTypes, Env<Type> globals) {
+        this.namedTypes = new Env<>(namedTypes);
+        this.globalTypedNames = new Env<>(globals);
     }
 
-    public void bindType(String name, Type type) {
+    public static TypeChecker withTypesAndGlobals(Map<String, Type> namedTypes, Map<String, Type> globals) {
+        return new TypeChecker(namedTypes, globals);
+    }
+
+    public void bindNamedType(String name, Type type) {
         if (namedTypes.containsKey(name)) {
             throw new IllegalArgumentException("Attempt to rebind named type: " + name);
         }
         namedTypes.put(name, type);
     }
 
-    public void bindGlobalName(String name, Type type) {
+    public void bindNamedValueType(String name, Type type) {
         if (globalTypedNames.containsKey(name)) {
             throw new IllegalArgumentException("Attempt to retype named value: " + name);
         }
@@ -37,23 +42,11 @@ public class TypeChecker {
     }
 
     public Type typeCheck(ASTStmtLet stmt) {
-        var nameNode = stmt.getName();
-        String name;
-        if (nameNode instanceof ASTExprName exprName) {
-            name = exprName.name();
-        }
-        else if (nameNode instanceof ASTExprTyped<?> exprTyped && exprTyped.expr instanceof ASTExprName exprName) {
-            name = exprName.name();
-        }
-        else {
-            throw new IllegalStateException("Unexpected node, expected ASTExprName or ASTExprTyped<ASTExprName>, received: " + nameNode);
-        }
-
         var localChecker = new ASTLocalTypeChecker(namedTypes, globalTypedNames);
         Type t = stmt.accept(localChecker);
-        if (t != NoType.INSTANCE) {
-            bindGlobalName(name, t);
-        }
+//        if (t != NoType.INSTANCE) {
+//            bindGlobalName(name, t);
+//        }
         return t;
     }
 
@@ -90,7 +83,7 @@ public class TypeChecker {
 
         if (localChecker.isSubtype(typeBody, typeRet)) {
             var typeFunc = new TypeFunc(paramTypes, typeRet);
-            bindGlobalName(funcName.name(), typeFunc);
+//            bindGlobalName(funcName.name(), typeFunc);
             return typeFunc;
         }
 
@@ -103,10 +96,11 @@ public class TypeChecker {
             throw new IllegalStateException("Cannot redefine type: " + name);
         }
         var localChecker = new ASTLocalTypeChecker(namedTypes, globalTypedNames);
+        localChecker.recursiveType(name);
         var type = localChecker.evalType(typeDef.type);
-        if (type != NoType.INSTANCE) {
-            bindType(name, type);
-        }
+//        if (type != NoType.INSTANCE) {
+//            bindType(name, type);
+//        }
         return type;
     }
 }

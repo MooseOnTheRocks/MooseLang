@@ -3,7 +3,7 @@ package dev.foltz.mooselang.ast;
 import dev.foltz.mooselang.ast.expression.*;
 import dev.foltz.mooselang.ast.expression.literals.*;
 import dev.foltz.mooselang.ast.statement.*;
-import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
+import dev.foltz.mooselang.ast.typing.ASTTypeValue;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
 import dev.foltz.mooselang.ast.typing.ASTTypeRecord;
 import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
@@ -24,6 +24,8 @@ public interface ASTVisitor<T> {
     T visit(ASTExprTyped<? extends ASTExpr> node);
     // -- Function call/application
     T visit(ASTExprCall node);
+    // -- Field access (`foo.bar` syntax)
+    T visit(ASTExprFieldAccess node);
 
     // == Statements
     // -- Let binding (bind type & value to context)
@@ -41,5 +43,5 @@ public interface ASTVisitor<T> {
     // -- Record type
     T visit(ASTTypeRecord node);
     // -- Literal type (singleton type of given value)
-    T visit(ASTTypeLiteral node);
+    T visit(ASTTypeValue node);
 }

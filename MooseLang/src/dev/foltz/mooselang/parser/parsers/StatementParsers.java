@@ -16,7 +16,9 @@ import dev.foltz.mooselang.tokenizer.TokenType;
 import java.util.List;
 
 import static dev.foltz.mooselang.parser.ParseResult.failure;
-import static dev.foltz.mooselang.parser.parsers.Parsers.*;
+import static dev.foltz.mooselang.parser.parsers.ExpressionParsers.*;
+import static dev.foltz.mooselang.parser.parsers.ParserCombinators.*;
+import static dev.foltz.mooselang.parser.parsers.TypingParsers.parseTypeTopLevel;
 
 public class StatementParsers {
     public static final IParser<List<ASTStmt>> parseProgram = StatementParsers::parseProgram;
@@ -44,20 +46,19 @@ public class StatementParsers {
     public static ParseResult<ASTStmtLet> parseStmtLet(ParseState state) {
         return sequence(
             expect(TokenType.T_KW_LET),
-            any(
-                parseExprNameWithType,
-                parseExprName
-            ),
+            parseExprName,
+            optional(parseTypeAnnotation),
             expect(TokenType.T_EQUALS),
             parseExpr
         ).map(objs -> {
-            var name = objs.get(1);
+            var name = (ASTExprName) objs.get(1);
+            var typeHint = objs.get(2);
             var body = (ASTExpr) objs.get(3);
-            if (name instanceof ASTExprTyped<?>) {
-                return new ASTStmtLet((ASTExprTyped<ASTExprName>) name, body);
+            if (typeHint instanceof ASTType type) {
+                return new ASTStmtLet(name, type, body);
             }
             else {
-                return new ASTStmtLet((ASTExprName) name, body);
+                return new ASTStmtLet(name, body);
             }
         }).mapErrorMsg(s -> "parseStmtLet failed: " + s).parse(state);
     }
@@ -68,7 +69,7 @@ public class StatementParsers {
             parseExprName,
             sequence(
                 expect("("),
-                sepBy(
+                sepBy0(
                     parseExprNameWithType,
                     expect(",")
                 ),

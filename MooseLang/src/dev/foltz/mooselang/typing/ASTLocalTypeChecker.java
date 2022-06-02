@@ -5,11 +5,11 @@ import dev.foltz.mooselang.ast.expression.*;
 import dev.foltz.mooselang.ast.expression.literals.*;
 import dev.foltz.mooselang.ast.statement.ASTStmtLet;
 import dev.foltz.mooselang.ast.statement.ASTStmtTypeDef;
-import dev.foltz.mooselang.ast.typing.ASTType;
-import dev.foltz.mooselang.ast.typing.ASTTypeName;
-import dev.foltz.mooselang.ast.typing.ASTTypeRecord;
-import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
+import dev.foltz.mooselang.ast.typing.*;
 import dev.foltz.mooselang.typing.types.*;
+import dev.foltz.mooselang.typing.types.valuetypes.TypeValueBool;
+import dev.foltz.mooselang.typing.types.valuetypes.TypeValueInt;
+import dev.foltz.mooselang.typing.types.valuetypes.TypeValueString;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,12 +28,34 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
         this(Map.of(), Map.of());
     }
 
+    public void recursiveType(String name) {
+        this.namedTypes.put(name, new TypeName(name));
+    }
+
     public Type evalType(ASTExpr node) {
         return node.accept(this);
     }
 
     public Type evalType(ASTType node) {
         return node.accept(this);
+    }
+
+    public Type unifyTypes(Type a, Type b) {
+        if (equalTypes(a, b)) {
+            return a;
+        }
+        else if (isSubtype(a, b)) {
+            return b;
+        }
+        else if (isSubtype(b, a)) {
+            return a;
+        }
+
+        if (a == NoType.INSTANCE || b == NoType.INSTANCE) {
+            return NoType.INSTANCE;
+        }
+
+        return new TypeUnion(List.of(a, b));
     }
 
     public boolean isSubtype(Type sub, Type sup) {
@@ -47,6 +69,12 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
 
         if (sup instanceof TypeUnion tu) {
             if (tu.types.stream().anyMatch(t -> isSubtype(sub, t))) {
+                return true;
+            }
+        }
+
+        if (sub instanceof TypeUnion tu) {
+            if (tu.types.stream().allMatch(t -> isSubtype(t, sup))) {
                 return true;
             }
         }
@@ -70,7 +98,34 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
             return remaining.isEmpty();
         }
 
+        if (sub instanceof TypeValueInt && sup instanceof TypeInt) {
+            return true;
+        }
+        else if (sub instanceof TypeValueBool && sup instanceof TypeBool) {
+            return true;
+        }
+        else if (sub instanceof TypeValueString && sup instanceof TypeString) {
+            return true;
+        }
+
         return equalTypes(sub, sup);
+    }
+
+    public Type accessTypeField(Type t, String fieldName) {
+        if (t instanceof TypeRecord rec) {
+            return rec.fields.getOrDefault(fieldName, NoType.INSTANCE);
+        }
+
+        if (t instanceof TypeUnion union) {
+            for (Type u : union.types) {
+                Type f = accessTypeField(u, fieldName);
+                if (f != NoType.INSTANCE) {
+                    return f;
+                }
+            }
+        }
+
+        return NoType.INSTANCE;
     }
 
     public boolean equalTypes(Type a, Type b) {
@@ -101,6 +156,16 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
             return true;
         }
 
+        if (a instanceof TypeValueInt ta && b instanceof TypeValueInt tb) {
+            return ta.value() == tb.value();
+        }
+        else if (a instanceof TypeValueBool ta && b instanceof TypeValueBool tb) {
+            return ta.value() == tb.value();
+        }
+        else if (a instanceof TypeValueString ta && b instanceof TypeValueString tb) {
+            return ta.value().equals(tb.value());
+        }
+
         return false;
     }
 
@@ -110,6 +175,29 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
             .map(f -> new AbstractMap.SimpleEntry<>(f.getKey().name(), evalType(f.getValue())))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         return new TypeRecord(fields);
+    }
+
+    @Override
+    public Type visit(ASTExprFieldAccess node) {
+        List<String> accessPath = new ArrayList<>();
+        ASTExprFieldAccess innermostAccess = node;
+
+        while (innermostAccess.lhs instanceof ASTExprFieldAccess innerAccess) {
+            accessPath.add(0, innermostAccess.fieldName.name());
+            innermostAccess = innerAccess;
+        }
+        accessPath.add(0, innermostAccess.fieldName.name());
+        ASTExpr head = innermostAccess.lhs;
+
+        var typeAccess = evalType(head);
+        for (int i = 0; i < accessPath.size(); i++) {
+            var fieldName = accessPath.get(i);
+            typeAccess = accessTypeField(typeAccess, fieldName);
+            if (typeAccess == NoType.INSTANCE) {
+                return NoType.INSTANCE;
+            }
+        }
+        return typeAccess;
     }
 
     @Override
@@ -128,8 +216,6 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
         }
 
         var paramTypes = params.stream().map(this::evalType).toList();
-
-        System.out.println("ExprCall: funcType = " + funcType + ", paramTypes = " + paramTypes);
 
         for (int i = 0; i < params.size(); i++) {
             var funcParam = funcType.paramTypes.get(i);
@@ -157,14 +243,23 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
             return NoType.INSTANCE;
         }
 
-        if (isSubtype(typeFalse, typeTrue)) {
-            return typeTrue;
+        return unifyTypes(typeTrue, typeFalse);
+    }
+
+    @Override
+    public Type visit(ASTTypeValue node) {
+        var expr = node.value();
+        if (expr instanceof ASTExprInt exprInt) {
+            return new TypeValueInt(exprInt.value());
         }
-        else if (isSubtype(typeTrue, typeFalse)) {
-            return typeFalse;
+        else if (expr instanceof ASTExprBool exprBool) {
+            return new TypeValueBool(exprBool.value());
+        }
+        else if (expr instanceof ASTExprString exprString) {
+            return new TypeValueString(exprString.value());
         }
 
-        return NoType.INSTANCE;
+        throw new IllegalStateException("Expected type literal during type check, found: " + node);
     }
 
     @Override
@@ -184,7 +279,7 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
 
     @Override
     public Type visit(ASTExprBool node) {
-        return TypeBool.INSTANCE;
+        return new TypeValueBool(node.value());
     }
 
     @Override
@@ -194,7 +289,7 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
 
     @Override
     public Type visit(ASTExprString node) {
-        return TypeString.INSTANCE;
+        return new TypeValueString(node.value());
     }
 
     @Override
@@ -244,7 +339,7 @@ public class ASTLocalTypeChecker extends ASTDefaultVisitor<Type> {
 
     @Override
     public Type visit(ASTExprInt node) {
-        return TypeInt.INSTANCE;
+        return new TypeValueInt(node.value());
     }
 
     @Override

@@ -13,7 +13,7 @@ import static dev.foltz.mooselang.tokenizer.TokenType.*;
 
 public class Tokenizer {
     public static final Map<TokenType, Function<CharSequence, Integer>> TOKEN_PARSERS = new LinkedHashMap<>();
-    public static final String SYMBOLS = "=.:~!@#$%^&*-+|/;";
+    public static final String SYMBOLS = "=.:~!@#$%^&*-+|/;<>?";
 
     static {
         TOKEN_PARSERS.put(T_NEWLINE, buildSpan(Tokenizer::isNewline));

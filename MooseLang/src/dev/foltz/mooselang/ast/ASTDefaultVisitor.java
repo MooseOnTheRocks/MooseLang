@@ -3,7 +3,7 @@ package dev.foltz.mooselang.ast;
 import dev.foltz.mooselang.ast.expression.*;
 import dev.foltz.mooselang.ast.expression.literals.*;
 import dev.foltz.mooselang.ast.statement.*;
-import dev.foltz.mooselang.ast.typing.ASTTypeLiteral;
+import dev.foltz.mooselang.ast.typing.ASTTypeValue;
 import dev.foltz.mooselang.ast.typing.ASTTypeName;
 import dev.foltz.mooselang.ast.typing.ASTTypeRecord;
 import dev.foltz.mooselang.ast.typing.ASTTypeUnion;
@@ -62,6 +62,11 @@ public class ASTDefaultVisitor<T> implements ASTVisitor<T> {
         return defaultOp.apply(node);
     }
 
+    @Override
+    public T visit(ASTExprFieldAccess node) {
+        return defaultOp.apply(node);
+    }
+
 
     @Override
     public T visit(ASTStmtLet node) {
@@ -95,7 +100,7 @@ public class ASTDefaultVisitor<T> implements ASTVisitor<T> {
     }
 
     @Override
-    public T visit(ASTTypeLiteral node) {
+    public T visit(ASTTypeValue node) {
         return defaultOp.apply(node);
     }
 }

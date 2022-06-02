@@ -14,7 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static dev.foltz.mooselang.parser.parsers.Parsers.*;
+import static dev.foltz.mooselang.parser.parsers.ParserCombinators.*;
+import static dev.foltz.mooselang.parser.parsers.TypingParsers.parseTypeTopLevel;
 
 public class ExpressionParsers {
     public static final IParser<ASTExpr> parseExpr = ExpressionParsers::parseExpr;
@@ -100,7 +101,7 @@ public class ExpressionParsers {
         return sequence(
             parseExprName,
             expect("("),
-            sepBy(
+            sepBy1(
                 parseExpr,
                 expect(",")
             ),
@@ -121,21 +122,11 @@ public class ExpressionParsers {
     }
 
     public static ParseResult<ASTExpr> parseExpr(ParseState state) {
-        return any(parseExprBinOp, parseExprSimple).map(obj -> (ASTExpr) obj).parse(state);
-    }
-
-    public static ParseResult<ASTExpr> parseExprSimple(ParseState state) {
         var parseAnyExpr = any(
-            parseExprNone,
-            parseExprBool,
-            parseExprInt,
-            parseExprString,
-            parseExprRecord,
-            parseExprCall,
-            parseExprName,
+            parseExprBinOp,
             parseExprIfThenElse,
-            parseExprParen
-        ).map(expr -> (ASTExpr) expr);
+            parseExprSimple
+        ).map(obj -> (ASTExpr) obj);
 
         return sequence(parseAnyExpr, optional(parseTypeAnnotation)).map(objs -> {
             var expr = (ASTExpr) objs.get(0);
@@ -147,6 +138,36 @@ public class ExpressionParsers {
                 return expr;
             }
         }).mapErrorMsg(s -> "parseExpr failed: " + s).parse(state);
+    }
+
+    public static ParseResult<ASTExpr> parseExprSimple(ParseState state) {
+         var exprSimple = any(
+            parseExprNone,
+            parseExprBool,
+            parseExprInt,
+            parseExprString,
+            parseExprRecord,
+            parseExprCall,
+            parseExprName,
+            parseExprParen
+         ).map(expr -> (ASTExpr) expr);
+
+         return any(
+             sequence(
+                 exprSimple,
+                 expect("."),
+                 sepBy0(parseExprName, expect("."))
+             ).map(objs -> {
+                 var objAccess = (ASTExpr) objs.get(0);
+                 var names = (List<ASTExprName>) objs.get(2);
+                 ASTExprFieldAccess access = new ASTExprFieldAccess(objAccess, names.get(0));
+                 for (int i = 1; i < names.size(); i++) {
+                     access = new ASTExprFieldAccess(access, names.get(i));
+                 }
+                 return access;
+             }),
+             exprSimple
+         ).map(obj -> (ASTExpr) obj).parse(state);
     }
 
     public static ParseResult<ASTType> parseTypeAnnotation(ParseState state) {
@@ -178,17 +199,22 @@ public class ExpressionParsers {
             expect("new"),
             expect("{"),
             sepBy1(
-                sequence(
-                    parseExprName,
-                    expect("="),
-                    parseExpr
-                ).map(objs -> List.of(objs.get(0), objs.get(2))),
+                any(
+                    sequence(
+                        parseExprName,
+                        expect("="),
+                        parseExpr
+                    ).map(objs -> List.of(objs.get(0), objs.get(2))),
+                    parseExprName.map(List::of)
+                ),
                 expect(",")
             ),
             expect("}")
         ).map(objs -> {
             var nameValues = (List<List<ASTExpr>>) objs.get(2);
-            var fields = nameValues.stream().map(tn -> new AbstractMap.SimpleEntry<>((ASTExprName) tn.get(0), (ASTExpr) tn.get(1)));
+            var fields = nameValues.stream().map(
+                tn -> new AbstractMap.SimpleEntry<>((ASTExprName) tn.get(0), tn.size() == 1 ? tn.get(0) : tn.get(1))
+            );
             return new ASTExprRecord(fields.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         }).parse(state);
     }
