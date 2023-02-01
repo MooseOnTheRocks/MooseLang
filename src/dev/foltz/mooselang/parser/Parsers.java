@@ -1,12 +1,10 @@
 package dev.foltz.mooselang.parser;
 
-import dev.foltz.mooselang.ast.ASTExpr;
-import dev.foltz.mooselang.ast.ExprName;
-import dev.foltz.mooselang.ast.ExprNumber;
-import dev.foltz.mooselang.ast.StmtLet;
+import dev.foltz.mooselang.ast.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 import static dev.foltz.mooselang.parser.Combinators.*;
 
@@ -28,11 +26,23 @@ public class Parsers {
 
     public static final Parser<String> anyws = defaulted("", wsnl);
     public static final Parser<String> letter = Parsers::letter;
+    public static final Parser<String> symbol = Parsers::symbol;
     public static final Parser<String> digit = Parsers::digit;
     public static final Parser<Double> number = Parsers::number;
     public static final Parser<String> comment = Parsers::comment;
 
     // -- AST Parsers
+    public static final Parser<ASTExpr> expr = Parsers::expr;
+    public static final Parser<ASTExpr> exprSimple = Parsers::exprSimple;
+
+    public static final Parser<ASTExpr> exprParen =
+        all(
+            match("("),
+            anyws,
+            expr,
+            anyws,
+            match(")"))
+        .map(ls -> (ASTExpr) ls.get(2));
     public static final Parser<ExprName> exprName =
         all(letter, many(any(letter, digit)))
         .map(ls -> {
@@ -44,15 +54,104 @@ public class Parsers {
         .map(ls -> String.join("", ls))
         .map(ExprName::new);
 
+    public static final Parser<ExprSymbolic> exprSymbolic =
+        many1(symbol)
+        .map(ls -> String.join("", ls))
+        .map(ExprSymbolic::new);
+
     public static final Parser<ExprNumber> exprNumber = number.map(ExprNumber::new);
 
     public static final Parser<StmtLet> stmtLet =
-        all(match("let"), anyws, exprName, anyws, match("="), anyws, exprNumber)
+        all(match("let"), anyws, exprName, anyws, match("="), anyws, expr)
         .map(ls -> new StmtLet(
             (ExprName) ls.get(2),
             (ASTExpr) ls.get(6)));
 
+    public static final Parser<StmtDef> stmtDef =
+        all(
+            exprName,
+            many(
+                all(anyws, exprSimple)
+                .map(ls -> (ASTExpr) ls.get(1))),
+            anyws,
+            match("="),
+            anyws,
+            expr)
+        .map(ls -> new StmtDef(
+            (ExprName) ls.get(0),
+            (List<ASTExpr>) ls.get(1),
+            (ASTExpr) ls.get(5)));
+
     // -- Function definitions
+
+    public static ParserState<ASTExpr> exprSimple(ParserState<?> s) {
+        return all(
+            optional(ws),
+            any(
+                exprParen,
+                exprName,
+                exprSymbolic,
+                exprNumber))
+            .map(ls -> (ASTExpr) ls.get(1))
+        .run(s);
+    }
+
+    public static int getOpPrec(ASTExpr op) {
+        if (op instanceof ExprSymbolic sym) {
+            return switch (sym.symbol) {
+                case "+", "-" -> 25;
+                case "*", "/" -> 50;
+                case "^" -> 75;
+                default -> 0;
+            };
+        }
+        else {
+            return -1;
+        }
+    }
+
+    public static ParserState<ASTExpr> expr(ParserState<?> s) {
+        var expr = exprSimple(s);
+        if (expr.isError) {
+            return expr;
+        }
+        return expr_inner(expr, 0);
+    }
+
+    public static ParserState<ASTExpr> expr_inner(ParserState<ASTExpr> s, int minPrec) {
+        if (s.isError) {
+            return s;
+        }
+
+        var lhs = s;
+        var lookahead = exprSimple(lhs);
+        while (!lookahead.isError) {
+            if (lookahead.result instanceof ExprSymbolic && getOpPrec(lookahead.result) >= minPrec) {
+                var op = lookahead;
+                var rhs = exprSimple(op);
+                if (rhs.isError) {
+                    return lhs;
+                }
+                lookahead = exprSimple(rhs);
+
+                while (!lookahead.isError) {
+                    rhs = lookahead.result instanceof ExprSymbolic && getOpPrec(lookahead.result) > getOpPrec(op.result)
+                        // Operator
+                        ? expr_inner(rhs, getOpPrec(op.result) + 1)
+                        // Function application
+                        : lookahead.success(lookahead.index, new ExprApply(rhs.result, lookahead.result));
+                    lookahead = exprSimple(rhs);
+                }
+                lhs = rhs.success(rhs.index, new ExprApply(new ExprApply(op.result, lhs.result), rhs.result));
+            }
+            // Function application
+            else {
+                lhs = lookahead.success(lookahead.index, new ExprApply(lhs.result, lookahead.result));
+                lookahead = exprSimple(lhs);
+            }
+        }
+        return lhs;
+    }
 
     public static ParserState<String> newlines(ParserState<?> s) {
         var nl = any(match("\n"), match("\r\n")).map(ss -> (String) ss);
@@ -88,6 +187,16 @@ public class Parsers {
             }
         }
         return s.error("Failed to match letter.");
+    }
+
+    public static ParserState<String> symbol(ParserState<?> s) {
+        final String symbols = "~!@#$%^&*-+./?|<>";
+        for (char c : symbols.toCharArray()) {
+            if (s.rem().startsWith("" + c)) {
+                return s.success(s.index + 1, "" + c);
+            }
+        }
+        return s.error("Failed to match symbol.");
     }
 
     public static ParserState<String> digit(ParserState<?> s) {

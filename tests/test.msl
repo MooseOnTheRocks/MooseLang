@@ -1,25 +1,5 @@
--- Effect handlers are defined as functions
--- with the special keyword "resume" acting as a continuation return.
--- "resume" is passed one parameter, the value to be given as execution resumes at call-site.
--- "resume" differs from "return" however in that it does not exit the handler body.
--- After finishing the "resume" call, execution returns again to the handler body and continues.
--- Effects are defined with a name and some number of parameters.
--- Effect handler scope is delimited via "with" keyword, binding an effect to a handler.
+--  y = 1 + ((log x) * 2)
+let y = 1 + log (2 * x)
+let z = 420
 
--- All in all we have N language features to implement delimited effect handlers with continuations:
---      Effect type definitions
---      Effect handler definitions (function definitions)
---      Effect handler binding (with)
---      Effect invocation (function application of effect to parameters)
-
--- print :: String -> Cont ()
--- Cont () represents continuation of unit type.
--- Cont type means execution may continue from here 0 or more times.
-effect print msg;
-
-let defaultPrint msg = backendprint msg
-
--- Bind effect to handler
-with print =
-
-let panic = print "Panicking!"; resume ()
+f a = y + z * a

@@ -9,9 +9,17 @@ import static dev.foltz.mooselang.parser.Parsers.*;
 
 public class MooseLang {
     public static void main(String[] args) {
-        var source = SourceDesc.fromString("test", "-- hello world\n    \n  \n\n   let axe = 200");
+//        var source = SourceDesc.fromString("test", "let axe = 200");
+        var source = SourceDesc.fromFile("tests", "test.msl");
 
-        var parser = Combinators.many1(Combinators.any(wsnl, comment, stmtLet));
+        var toplevel = Combinators.any(
+            anyws,
+            comment,
+            stmtLet,
+            stmtDef
+        );
+
+        var parser = Combinators.many(toplevel);
 
         var res = Parsers.parse(parser, source);
         if (res.isError) {
@@ -27,11 +35,8 @@ public class MooseLang {
             System.out.println(res.index);
             System.out.println(res.result);
             System.out.println("-- AST Nodes");
-            for (Object o : res.result) {
-                if (o instanceof ASTNode node) {
-                    System.out.println(node);
-                }
-            }
+            var asts = res.result.stream().filter(e -> e instanceof ASTNode).toList();
+            asts.forEach(System.out::println);
             System.out.println("-- Remainder");
             System.out.println(res.rem());
         }
