@@ -24,4 +24,14 @@ public interface Parser<T> {
             return ParserState.error(state.source, state.index, emap.apply(state));
         };
     }
+
+    default <U> Parser<U> mapState(Function<ParserState<T>, ParserState<U>> smap) {
+        return s -> {
+            var state = run(s);
+            if (state.isError) {
+                return state.error();
+            }
+            return smap.apply(state);
+        };
+    }
 }

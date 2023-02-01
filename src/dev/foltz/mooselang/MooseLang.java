@@ -1,17 +1,17 @@
 package dev.foltz.mooselang;
 
+import dev.foltz.mooselang.ast.ASTNode;
 import dev.foltz.mooselang.parser.Combinators;
 import dev.foltz.mooselang.parser.Parsers;
 import dev.foltz.mooselang.parser.SourceDesc;
 
-import static dev.foltz.mooselang.parser.Combinators.defaulted;
 import static dev.foltz.mooselang.parser.Parsers.*;
 
 public class MooseLang {
     public static void main(String[] args) {
         var source = SourceDesc.fromString("test", "-- hello world\n    \n  \n\n   let axe = 200");
 
-        var parser = Combinators.many1(Combinators.any(wsnl, comment, Combinators.all(match("let"), anyws, name, anyws, match("="), anyws, number)));
+        var parser = Combinators.many1(Combinators.any(wsnl, comment, stmtLet));
 
         var res = Parsers.parse(parser, source);
         if (res.isError) {
@@ -26,6 +26,12 @@ public class MooseLang {
             System.out.println(res.source.name());
             System.out.println(res.index);
             System.out.println(res.result);
+            System.out.println("-- AST Nodes");
+            for (Object o : res.result) {
+                if (o instanceof ASTNode node) {
+                    System.out.println(node);
+                }
+            }
             System.out.println("-- Remainder");
             System.out.println(res.rem());
         }

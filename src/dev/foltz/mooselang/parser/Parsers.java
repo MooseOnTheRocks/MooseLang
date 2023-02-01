@@ -1,19 +1,24 @@
 package dev.foltz.mooselang.parser;
 
-import java.util.function.Predicate;
+import dev.foltz.mooselang.ast.ASTExpr;
+import dev.foltz.mooselang.ast.ExprName;
+import dev.foltz.mooselang.ast.ExprNumber;
+import dev.foltz.mooselang.ast.StmtLet;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static dev.foltz.mooselang.parser.Combinators.*;
 
 public class Parsers {
-    public static final Parser<String> comment = Parsers::comment;
+    // -- Basic text parsers
     public static final Parser<String> nl = Parsers::newlines;
     public static final Parser<String> ws =
         defaulted("",
             many1(
                 any(match(" "), match("\t"))
                 .map(s -> (String) s))
-            .map(ls -> String.join("", ls))
-        );
+            .map(ls -> String.join("", ls)));
 
     public static final Parser<String> wsnl =
         many1(
@@ -22,19 +27,32 @@ public class Parsers {
         .map(ls -> String.join("", ls));
 
     public static final Parser<String> anyws = defaulted("", wsnl);
-
     public static final Parser<String> letter = Parsers::letter;
     public static final Parser<String> digit = Parsers::digit;
-
     public static final Parser<Double> number = Parsers::number;
+    public static final Parser<String> comment = Parsers::comment;
 
-    public static final Parser<String> name =
-        many(letter)
+    // -- AST Parsers
+    public static final Parser<ExprName> exprName =
+        all(letter, many(any(letter, digit)))
         .map(ls -> {
-            StringBuilder sb = new StringBuilder();
-            ls.forEach(sb::append);
-            return sb.toString();
-        });
+            List<String> arr = new ArrayList<>();
+            arr.add((String) ls.get(0));
+            arr.addAll((List<String>) ls.get(1));
+            return List.copyOf(arr);
+        })
+        .map(ls -> String.join("", ls))
+        .map(ExprName::new);
+
+    public static final Parser<ExprNumber> exprNumber = number.map(ExprNumber::new);
+
+    public static final Parser<StmtLet> stmtLet =
+        all(match("let"), anyws, exprName, anyws, match("="), anyws, exprNumber)
+        .map(ls -> new StmtLet(
+            (ExprName) ls.get(2),
+            (ASTExpr) ls.get(6)));
+
+    // -- Function definitions
 
     public static ParserState<String> newlines(ParserState<?> s) {
         var nl = any(match("\n"), match("\r\n")).map(ss -> (String) ss);
