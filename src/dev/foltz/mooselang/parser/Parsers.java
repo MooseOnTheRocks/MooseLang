@@ -71,6 +71,13 @@ public class Parsers {
 
     public static final Parser<ExprNumber> exprNumber = number.map(ExprNumber::new);
 
+    public static final Parser<ExprDirective> exprDirective =
+        all(match("#"), exprName, anyws, exprSimple)
+        .map(ls -> new ExprDirective(
+            (ExprName) ls.get(1),
+            (ASTExpr) ls.get(3)
+        ));
+
     public static final Parser<ExprLetIn> exprLetIn =
         all(
             match("let"),
@@ -141,6 +148,7 @@ public class Parsers {
         return all(
             optional(ws),
             any(
+                exprDirective,
                 exprLetIn,
                 exprLambda,
                 exprParen,
@@ -153,7 +161,10 @@ public class Parsers {
     }
 
     public static int getOpPrec(ASTExpr op) {
-        if (op instanceof ExprSymbolic sym) {
+        if (op instanceof ExprDirective directive) {
+            return 100;
+        }
+        else if (op instanceof ExprSymbolic sym) {
             return switch (sym.symbol) {
                 case ";" -> 0;
                 case "+", "-" -> 25;

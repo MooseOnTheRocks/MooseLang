@@ -53,28 +53,32 @@ public class MooseLang {
             System.out.println("== Success");
             System.out.println("From source: " + res.source.name());
 
-            System.out.println("-- AST Nodes:");
+//            System.out.println("-- AST Nodes:");
             var asts = res.result.stream().filter(e -> e instanceof ASTNode).map(e -> (ASTNode) e).toList();
-            asts.forEach(System.out::println);
+//            asts.forEach(System.out::println);
+
+            var globalScope = new Scope(null);
+            var builtinPrint =
+                new Thunk(
+                    new Lambda("_print_1", new StringType(),
+                        new Producer(new Unit())));
+            globalScope = globalScope.put("print", builtinPrint);
+            var builtinAdd =
+                new Thunk(
+                    new Lambda("_add_1", new NumberType(),
+                        new Lambda("_add_2", new NumberType(),
+                            new Producer(new NumberType()))));
+            globalScope = globalScope.put("+",  builtinAdd);
+
+            var globalASTEval = new TypedAST(globalScope, null);
 
             System.out.println("-- Types");
             for (ASTNode ast : asts) {
                 System.out.println("Original AST:");
                 System.out.println(ast);
                 System.out.println("Type:");
-                var globalScope = new Scope(null);
-                var builtinPrint =
-                    new Thunk(
-                        new Lambda("_print_1", new StringType(),
-                            new Producer(new Unit())));
-                globalScope = globalScope.put("print", builtinPrint);
-                var builtinAdd =
-                    new Thunk(
-                        new Lambda("_add_1", new NumberType(),
-                            new Lambda("_add_2", new NumberType(),
-                                new Producer(new NumberType()))));
-                globalScope = globalScope.put("+",  builtinAdd);
-                var typed = new TypedAST(globalScope, null).evalTypeAST(ast);
+
+                var typed = globalASTEval.evalTypeAST(ast);
                 System.out.println(typed.result);
             }
         }

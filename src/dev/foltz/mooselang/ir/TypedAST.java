@@ -42,44 +42,7 @@ public class TypedAST extends ASTVisitor<TypedAST> {
         var lhs = apply.lhs;
         var rhs = apply.rhs;
         if (lhs instanceof ExprName ename) {
-            switch (ename.name) {
-                case "produce": {
-                    var rhsType = evalTypeAST(rhs).result;
-                    if (rhsType instanceof ValueType value) {
-                        return typed(new Producer(value));
-                    }
-                    else {
-                        return error("produce expects rhs of value type, received: " + rhsType);
-                    }
-                }
-                case "thunk": {
-                    var rhsType = evalTypeAST(rhs).result;
-                    if (rhsType instanceof CompType comp) {
-                        return typed(new Thunk(comp));
-                    }
-                    else {
-                        return error("thunk expects rhs of computation type, received: " + rhsType);
-                    }
-                }
-                case "force": {
-                    var rhsType = evalTypeAST(rhs).result;
-                    if (rhsType instanceof Thunk thunk) {
-                        return typed(thunk.comp);
-                    }
-                    else {
-                        return error("force expects rhs of thunk type, received: " + rhsType);
-                    }
-                }
-                case "push": {
-                    var rhsType = evalTypeAST(rhs).result;
-                    if (rhsType instanceof ValueType value) {
-                        return typed(new StackPush(value));
-                    }
-                }
-                default: {
-                    return error("Cannot apply lhs " + lhs + " to rhs " + rhs);
-                }
-            }
+            return error("Cannot apply lhs " + lhs + " to rhs " + rhs);
         }
         else {
             var lhsType = evalTypeAST(lhs).result;
@@ -104,7 +67,51 @@ public class TypedAST extends ASTVisitor<TypedAST> {
             return typed(secondComp);
         }
         else {
-            return error("Cannot chain: " + firstType.result + " with " + secondType.result);
+            return error("Cannot chain:" + "\n"
+                    + "-- AST:\n" + chain.first + " with " + chain.second + "\n"
+                    + "-- Types:\n" + firstType.result + " with " + secondType.result);
+        }
+    }
+
+    @Override
+    public TypedAST visit(ExprDirective directive) {
+        switch (directive.name.name) {
+            case "produce" -> {
+                var rhsType = evalTypeAST(directive.body).result;
+                if (rhsType instanceof ValueType value) {
+                    return typed(new Producer(value));
+                } else {
+                    return error("produce expects rhs of value type, received: " + rhsType);
+                }
+            }
+            case "thunk" -> {
+                var rhsType = evalTypeAST(directive.body).result;
+                if (rhsType instanceof CompType comp) {
+                    return typed(new Thunk(comp));
+                } else {
+                    return error("thunk expects rhs of computation type, received: " + rhsType);
+                }
+            }
+            case "force" -> {
+                var rhsType = evalTypeAST(directive.body).result;
+                if (rhsType instanceof Thunk thunk) {
+                    return typed(thunk.comp);
+                } else {
+                    return error("force expects rhs of thunk type, received: " + rhsType);
+                }
+            }
+            case "push" -> {
+                var rhsType = evalTypeAST(directive.body).result;
+                if (rhsType instanceof ValueType value) {
+                    return typed(new StackPush(value));
+                }
+                else {
+                    return error("Push expects rhs of value type, received: " + rhsType);
+                }
+            }
+            default -> {
+                return error("Unknown directive: " + directive.name.name);
+            }
         }
     }
 
@@ -128,12 +135,9 @@ public class TypedAST extends ASTVisitor<TypedAST> {
     public TypedAST visit(ExprLetIn letIn) {
         var name = letIn.name;
         var exprType = evalTypeAST(letIn.expr).result;
-        System.out.println("EXPR TYPE: " + exprType);
         if (exprType instanceof ValueType value) {
             var s1 = pushContext(name.name, value);
-            System.out.println("CONTEXT: " + s1.context);
             var s2 = s1.evalTypeAST(letIn.body);
-            System.out.println("BodyType context: " + s2.context);
             if (s2.result instanceof CompType comp) {
                 return s2.popContext();
             }
@@ -149,11 +153,11 @@ public class TypedAST extends ASTVisitor<TypedAST> {
     @Override
     public TypedAST visit(ExprName name) {
         return context.find(name.name)
-                .map(this::typed)
-                .orElseGet(() -> {
-                    System.err.println(context.find(name.name));
-                    throw new RuntimeException("Cannot find: " + name);
-                });
+            .map(this::typed)
+            .orElseGet(() -> {
+                System.err.println(context.find(name.name));
+                throw new RuntimeException("Cannot find: " + name);
+            });
     }
 
     @Override

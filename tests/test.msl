@@ -1,9 +1,9 @@
 let x = 3 in
-let y = thunk (
-    \z : Number -> produce z)
+let y = #thunk (
+    \z : Number -> #produce z)
 in (
-    push "Doing things!";
-    force print;
-    push 20;
-    force y
+    #push "Doing things!";
+    #force print;
+    #push 20;
+    #force y
 )
