@@ -14,6 +14,11 @@ public class StmtDef extends ASTStmt {
     }
 
     @Override
+    public <T> T apply(ASTVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
+    @Override
     public String toString() {
         return "Def(" + name + ", " + params + ", " + body + ")";
     }

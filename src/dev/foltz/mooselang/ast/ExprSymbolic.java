@@ -8,6 +8,11 @@ public class ExprSymbolic extends ASTExpr {
     }
 
     @Override
+    public <T> T apply(ASTVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
+    @Override
     public String toString() {
         return "Symbolic(" + symbol + ")";
     }

@@ -42,7 +42,12 @@ public class Parsers {
             expr,
             anyws,
             match(")"))
-        .map(ls -> (ASTExpr) ls.get(2));
+        .map(ls -> new ExprParen((ASTExpr) ls.get(2)));
+
+    public static final List<String> KEYWORDS = List.of(
+        "let", "in"
+    );
+
     public static final Parser<ExprName> exprName =
         all(letter, many(any(letter, digit)))
         .map(ls -> {
@@ -52,7 +57,12 @@ public class Parsers {
             return List.copyOf(arr);
         })
         .map(ls -> String.join("", ls))
+        .mapState(s -> KEYWORDS.stream().anyMatch(s.result::startsWith)
+                ? s.error("Invalid name, clash with keyword")
+                : s)
         .map(ExprName::new);
+
+    public static final Parser<ExprString> exprString = Parsers::string;
 
     public static final Parser<ExprSymbolic> exprSymbolic =
         many1(symbol)
@@ -61,8 +71,51 @@ public class Parsers {
 
     public static final Parser<ExprNumber> exprNumber = number.map(ExprNumber::new);
 
+    public static final Parser<ExprLetIn> exprLetIn =
+        all(
+            match("let"),
+            anyws,
+            exprName,
+            anyws,
+            match("="),
+            anyws,
+            expr,
+            anyws,
+            match("in"),
+            anyws,
+            expr)
+        .map(ls -> new ExprLetIn(
+            (ExprName) ls.get(2),
+            (ASTExpr) ls.get(6),
+            (ASTExpr) ls.get(10)));
+
+    public static final Parser<ExprLambda> exprLambda =
+        all(
+            match("\\"),
+            ws,
+            exprName,
+            ws,
+            match(":"),
+            ws,
+            exprName,
+            anyws,
+            match("->"),
+            anyws,
+            expr)
+        .map(ls -> new ExprLambda(
+            ((ExprName) ls.get(2)).name,
+            ((ExprName) ls.get(6)).name,
+            (ASTExpr) ls.get(10)));
+
     public static final Parser<StmtLet> stmtLet =
-        all(match("let"), anyws, exprName, anyws, match("="), anyws, expr)
+        all(
+            match("let"),
+            anyws,
+            exprName,
+            anyws,
+            match("="),
+            anyws,
+            expr)
         .map(ls -> new StmtLet(
             (ExprName) ls.get(2),
             (ASTExpr) ls.get(6)));
@@ -71,7 +124,7 @@ public class Parsers {
         all(
             exprName,
             many(
-                all(anyws, exprSimple)
+                all(ws, exprSimple)
                 .map(ls -> (ASTExpr) ls.get(1))),
             anyws,
             match("="),
@@ -88,10 +141,13 @@ public class Parsers {
         return all(
             optional(ws),
             any(
+                exprLetIn,
+                exprLambda,
                 exprParen,
                 exprName,
                 exprSymbolic,
-                exprNumber))
+                exprNumber,
+                exprString))
             .map(ls -> (ASTExpr) ls.get(1))
         .run(s);
     }
@@ -99,10 +155,11 @@ public class Parsers {
     public static int getOpPrec(ASTExpr op) {
         if (op instanceof ExprSymbolic sym) {
             return switch (sym.symbol) {
+                case ";" -> 0;
                 case "+", "-" -> 25;
                 case "*", "/" -> 50;
                 case "^" -> 75;
-                default -> 0;
+                default -> 10;
             };
         }
         else {
@@ -126,7 +183,15 @@ public class Parsers {
         var lhs = s;
         var lookahead = exprSimple(lhs);
         while (!lookahead.isError) {
-            if (lookahead.result instanceof ExprSymbolic && getOpPrec(lookahead.result) >= minPrec) {
+            if (lookahead.result instanceof ExprSymbolic symbolic && symbolic.symbol.equals(";")) {
+                var op = lookahead;
+                var rhs = all(anyws, expr).map(ls -> (ASTExpr) ls.get(1)).run(op);
+                if (rhs.isError) {
+                    return lhs;
+                }
+                return rhs.success(rhs.index, new ExprChain(lhs.result, rhs.result));
+            }
+            else if (lookahead.result instanceof ExprSymbolic symbolic && getOpPrec(lookahead.result) >= minPrec) {
                 var op = lookahead;
                 var rhs = exprSimple(op);
                 if (rhs.isError) {
@@ -190,7 +255,7 @@ public class Parsers {
     }
 
     public static ParserState<String> symbol(ParserState<?> s) {
-        final String symbols = "~!@#$%^&*-+./?|<>";
+        final String symbols = "~!@#$%^&*-+./?|<>;:";
         for (char c : symbols.toCharArray()) {
             if (s.rem().startsWith("" + c)) {
                 return s.success(s.index + 1, "" + c);
@@ -223,6 +288,29 @@ public class Parsers {
         catch (NumberFormatException e) {
             return res.error();
         }
+    }
+
+    public static ParserState<ExprString> string(ParserState<?> s) {
+        if (s.isError) {
+            return s.error();
+        }
+
+        var firstQuote = match("\"").run(s);
+        if (firstQuote.isError) {
+            return firstQuote.error();
+        }
+
+        var nextState = firstQuote.success(firstQuote.index, "");
+        while (true) {
+            if (nextState.rem().isEmpty()) {
+                return s.error("Failed to parse string");
+            } else if (nextState.rem().startsWith("\"")) {
+                nextState = nextState.success(nextState.index + 1, nextState.result);
+                break;
+            }
+            nextState = nextState.success(nextState.index + 1, nextState.result + nextState.rem().charAt(0));
+        }
+        return nextState.success(nextState.index, new ExprString(nextState.result));
     }
 
     public static ParserState<String> comment(ParserState<?> s) {

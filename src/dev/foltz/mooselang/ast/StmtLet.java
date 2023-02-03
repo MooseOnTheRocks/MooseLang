@@ -12,6 +12,11 @@ public class StmtLet extends ASTStmt {
     }
 
     @Override
+    public <T> T apply(ASTVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
+    @Override
     public String toString() {
         return "Let(" + name + ", " + expr + ")";
     }

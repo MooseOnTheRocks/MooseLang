@@ -1,5 +1,9 @@
---  y = 1 + ((log x) * 2)
-let y = 1 + log (2 * x)
-let z = 420
-
-f a = y + z * a
+let x = 3 in
+let y = thunk (
+    \z : Number -> produce z)
+in (
+    push "Doing things!";
+    force print;
+    push 20;
+    force y
+)

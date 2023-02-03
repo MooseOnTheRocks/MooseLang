@@ -10,6 +10,11 @@ public class ExprApply extends ASTExpr {
     }
 
     @Override
+    public <T> T apply(ASTVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
+    @Override
     public String toString() {
         return "Apply(" + lhs + ", " + rhs + ")";
     }
