@@ -18,9 +18,11 @@ public class Parsers {
                 .map(s -> (String) s))
             .map(ls -> String.join("", ls)));
 
+    public static final Parser<String> comment = Parsers::comment;
+
     public static final Parser<String> wsnl =
         many1(
-            any(nl, ws)
+            any(nl, ws, comment)
             .map(s -> (String) s))
         .map(ls -> String.join("", ls));
 
@@ -29,7 +31,6 @@ public class Parsers {
     public static final Parser<String> symbol = Parsers::symbol;
     public static final Parser<String> digit = Parsers::digit;
     public static final Parser<Double> number = Parsers::number;
-    public static final Parser<String> comment = Parsers::comment;
 
     // -- AST Parsers
     public static final Parser<ASTExpr> expr = Parsers::expr;
