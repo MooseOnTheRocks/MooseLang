@@ -1,2 +1,47 @@
-let x = 3 in #produce x
-let (#produce 3) = x in #produce x
+#push "hello1";
+#force print;
+let x = 3
+in
+let y = (
+    #thunk (
+        #push "hello1";
+        #force print;
+        \z: Number -> (
+            #push "we just popped";
+            #force print;
+            #push z;
+            #force print;
+
+            #push x;
+            #push z;
+            #force (+)
+        )
+    )
+)
+in
+#push "hello2";
+#force print;
+let (
+    #push "hello3";
+    #force print;
+
+    #push 7;
+
+    #push "we just pushed";
+    #force print;
+    #push 7;
+    #force print;
+
+    #force y
+)
+= w
+in (
+    #push "w is bound to";
+    #force print;
+    #push w;
+    #force print;
+
+    #push 5;
+    #push w;
+    #force (+)
+)
