@@ -1,14 +1,14 @@
 package dev.foltz.mooselang;
 
 import dev.foltz.mooselang.ast.ASTNode;
-import dev.foltz.mooselang.ir.Scope;
-import dev.foltz.mooselang.ir.TypedAST;
-import dev.foltz.mooselang.ir.types.comp.Lambda;
-import dev.foltz.mooselang.ir.types.comp.Producer;
-import dev.foltz.mooselang.ir.types.value.NumberType;
-import dev.foltz.mooselang.ir.types.value.StringType;
-import dev.foltz.mooselang.ir.types.value.Thunk;
-import dev.foltz.mooselang.ir.types.value.Unit;
+import dev.foltz.mooselang.typing.Scope;
+import dev.foltz.mooselang.typing.TypedAST;
+import dev.foltz.mooselang.typing.comp.Lambda;
+import dev.foltz.mooselang.typing.comp.Producer;
+import dev.foltz.mooselang.typing.value.NumberType;
+import dev.foltz.mooselang.typing.value.StringType;
+import dev.foltz.mooselang.typing.value.Thunk;
+import dev.foltz.mooselang.typing.value.Unit;
 import dev.foltz.mooselang.parser.Combinators;
 import dev.foltz.mooselang.parser.Parsers;
 import dev.foltz.mooselang.parser.SourceDesc;

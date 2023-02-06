@@ -1,4 +1,4 @@
-package dev.foltz.mooselang.ir.types.value;
+package dev.foltz.mooselang.typing.value;
 
 public class NumberType extends ValueType {
     public NumberType() {

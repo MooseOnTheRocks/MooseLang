@@ -4,7 +4,6 @@ import dev.foltz.mooselang.ast.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack;
 
 import static dev.foltz.mooselang.parser.Combinators.*;
 
@@ -79,7 +78,7 @@ public class Parsers {
             (ASTExpr) ls.get(3)
         ));
 
-    public static final Parser<ExprLetIn> exprLetIn =
+    public static final Parser<ExprLetValueIn> exprLetValueIn =
         all(
             match("let"),
             anyws,
@@ -92,9 +91,27 @@ public class Parsers {
             match("in"),
             anyws,
             expr)
-        .map(ls -> new ExprLetIn(
+        .map(ls -> new ExprLetValueIn(
             (ExprName) ls.get(2),
             (ASTExpr) ls.get(6),
+            (ASTExpr) ls.get(10)));
+
+    public static final Parser<ExprLetCompIn> exprLetCompIn =
+        all(
+            match("let"),
+            anyws,
+            expr,
+            anyws,
+            match("="),
+            anyws,
+            exprName,
+            anyws,
+            match("in"),
+            anyws,
+            expr)
+        .map(ls -> new ExprLetCompIn(
+            (ASTExpr) ls.get(2),
+            (ExprName) ls.get(6),
             (ASTExpr) ls.get(10)));
 
     public static final Parser<ExprLambda> exprLambda =
@@ -150,7 +167,8 @@ public class Parsers {
             optional(ws),
             any(
                 exprDirective,
-                exprLetIn,
+                exprLetValueIn,
+                exprLetCompIn,
                 exprLambda,
                 exprParen,
                 exprName,

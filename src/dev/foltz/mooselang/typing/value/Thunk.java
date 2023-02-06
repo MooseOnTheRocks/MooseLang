@@ -1,6 +1,6 @@
-package dev.foltz.mooselang.ir.types.value;
+package dev.foltz.mooselang.typing.value;
 
-import dev.foltz.mooselang.ir.types.comp.CompType;
+import dev.foltz.mooselang.typing.comp.CompType;
 
 public class Thunk extends ValueType {
     public final CompType comp;

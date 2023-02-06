@@ -1,6 +1,6 @@
-package dev.foltz.mooselang.ir.types.comp;
+package dev.foltz.mooselang.typing.comp;
 
-import dev.foltz.mooselang.ir.types.value.ValueType;
+import dev.foltz.mooselang.typing.value.ValueType;
 
 public class Producer extends CompType {
     public final ValueType value;

@@ -1,6 +1,6 @@
-package dev.foltz.mooselang.ir;
+package dev.foltz.mooselang.typing;
 
-import dev.foltz.mooselang.ir.types.value.ValueType;
+import dev.foltz.mooselang.typing.value.ValueType;
 
 import java.util.*;
 

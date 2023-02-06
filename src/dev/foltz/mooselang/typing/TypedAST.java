@@ -1,12 +1,11 @@
-package dev.foltz.mooselang.ir;
+package dev.foltz.mooselang.typing;
 
 import dev.foltz.mooselang.ast.*;
-import dev.foltz.mooselang.ir.types.IRType;
-import dev.foltz.mooselang.ir.types.comp.CompType;
-import dev.foltz.mooselang.ir.types.comp.Lambda;
-import dev.foltz.mooselang.ir.types.comp.Producer;
-import dev.foltz.mooselang.ir.types.comp.StackPush;
-import dev.foltz.mooselang.ir.types.value.*;
+import dev.foltz.mooselang.typing.comp.CompType;
+import dev.foltz.mooselang.typing.comp.Lambda;
+import dev.foltz.mooselang.typing.comp.Producer;
+import dev.foltz.mooselang.typing.comp.StackPush;
+import dev.foltz.mooselang.typing.value.*;
 
 public class TypedAST extends ASTVisitor<TypedAST> {
     public final Scope context;
@@ -132,7 +131,26 @@ public class TypedAST extends ASTVisitor<TypedAST> {
     }
 
     @Override
-    public TypedAST visit(ExprLetIn letIn) {
+    public TypedAST visit(ExprLetCompIn letIn) {
+        var name = letIn.name;
+        var exprType = evalTypeAST(letIn.expr).result;
+        if (exprType instanceof Producer prod) {
+            var s1 = pushContext(name.name, prod.value);
+            var s2 = s1.evalTypeAST(letIn.body);
+            if (s2.result instanceof CompType comp) {
+                return s2.popContext();
+            }
+            else {
+                return error("Let-in expected computation for body, received: " + s2.result);
+            }
+        }
+        else {
+            return error("Let-in expected computation for expr, received: " + exprType);
+        }
+    }
+
+    @Override
+    public TypedAST visit(ExprLetValueIn letIn) {
         var name = letIn.name;
         var exprType = evalTypeAST(letIn.expr).result;
         if (exprType instanceof ValueType value) {

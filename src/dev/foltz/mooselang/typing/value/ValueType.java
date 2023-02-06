@@ -1,6 +1,6 @@
-package dev.foltz.mooselang.ir.types.value;
+package dev.foltz.mooselang.typing.value;
 
-import dev.foltz.mooselang.ir.types.IRType;
+import dev.foltz.mooselang.typing.IRType;
 
 public abstract class ValueType extends IRType {
 }
