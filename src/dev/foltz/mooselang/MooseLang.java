@@ -63,6 +63,7 @@ public class MooseLang {
                     new Lambda("_print_1", new StringType(),
                         new Producer(new Unit())));
             globalScope = globalScope.put("print", builtinPrint);
+
             var builtinAdd =
                 new Thunk(
                     new Lambda("_add_1", new NumberType(),
