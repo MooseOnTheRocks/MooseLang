@@ -1,6 +1,11 @@
 package dev.foltz.mooselang;
 
 import dev.foltz.mooselang.ast.ASTNode;
+import dev.foltz.mooselang.ir.CompileAST;
+import dev.foltz.mooselang.ir.IRComp;
+import dev.foltz.mooselang.ir.IRName;
+import dev.foltz.mooselang.ir.IRNode;
+import dev.foltz.mooselang.rt.Interpreter;
 import dev.foltz.mooselang.typing.Scope;
 import dev.foltz.mooselang.typing.TypedAST;
 import dev.foltz.mooselang.typing.comp.Lambda;
@@ -12,6 +17,10 @@ import dev.foltz.mooselang.typing.value.Unit;
 import dev.foltz.mooselang.parser.Combinators;
 import dev.foltz.mooselang.parser.Parsers;
 import dev.foltz.mooselang.parser.SourceDesc;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import static dev.foltz.mooselang.parser.Parsers.*;
 
@@ -81,6 +90,40 @@ public class MooseLang {
 
                 var typed = globalASTEval.evalTypeAST(ast);
                 System.out.println(typed.result);
+            }
+            System.out.println();
+
+            System.out.println("-- Compile");
+            var topLevelIR = new ArrayList<IRNode>();
+            for (ASTNode ast : asts) {
+                System.out.println("Original AST:");
+                System.out.println(ast);
+                System.out.println("Compiled:");
+
+                var compiled = new CompileAST().compile(ast);
+                System.out.println(compiled);
+                topLevelIR.add(compiled);
+            }
+            System.out.println();
+
+            System.out.println("-- Interpreter");
+            for (IRNode node : topLevelIR) {
+                if (!(node instanceof IRComp comp)) {
+                    throw new RuntimeException("Expected computation, cannot interpret: " + node);
+                }
+                var initialState = new Interpreter(comp, List.of(), new dev.foltz.mooselang.rt.Scope(null, null, Map.of()),false);
+                var state = initialState;
+                System.out.println("Initial state:");
+                System.out.println(state);
+                while (!state.terminated) {
+                    state = state.stepExecution();
+                    System.out.println("---");
+                    System.out.println(state);
+                }
+                System.out.println("IR:");
+                System.out.println(node);
+                System.out.println("Result:");
+                System.out.println(state);
             }
         }
     }
