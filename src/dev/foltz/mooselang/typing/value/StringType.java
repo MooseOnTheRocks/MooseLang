@@ -5,4 +5,9 @@ public class StringType extends ValueType {
     public String toString() {
         return "String()";
     }
+
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof StringType;
+    }
 }

@@ -7,4 +7,9 @@ public class Unit extends ValueType {
     public String toString() {
         return "Unit()";
     }
+
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof Unit;
+    }
 }

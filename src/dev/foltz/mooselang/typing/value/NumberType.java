@@ -8,4 +8,9 @@ public class NumberType extends ValueType {
     public String toString() {
         return "Number()";
     }
+
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof NumberType;
+    }
 }

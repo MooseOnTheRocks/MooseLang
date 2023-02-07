@@ -1,5 +1,6 @@
 package dev.foltz.mooselang.typing.comp;
 
+import dev.foltz.mooselang.typing.value.StringType;
 import dev.foltz.mooselang.typing.value.ValueType;
 
 public class Lambda extends CompType {
@@ -16,5 +17,10 @@ public class Lambda extends CompType {
     @Override
     public String toString() {
         return "Lambda(" + paramName + ", " + paramType + ", " + bodyType + ")";
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof Lambda lambda && lambda.paramType.equals(paramType) && lambda.bodyType.equals(bodyType);
     }
 }

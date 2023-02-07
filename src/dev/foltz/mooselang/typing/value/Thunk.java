@@ -13,4 +13,9 @@ public class Thunk extends ValueType {
     public String toString() {
         return "Thunk(" + comp + ")";
     }
+
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof Thunk thunk && thunk.comp.equals(comp);
+    }
 }

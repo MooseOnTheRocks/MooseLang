@@ -59,8 +59,18 @@ public class TypedAST extends ASTVisitor<TypedAST> {
     public TypedAST visit(ExprChain chain) {
         var firstType = evalTypeAST(chain.first);
         var secondType = evalTypeAST(chain.second);
-        if (firstType.result instanceof StackPush push && secondType.result instanceof Lambda lambda) {
-            return typed(lambda.bodyType);
+        if (firstType.result instanceof StackPush push) {
+            System.out.println("PUSH INFO::");
+            if (secondType.result instanceof Lambda lam) {
+                System.out.println("Param type: " + lam.paramType);
+            }
+            System.out.println("Push type: " + push.value);
+            if (secondType.result instanceof Lambda lambda && lambda.paramType.equals(push.value)) {
+                return typed(lambda.bodyType);
+            }
+            else {
+                return error("Cannot chain push with: " + chain.second + " <<< " + secondType.result);
+            }
         }
         else if (firstType.result instanceof CompType firstComp && secondType.result instanceof CompType secondComp) {
             return typed(secondComp);
