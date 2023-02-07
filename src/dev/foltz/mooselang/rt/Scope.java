@@ -32,7 +32,7 @@ public class Scope {
         if (localScope.containsKey(name)) {
             return Optional.of(localScope.get(name));
         }
-        return outer == null ? Optional.empty() : outer.find(name);
+        return prev == null ? Optional.empty() : prev.find(name);
     }
 
     public Scope put(String name, IRValue value) {

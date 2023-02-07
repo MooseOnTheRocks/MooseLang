@@ -1,6 +1,6 @@
 package dev.foltz.mooselang.typing.comp;
 
-import dev.foltz.mooselang.typing.IRType;
+import dev.foltz.mooselang.typing.BaseType;
 
-public abstract class CompType extends IRType {
+public abstract class CompType extends BaseType {
 }

@@ -1,6 +1,6 @@
 package dev.foltz.mooselang.typing;
 
-public abstract class IRType {
+public abstract class BaseType {
     @Override
     public abstract boolean equals(Object other);
 }

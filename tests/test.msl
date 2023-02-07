@@ -1,5 +1,5 @@
 let x = 20
 in (
-    #push 10;
-    #force (+)
+    #push x;
+    (\x: Number -> #produce x)
 )

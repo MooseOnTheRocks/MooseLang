@@ -1,10 +1,7 @@
 package dev.foltz.mooselang;
 
 import dev.foltz.mooselang.ast.ASTNode;
-import dev.foltz.mooselang.ir.CompileAST;
-import dev.foltz.mooselang.ir.IRComp;
-import dev.foltz.mooselang.ir.IRName;
-import dev.foltz.mooselang.ir.IRNode;
+import dev.foltz.mooselang.ir.*;
 import dev.foltz.mooselang.rt.Interpreter;
 import dev.foltz.mooselang.typing.Scope;
 import dev.foltz.mooselang.typing.TypedAST;
@@ -27,14 +24,14 @@ import static dev.foltz.mooselang.parser.Parsers.*;
 public class MooseLang {
     public static void main(String[] args) {
 //        var source = SourceDesc.fromString("test", "let axe = 200");
-        var source = SourceDesc.fromFile("tests", "test.msl");
+        var source = SourceDesc.fromFile("tests", "test_canon.msl");
 
         var toplevel = Combinators.any(
             anyws,
             comment,
-            expr,
-            stmtLet,
-            stmtDef
+            expr
+//            stmtLet,
+//            stmtDef
         );
 
         var parser = Combinators.many(toplevel);
@@ -80,6 +77,12 @@ public class MooseLang {
                             new Producer(new NumberType()))));
             globalScope = globalScope.put("+",  builtinAdd);
 
+            var builtinNum2Str =
+                new Thunk(
+                    new Lambda("_num2str_1", new NumberType(),
+                        new Producer(new StringType())));
+            globalScope = globalScope.put("num2str", builtinNum2Str);
+
             var globalASTEval = new TypedAST(globalScope, null);
 
             System.out.println("-- Types");
@@ -111,14 +114,19 @@ public class MooseLang {
                 if (!(node instanceof IRComp comp)) {
                     throw new RuntimeException("Expected computation, cannot interpret: " + node);
                 }
-                var initialState = new Interpreter(comp, List.of(), new dev.foltz.mooselang.rt.Scope(null, null, Map.of()),false);
+                Map<String, IRValue> globalScopeIR = Map.of(
+                    "print", IRBuiltin.PRINT_THUNK,
+                    "+", IRBuiltin.ADD_THUNK,
+                    "num2str", IRBuiltin.NUM2STR_THUNK
+                );
+                var initialState = new Interpreter(comp, List.of(), new dev.foltz.mooselang.rt.Scope(null, null, globalScopeIR),false);
                 var state = initialState;
                 System.out.println("Initial state:");
                 System.out.println(state);
                 while (!state.terminated) {
                     state = state.stepExecution();
-                    System.out.println("---");
-                    System.out.println(state);
+//                    System.out.println("---");
+//                    System.out.println(state);
                 }
                 System.out.println("IR:");
                 System.out.println(node);

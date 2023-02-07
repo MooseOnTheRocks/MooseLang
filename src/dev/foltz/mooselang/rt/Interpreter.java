@@ -30,14 +30,44 @@ public class Interpreter {
         else if (term instanceof IRProduce produce) return step(produce);
         else if (term instanceof IRForceName force) return step(force);
         else if (term instanceof IRPush push) return step(push);
+        else if (term instanceof IRLambda lambda) return step(lambda);
+        else if (term instanceof IRBuiltin builtin) return step(builtin);
         else {
             System.err.println("Unhandled term: " + term);
             return new Interpreter(term, stack, scope, true);
         }
     }
 
+    public Interpreter step(IRBuiltin builtin) {
+        return builtin.internal.apply(this);
+    }
+
+    public Interpreter step(IRLambda lambda) {
+        if (stack.isEmpty()) {
+            return new Interpreter(lambda, stack, scope, true);
+        }
+
+        var top = stack.get(stack.size() - 1);
+        if (top instanceof IRValue value) {
+            var newStack = new ArrayList<>(stack);
+            newStack.remove(newStack.size() - 1);
+            return new Interpreter(lambda.body, newStack, scope.put(lambda.paramName, value), false);
+        }
+        else {
+            System.err.println("Lambda expects value on the stack, received: " + top);
+            return new Interpreter(term, stack, scope, true);
+        }
+    }
+
     public Interpreter step(IRPush push) {
-        throw new RuntimeException("Unsupported push");
+        var newStack = new ArrayList<>(stack);
+        if (push.value instanceof IRName name) {
+            newStack.add(scope.find(name.name).get());
+        }
+        else {
+            newStack.add(push.value);
+        }
+        return new Interpreter(push.then, newStack, scope, false);
     }
 
     public Interpreter step(IRForceName force) {
@@ -103,6 +133,6 @@ public class Interpreter {
 
     @Override
     public String toString() {
-        return "Interpreter(" + term + ", " + terminated + ", " + scope.allBindings(Map.of()) + ")";
+        return "Interpreter(" + term + ", " + terminated + ", " + stack + ", " + scope.allBindings(Map.of()) + ")";
     }
 }

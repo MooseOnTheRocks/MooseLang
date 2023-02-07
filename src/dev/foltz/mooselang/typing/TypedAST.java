@@ -9,9 +9,9 @@ import dev.foltz.mooselang.typing.value.*;
 
 public class TypedAST extends ASTVisitor<TypedAST> {
     public final Scope context;
-    public final IRType result;
+    public final BaseType result;
 
-    public TypedAST(Scope context, IRType lastType) {
+    public TypedAST(Scope context, BaseType lastType) {
         this.context = context;
         this.result = lastType;
     }
@@ -20,7 +20,7 @@ public class TypedAST extends ASTVisitor<TypedAST> {
         throw new IllegalStateException("[Typing Error] " + msg);
     }
 
-    private TypedAST typed(IRType type) {
+    private TypedAST typed(BaseType type) {
         return new TypedAST(context, type);
     }
 
@@ -63,6 +63,7 @@ public class TypedAST extends ASTVisitor<TypedAST> {
             System.out.println("PUSH INFO::");
             if (secondType.result instanceof Lambda lam) {
                 System.out.println("Param type: " + lam.paramType);
+                System.out.println("Body type: " + lam.bodyType);
             }
             System.out.println("Push type: " + push.value);
             if (secondType.result instanceof Lambda lambda && lambda.paramType.equals(push.value)) {
