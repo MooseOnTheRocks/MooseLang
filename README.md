@@ -5,13 +5,9 @@ A functional programming language with support for static types, continuations, 
 A lower level call-by-push-value representation is utilized, offering fine-grain control over program semantics.
 
 ##### Table of Contents
-
-[Description](#description)
-
-[Roadmap](#roadmap)
-
-[User Instructions](#user-instructions)
-
+[Description](#description)  
+[Roadmap](#roadmap)  
+[User Instructions](#user-instructions)  
 [Known Issues](#known-issues)
 
 <a name="table-of-contents-headers"></a>
