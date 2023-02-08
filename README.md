@@ -69,6 +69,7 @@ References to Paul Blain Levy's work (creator of CBPV):
   - Ad-hoc, parametric, subtyping?
 - Dispatch mechanism:
   - Single dispatch, multiple dispatch, static overloading?
+- Recursive function/data definitions.
 
 ## User Instructions
 Coming soon once interpreter and CLI are finished.
