@@ -1,8 +1,20 @@
 # MooseLang
 
-## [WIP] Functional programming language implemented with call-by-push-value semantics.
+## (WIP) Functional programming language implemented with call-by-push-value semantics.
 A functional programming language with support for static types, continuations, typed effects, and effect handlers.
 A lower level call-by-push-value representation is utilized, offering fine-grain control over program semantics.
+
+##### Table of Contents
+
+[Description](#description)
+
+[Roadmap](#roadmap)
+
+[User Instructions](#user-instructions)
+
+[Known Issues](#known-issues)
+
+<a name="table-of-contents-headers"></a>
 
 ## Description
 This is a personal exploration into creating a functional programming language.
