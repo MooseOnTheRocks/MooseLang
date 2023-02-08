@@ -46,7 +46,7 @@ References to Paul Blain Levy's work (creator of CBPV):
   - Operand stack supporting frames (let-computation bindings).
   - Support for builtins.
 
-### <u>Iteration 4 (Currrent)</u>
+### <u>Iteration 4 (Current)</u>
 - Refine front-end syntax
   - Global definitions
   - Operator precedence and associativity
