@@ -13,7 +13,7 @@ public abstract class VisitorIR<T> {
     public T visit(IRForceName force) { return undefined(force); }
     public T visit(IRForceThunk force) { return undefined(force); }
     public T visit(IRLambda lambda) { return undefined(lambda); }
-    public T visit(IRLetComp bind) { return undefined(bind); }
+    public T visit(IRDoComp bind) { return undefined(bind); }
     public T visit(IRLetValue bind) { return undefined(bind); }
     public T visit(IRName name) { return undefined(name); }
     public T visit(IRProduce produce) { return undefined(produce); }

@@ -8,7 +8,6 @@ import dev.foltz.mooselang.typing.BaseType;
 import dev.foltz.mooselang.typing.comp.CompType;
 import dev.foltz.mooselang.typing.comp.Lambda;
 import dev.foltz.mooselang.typing.comp.Producer;
-import dev.foltz.mooselang.typing.comp.StackPush;
 import dev.foltz.mooselang.typing.value.NumberType;
 import dev.foltz.mooselang.typing.value.Thunk;
 import dev.foltz.mooselang.typing.value.ValueType;
@@ -72,7 +71,7 @@ public class TypedIR extends VisitorIR<BaseType> {
     }
 
     @Override
-    public BaseType visit(IRLetComp bind) {
+    public BaseType visit(IRDoComp bind) {
         var boundType = typeOf(bind.boundComp);
         if (boundType instanceof Producer producer) {
             var bodyType = put(bind.name, producer.value).typeOf(bind.body);

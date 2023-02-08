@@ -28,7 +28,7 @@ public class Interpreter {
         }
 
         if (term instanceof IRLetValue let) return step(let);
-        else if (term instanceof IRLetComp let) return step(let);
+        else if (term instanceof IRDoComp let) return step(let);
         else if (term instanceof IRProduce produce) return step(produce);
         else if (term instanceof IRForceName force) return step(force);
         else if (term instanceof IRPush push) return step(push);
@@ -105,7 +105,7 @@ public class Interpreter {
             return new Interpreter(produce, stack, scope, true);
         }
         var top = stack.get(stack.size() - 1);
-        if (top instanceof IRLetComp let) {
+        if (top instanceof IRDoComp let) {
             var newStack = new ArrayList<>(stack);
             newStack.remove(stack.size() - 1);
             return new Interpreter(let.body, newStack, scope.put(let.name, produce.value), false);
@@ -124,7 +124,7 @@ public class Interpreter {
         return new Interpreter(body, stack, scope.put(name, value), false);
     }
 
-    public Interpreter step(IRLetComp let) {
+    public Interpreter step(IRDoComp let) {
         var name = let.name;
         var expr = let.boundComp;
         var body = let.body;

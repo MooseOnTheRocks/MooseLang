@@ -56,8 +56,8 @@ public class PrettyPrintIR extends VisitorIR<String> {
     }
 
     @Override
-    public String visit(IRLetComp bind) {
-        return "let (\n" +
+    public String visit(IRDoComp bind) {
+        return "do (\n" +
             getNextIndent() + indent().pprint(bind.boundComp) + "\n" +
             getIndent() + ") = " + inline().pprint(bind.name) + "\n" +
             getIndent() + "in\n" +
