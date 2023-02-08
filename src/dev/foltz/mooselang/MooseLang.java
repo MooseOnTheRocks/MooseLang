@@ -125,9 +125,8 @@ public class MooseLang {
                 System.out.println(state);
                 while (!state.terminated) {
                     state = state.stepExecution();
-//                    System.out.println("---");
-//                    System.out.println(state);
                 }
+                System.out.println("-- Interpreter Terminated");
                 System.out.println("IR:");
                 System.out.println(node);
                 System.out.println("Result:");

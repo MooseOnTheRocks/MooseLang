@@ -75,4 +75,4 @@ Coming soon once interpreter and CLI are finished.
 Built with Java SDK 18.
 
 ## Known Issues
-- Chain operator `;` has wrong associativity, requiring unnecessary parentheses for complex chains.
+- Chain operator `;` is parsing slightly incorrectly, requiring unnecessary parentheses for complex chains.
