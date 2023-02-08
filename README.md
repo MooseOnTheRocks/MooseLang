@@ -6,7 +6,7 @@ A lower level call-by-push-value representation is utilized, offering fine-grain
 
 ##### Table of Contents
 [Description](#description)  
-[Roadmap](#iteration-3-current)  
+[Roadmap](#iteration-4-current)  
 [User Instructions](#user-instructions)  
 [Known Issues](#known-issues)
 
