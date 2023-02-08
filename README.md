@@ -40,13 +40,13 @@ References to Paul Blain Levy's work (creator of CBPV):
 - Intermediate Representation (IR) implementation of CBPV lambda calculus.
   - let bindings, force, thunk, lambda, push, produce
 
-### <u>Iteration 3 (Current)</u>
+### Iteration 3 (Complete)
 - Interpreter to execute CBPV IR directly.
   - Correctly execute canonical CBPV example.
   - Operand stack supporting frames (let-computation bindings).
   - Support for builtins.
 
-### Iteration 4 (Proposed)
+### <u>Iteration 4 (Currrent)</u>
 - Refine front-end syntax
   - Global definitions
   - Operator precedence and associativity
