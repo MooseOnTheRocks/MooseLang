@@ -50,6 +50,7 @@ References to Paul Blain Levy's work (creator of CBPV):
 - Refine front-end syntax
   - Global definitions
   - Operator precedence and associativity
+- Interpreter to execute front-end syntax.
 - Implement REPL with interpreter.
 
 ### Iteration 5 (Proposed)
