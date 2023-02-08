@@ -1,4 +1,4 @@
-package dev.foltz.mooselang.source;
+package dev.foltz.mooselang.io;
 
 public class SourceFile implements SourceDesc {
     public final String sourcePath;

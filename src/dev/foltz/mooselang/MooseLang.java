@@ -7,7 +7,7 @@ import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.IRComp;
 import dev.foltz.mooselang.parser.BasicParsers;
 import dev.foltz.mooselang.parser.ParserCombinators;
-import dev.foltz.mooselang.source.SourceDesc;
+import dev.foltz.mooselang.io.SourceDesc;
 import dev.foltz.mooselang.rt.Interpreter;
 import dev.foltz.mooselang.rt.Scope;
 

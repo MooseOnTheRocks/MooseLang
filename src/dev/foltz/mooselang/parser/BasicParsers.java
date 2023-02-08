@@ -1,7 +1,7 @@
 package dev.foltz.mooselang.parser;
 
 import dev.foltz.mooselang.ast.nodes.expr.ExprString;
-import dev.foltz.mooselang.source.SourceDesc;
+import dev.foltz.mooselang.io.SourceDesc;
 
 import static dev.foltz.mooselang.parser.ParserCombinators.*;
 
