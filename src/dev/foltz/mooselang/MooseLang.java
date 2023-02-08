@@ -7,7 +7,7 @@ import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.IRComp;
 import dev.foltz.mooselang.parser.BasicParsers;
 import dev.foltz.mooselang.parser.ParserCombinators;
-import dev.foltz.mooselang.parser.SourceDesc;
+import dev.foltz.mooselang.source.SourceDesc;
 import dev.foltz.mooselang.rt.Interpreter;
 import dev.foltz.mooselang.rt.Scope;
 
@@ -92,7 +92,10 @@ public class MooseLang {
                     while (!state.terminated) {
                         state = state.stepExecution();
                     }
-                    System.out.println("Finished: " + state);
+                    System.out.println("Finished:");
+                    System.out.println("Term: " + state.term);
+                    System.out.println("Scope: " + state.scope.allBindings(Map.of()));
+                    System.out.println("Stack: " + state.stack);
                 }
                 else {
                     System.out.println("Value: " + compiled);

@@ -1,5 +1,7 @@
 package dev.foltz.mooselang.parser;
 
+import dev.foltz.mooselang.source.SourceDesc;
+
 public class ParserState<T> {
     public final SourceDesc source;
     public final int index;

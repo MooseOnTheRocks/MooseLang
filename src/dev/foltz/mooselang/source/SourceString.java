@@ -1,4 +1,4 @@
-package dev.foltz.mooselang.parser;
+package dev.foltz.mooselang.source;
 
 public class SourceString implements SourceDesc {
     public final String sourceName;

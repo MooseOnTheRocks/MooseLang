@@ -1,4 +1,4 @@
-package dev.foltz.mooselang.parser;
+package dev.foltz.mooselang.source;
 
 import java.io.IOException;
 import java.nio.file.Files;
