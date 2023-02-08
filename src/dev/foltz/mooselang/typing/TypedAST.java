@@ -1,13 +1,15 @@
 package dev.foltz.mooselang.typing;
 
-import dev.foltz.mooselang.ast.*;
+import dev.foltz.mooselang.ast.VisitorAST;
+import dev.foltz.mooselang.ast.nodes.*;
+import dev.foltz.mooselang.ast.nodes.expr.*;
 import dev.foltz.mooselang.typing.comp.CompType;
 import dev.foltz.mooselang.typing.comp.Lambda;
 import dev.foltz.mooselang.typing.comp.Producer;
 import dev.foltz.mooselang.typing.comp.StackPush;
 import dev.foltz.mooselang.typing.value.*;
 
-public class TypedAST extends ASTVisitor<TypedAST> {
+public class TypedAST extends VisitorAST<TypedAST> {
     public final Scope context;
     public final BaseType result;
 

@@ -1,5 +1,4 @@
-let x = 20
-in (
-    #push x;
-    (\x: Number -> #produce x)
-)
+f x = 20 + x
+
+let a = 40 in
+    print (num2str (f a))

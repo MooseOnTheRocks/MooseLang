@@ -1,7 +1,12 @@
 package dev.foltz.mooselang;
 
-import dev.foltz.mooselang.ast.ASTNode;
+import dev.foltz.mooselang.ast.nodes.ASTNode;
 import dev.foltz.mooselang.ir.*;
+import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
+import dev.foltz.mooselang.ir.nodes.comp.IRComp;
+import dev.foltz.mooselang.ir.nodes.IRNode;
+import dev.foltz.mooselang.ir.nodes.value.IRValue;
+import dev.foltz.mooselang.parser.BasicParsers;
 import dev.foltz.mooselang.rt.Interpreter;
 import dev.foltz.mooselang.typing.Scope;
 import dev.foltz.mooselang.typing.TypedAST;
@@ -11,8 +16,7 @@ import dev.foltz.mooselang.typing.value.NumberType;
 import dev.foltz.mooselang.typing.value.StringType;
 import dev.foltz.mooselang.typing.value.Thunk;
 import dev.foltz.mooselang.typing.value.Unit;
-import dev.foltz.mooselang.parser.Combinators;
-import dev.foltz.mooselang.parser.Parsers;
+import dev.foltz.mooselang.parser.ParserCombinators;
 import dev.foltz.mooselang.parser.SourceDesc;
 
 import java.util.ArrayList;
@@ -24,9 +28,9 @@ import static dev.foltz.mooselang.parser.Parsers.*;
 public class MooseLang {
     public static void main(String[] args) {
 //        var source = SourceDesc.fromString("test", "let axe = 200");
-        var source = SourceDesc.fromFile("tests", "test_canon.msl");
+        var source = SourceDesc.fromFile("tests", "test.msl");
 
-        var toplevel = Combinators.any(
+        var toplevel = ParserCombinators.any(
             anyws,
             comment,
             expr
@@ -34,9 +38,9 @@ public class MooseLang {
 //            stmtDef
         );
 
-        var parser = Combinators.many(toplevel);
+        var parser = ParserCombinators.many(toplevel);
 
-        var res = Parsers.parse(parser, source);
+        var res = BasicParsers.parse(parser, source);
 
         boolean failed = res.isError || !res.rem().isEmpty();
 
@@ -103,7 +107,7 @@ public class MooseLang {
                 System.out.println(ast);
                 System.out.println("Compiled:");
 
-                var compiled = new CompileAST().compile(ast);
+                var compiled = new ParserIR().compile(ast);
                 System.out.println(compiled);
                 topLevelIR.add(compiled);
             }

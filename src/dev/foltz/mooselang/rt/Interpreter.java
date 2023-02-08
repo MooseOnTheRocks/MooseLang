@@ -1,11 +1,13 @@
 package dev.foltz.mooselang.rt;
 
-import dev.foltz.mooselang.ir.*;
+import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
+import dev.foltz.mooselang.ir.nodes.comp.*;
+import dev.foltz.mooselang.ir.nodes.value.IRName;
+import dev.foltz.mooselang.ir.nodes.value.IRValue;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 
 public class Interpreter {
     public final IRComp term;

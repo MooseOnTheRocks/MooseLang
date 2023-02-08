@@ -1,9 +1,8 @@
 package dev.foltz.mooselang.rt;
 
-import dev.foltz.mooselang.ir.IRValue;
+import dev.foltz.mooselang.ir.nodes.value.IRValue;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
