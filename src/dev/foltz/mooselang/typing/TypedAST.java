@@ -143,27 +143,27 @@ public class TypedAST extends VisitorAST<TypedAST> {
         }
     }
 
-    @Override
-    public TypedAST visit(ExprLetCompIn letIn) {
-        var name = letIn.name;
-        var exprType = evalTypeAST(letIn.expr).result;
-        if (exprType instanceof Producer prod) {
-            var s1 = pushContext(name.name, prod.value);
-            var s2 = s1.evalTypeAST(letIn.body);
-            if (s2.result instanceof CompType comp) {
-                return s2.popContext();
-            }
-            else {
-                return error("Let-in expected computation for body, received: " + s2.result);
-            }
-        }
-        else {
-            return error("Let-in expected computation for expr, received: " + exprType);
-        }
-    }
+//    @Override
+//    public TypedAST visit(ExprLetCompIn letIn) {
+//        var name = letIn.name;
+//        var exprType = evalTypeAST(letIn.expr).result;
+//        if (exprType instanceof Producer prod) {
+//            var s1 = pushContext(name.name, prod.value);
+//            var s2 = s1.evalTypeAST(letIn.body);
+//            if (s2.result instanceof CompType comp) {
+//                return s2.popContext();
+//            }
+//            else {
+//                return error("Let-in expected computation for body, received: " + s2.result);
+//            }
+//        }
+//        else {
+//            return error("Let-in expected computation for expr, received: " + exprType);
+//        }
+//    }
 
     @Override
-    public TypedAST visit(ExprLetValueIn letIn) {
+    public TypedAST visit(ExprLetIn letIn) {
         var name = letIn.name;
         var exprType = evalTypeAST(letIn.expr).result;
         if (exprType instanceof ValueType value) {

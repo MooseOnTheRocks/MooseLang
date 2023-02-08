@@ -1,4 +1,6 @@
-f x = 20 + x
-
-let a = 40 in
-    print (num2str (f a))
+let w =
+    let x = 3 in
+    let y = \z: Number -> x + z in
+    y 7
+in
+    w + 5

@@ -9,6 +9,12 @@ import dev.foltz.mooselang.ir.nodes.value.IRNumber;
 import dev.foltz.mooselang.ir.nodes.value.IRString;
 import dev.foltz.mooselang.ir.nodes.value.IRUnit;
 import dev.foltz.mooselang.rt.Interpreter;
+import dev.foltz.mooselang.typing.comp.Lambda;
+import dev.foltz.mooselang.typing.comp.Producer;
+import dev.foltz.mooselang.typing.value.NumberType;
+import dev.foltz.mooselang.typing.value.StringType;
+import dev.foltz.mooselang.typing.value.Thunk;
+import dev.foltz.mooselang.typing.value.Unit;
 
 import java.util.function.Function;
 
@@ -36,7 +42,12 @@ public class IRBuiltin extends IRComp {
         return new Interpreter(new IRProduce(new IRUnit()), interp.stack, interp.scope, false);
     });
 
-    public static final IRThunk PRINT_THUNK = new IRThunk(new IRLambda("_print_1", PRINT_BUILTIN));
+    public static final IRThunk PRINT_THUNK =
+        new IRThunk(new IRLambda("_print_1", new StringType(),
+            PRINT_BUILTIN));
+    public static final Thunk PRINT_TYPE =
+        new Thunk(new Lambda("_print_1", new StringType(),
+            new Producer(new Unit())));
 
     private static final IRBuiltin ADD_BUILTIN = new IRBuiltin("add", interp -> {
         var ma = interp.scope.find("_add_1").get();
@@ -51,8 +62,14 @@ public class IRBuiltin extends IRComp {
         }
     });
 
-    public static final IRThunk ADD_THUNK = new IRThunk(new IRLambda("_add_1", new IRLambda("_add_2", ADD_BUILTIN)));
-
+    public static final IRThunk ADD_THUNK =
+        new IRThunk(new IRLambda("_add_1", new NumberType(),
+                new IRProduce(new IRThunk(new IRLambda("_add_2", new NumberType(),
+                        ADD_BUILTIN)))));
+    public static final Thunk ADD_TYPE =
+        new Thunk(new Lambda("_add_1", new NumberType(),
+            new Producer(new Thunk(new Lambda("_add_2", new NumberType(),
+                new Producer(new NumberType()))))));
     public static final IRBuiltin NUM2STR_BUILTIN = new IRBuiltin("num2str", interp -> {
         var ma = interp.scope.find("_num2str_1").get();
         if (ma instanceof IRNumber number) {
@@ -64,5 +81,10 @@ public class IRBuiltin extends IRComp {
         }
     });
 
-    public static final IRThunk NUM2STR_THUNK = new IRThunk(new IRLambda("_num2str_1", NUM2STR_BUILTIN));
+    public static final IRThunk NUM2STR_THUNK =
+        new IRThunk(new IRLambda("_num2str_1", new NumberType(),
+            NUM2STR_BUILTIN));
+    public static final Thunk NUM2STR_TYPE =
+        new Thunk(new Lambda("_num2str_1", new NumberType(),
+            new Producer(new StringType())));
 }

@@ -80,7 +80,7 @@ public class Parsers {
             (ASTExpr) ls.get(3)
         ));
 
-    public static final Parser<ExprLetValueIn> exprLetValueIn =
+    public static final Parser<ExprLetIn> exprLetIn =
         all(
             BasicParsers.match("let"),
             anyws,
@@ -93,27 +93,9 @@ public class Parsers {
             BasicParsers.match("in"),
             anyws,
             expr)
-        .map(ls -> new ExprLetValueIn(
+        .map(ls -> new ExprLetIn(
             (ExprName) ls.get(2),
             (ASTExpr) ls.get(6),
-            (ASTExpr) ls.get(10)));
-
-    public static final Parser<ExprLetCompIn> exprLetCompIn =
-        all(
-            BasicParsers.match("let"),
-            anyws,
-            expr,
-            anyws,
-            BasicParsers.match("="),
-            anyws,
-            exprName,
-            anyws,
-            BasicParsers.match("in"),
-            anyws,
-            expr)
-        .map(ls -> new ExprLetCompIn(
-            (ASTExpr) ls.get(2),
-            (ExprName) ls.get(6),
             (ASTExpr) ls.get(10)));
 
     public static final Parser<ExprLambda> exprLambda =
@@ -169,8 +151,7 @@ public class Parsers {
             optional(ws),
             any(
                 exprDirective,
-                exprLetValueIn,
-                exprLetCompIn,
+                exprLetIn,
                 exprLambda,
                 exprParen,
                 exprName,
