@@ -1,4 +1,4 @@
-<a style="pointer-events: none;" href="#" onclick="return false;">![MooseLang](media/mooselang_banner.png)</a>
+<a style="pointer-events: none;" href="#" onClick="return false;">![MooseLang](media/mooselang_banner.png)</a>
 
 ## (WIP) Functional programming language implemented with call-by-push-value semantics.
 A functional programming language with support for static types, continuations, typed effects, and effect handlers.
