@@ -1,36 +1,22 @@
-let double = #thunk (\x: Number ->
-    do (
-        #push x
-        #force +
-    ) = __app_0
-    in
-    #push x
-    #force __app_0
-) in
-let add1 = #thunk (\y: Number ->
-    do (
-        #push y
-        #force +
-    ) = __app_1
-    in
-    #push 1.0
-    #force __app_1
-) in
-let n = 10.0 in
 do (
-    do (
+    let x = 3.0 in
+    let y = #thunk (\z: Number ->
         do (
-            #push n
-            #force add1
-        ) = __arg_2
+            #push x
+            #force +
+        ) = __app_0
         in
-        #push __arg_2
-        #force double
-    ) = __arg_3
-    in
-    #push __arg_3
-    #force num2str
-) = __arg_4
+        #push z
+        #force __app_0
+    ) in
+    #push 7.0
+    #force y
+) = w
 in
-#push __arg_4
-#force print
+do (
+    #push w
+    #force +
+) = __app_1
+in
+#push 5.0
+#force __app_1

@@ -26,7 +26,7 @@ public class Interpreter {
     public Interpreter execute() {
         var state = this;
         while (!state.terminated) {
-            state = stepExecution();
+            state = state.stepExecution();
         }
         return state;
     }

@@ -1,4 +1,6 @@
-let double = \x: Number -> x + x in
-let add1 = \y: Number -> y + 1 in
-let n = 10 in
-    print (num2str (double (add1 n)))
+let w =
+    let x = 3 in
+    let y = \z: Number -> x + z in
+        y 7
+in
+    w + 5

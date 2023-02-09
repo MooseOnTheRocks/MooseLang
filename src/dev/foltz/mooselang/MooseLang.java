@@ -224,13 +224,13 @@ public class MooseLang {
             var irFile = SourceDesc.fromFile("irout", saveName);
 
             var parseSource = parseIR(irSource).get(0);
-            var interpSource = globalInterpreter.apply(parseSource);
+            var interpSource = globalInterpreter.apply(parseSource).execute();
             System.out.println("-- From Source");
             System.out.println(interpSource);
             System.out.println();
 
             var parseFile = parseIR(irFile).get(0);
-            var interpFile = globalInterpreter.apply(parseFile);
+            var interpFile = globalInterpreter.apply(parseFile).execute();
             System.out.println("-- From File");
             System.out.println(interpFile);
             System.out.println();
