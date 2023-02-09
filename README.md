@@ -6,6 +6,7 @@ A lower level call-by-push-value representation is utilized, offering fine-grain
 
 ##### Table of Contents
 [Description](#description)  
+[Features](#features)  
 [Roadmap](#iteration-4-current)  
 [User Instructions](#user-instructions)  
 [Known Issues](#known-issues)
@@ -29,6 +30,51 @@ References to Paul Blain Levy's work (creator of CBPV):
 - His [thesis](https://www.cs.bham.ac.uk/~pbl/papers/thesisqmwphd.pdf) on CBPV; a long document describing CBPV in depth and the corresponding denotational/operational semantics.
 - His [tutorial slides](https://www.cs.bham.ac.uk/~pbl/papers/cbpvefftt.pdf) on the topic.
 
+## Features
+- Auto-curried functions
+- Lambda expressions
+- Let-in expressions
+- Basic types (Number, String, Unit)
+- Typed and executable CBPV IR
+- Save and load CBPV IR
+
+## Example
+The following high-level syntax:
+```
+let w =
+    let x = 3 in
+    let y = \z: Number -> x + z in
+        y 7
+in
+    w + 5
+```
+Is compiled into the following low-level CBPV IR:
+```
+do (
+    let x = 3.0 in
+    let y = #thunk (\z: Number ->
+        do (
+            #push x
+            #force +
+        ) = __app_0
+        in
+        #push z
+        #force __app_0
+    ) in
+    #push 7.0
+    #force y
+) = w
+in
+do (
+    #push w
+    #force +
+) = __app_1
+in
+#push 5.0
+#force __app_1
+```
+Which, when executed, produces the value 15.0 of type Number.
+
 ## Roadmap
 ### Iteration 1 (Complete)
 - Frontend parser combinator.
@@ -51,6 +97,7 @@ References to Paul Blain Levy's work (creator of CBPV):
   - Global definitions
   - Operator precedence and associativity
 - Interpreter to execute front-end syntax.
+- Parser for CBPV IR syntax.
 - Implement REPL with interpreter.
 
 ### Iteration 5 (Proposed)
@@ -68,7 +115,7 @@ References to Paul Blain Levy's work (creator of CBPV):
 - Polymorphism mechanism:
   - Ad-hoc, parametric, subtyping?
 - Dispatch mechanism:
-  - Single dispatch, multiple dispatch, static overloading?
+  - Single, multiple, universal, overloading?
 - Recursive function/data definitions.
 
 ## User Instructions
