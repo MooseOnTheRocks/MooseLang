@@ -10,11 +10,10 @@ import dev.foltz.mooselang.ir.nodes.value.IRUnit;
 
 public abstract class VisitorIR<T> {
     public T visit(IRBuiltin builtin) { return undefined(builtin); }
-    public T visit(IRForceName force) { return undefined(force); }
-    public T visit(IRForceThunk force) { return undefined(force); }
+    public T visit(IRForce force) { return undefined(force); }
     public T visit(IRLambda lambda) { return undefined(lambda); }
-    public T visit(IRDoComp bind) { return undefined(bind); }
-    public T visit(IRLetValue bind) { return undefined(bind); }
+    public T visit(IRDo bind) { return undefined(bind); }
+    public T visit(IRLet bind) { return undefined(bind); }
     public T visit(IRName name) { return undefined(name); }
     public T visit(IRProduce produce) { return undefined(produce); }
     public T visit(IRPush push) { return undefined(push); }

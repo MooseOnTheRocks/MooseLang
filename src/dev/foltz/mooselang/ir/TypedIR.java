@@ -4,11 +4,13 @@ import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.IRName;
 import dev.foltz.mooselang.ir.nodes.value.IRNumber;
+import dev.foltz.mooselang.ir.nodes.value.IRString;
 import dev.foltz.mooselang.typing.BaseType;
 import dev.foltz.mooselang.typing.comp.CompType;
 import dev.foltz.mooselang.typing.comp.Lambda;
 import dev.foltz.mooselang.typing.comp.Producer;
 import dev.foltz.mooselang.typing.value.NumberType;
+import dev.foltz.mooselang.typing.value.StringType;
 import dev.foltz.mooselang.typing.value.Thunk;
 import dev.foltz.mooselang.typing.value.ValueType;
 
@@ -43,6 +45,17 @@ public class TypedIR extends VisitorIR<BaseType> {
     }
 
     @Override
+    public BaseType visit(IRProduce produce) {
+        var valueType = typeOf(produce.value);
+        if (valueType instanceof ValueType value) {
+            return new Producer(value);
+        }
+        else {
+            return error("Produce expects Value, received: " + valueType);
+        }
+    }
+
+    @Override
     public BaseType visit(IRLambda lambda) {
         var bodyType = put(lambda.paramName, lambda.paramType).typeOf(lambda.body);
         if (bodyType instanceof CompType bodyComp) {
@@ -54,7 +67,7 @@ public class TypedIR extends VisitorIR<BaseType> {
     }
 
     @Override
-    public BaseType visit(IRLetValue bind) {
+    public BaseType visit(IRLet bind) {
         var exprType = typeOf(bind.value);
         if (exprType instanceof ValueType value) {
             var bodyType = put(bind.name, value).typeOf(bind.body);
@@ -71,7 +84,7 @@ public class TypedIR extends VisitorIR<BaseType> {
     }
 
     @Override
-    public BaseType visit(IRDoComp bind) {
+    public BaseType visit(IRDo bind) {
         var boundType = typeOf(bind.boundComp);
         if (boundType instanceof Producer producer) {
             var bodyType = put(bind.name, producer.value).typeOf(bind.body);
@@ -88,17 +101,24 @@ public class TypedIR extends VisitorIR<BaseType> {
     }
 
     @Override
-    public BaseType visit(IRForceName force) {
-        var mbound = find(force.name);
-        if (mbound.isEmpty()) {
-            return error("Cannot find " + force.name + " in scope.");
+    public BaseType visit(IRForce force) {
+        if (force.thunk instanceof IRName name) {
+            var mbound = find(name.name);
+            if (mbound.isEmpty()) {
+                return error("Cannot find " + name.name + " in scope.");
+            }
+            else if (mbound.get() instanceof Thunk thunk) {
+                return thunk.comp;
+            }
+            else {
+                return error("Force expects Thunk, received: " + mbound.get());
+            }
         }
-        var bound = mbound.get();
-        if (bound instanceof Thunk thunk) {
-            return thunk.comp;
+        else if (force.thunk instanceof IRThunk thunk) {
+            return typeOf(thunk.comp);
         }
         else {
-            return error("force expects Thunk, received: " + bound);
+            return error("Force expects Thunk, received: " + force.thunk);
         }
     }
 
@@ -143,6 +163,11 @@ public class TypedIR extends VisitorIR<BaseType> {
     @Override
     public BaseType visit(IRNumber number) {
         return new NumberType();
+    }
+
+    @Override
+    public BaseType visit(IRString string) {
+        return new StringType();
     }
 
     private BaseType error(String msg) {

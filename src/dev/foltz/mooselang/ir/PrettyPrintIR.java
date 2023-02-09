@@ -5,6 +5,9 @@ import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.IRName;
 import dev.foltz.mooselang.ir.nodes.value.IRNumber;
 import dev.foltz.mooselang.ir.nodes.value.IRString;
+import dev.foltz.mooselang.typing.value.NumberType;
+import dev.foltz.mooselang.typing.value.StringType;
+import dev.foltz.mooselang.typing.value.Unit;
 
 public class PrettyPrintIR extends VisitorIR<String> {
     public final int indentLevel;
@@ -50,13 +53,13 @@ public class PrettyPrintIR extends VisitorIR<String> {
     }
 
     @Override
-    public String visit(IRLetValue bind) {
+    public String visit(IRLet bind) {
         return "let " + inline().pprint(bind.name) + " = " + pprint(bind.value) + " in\n" +
             getIndent() + pprint(bind.body);
     }
 
     @Override
-    public String visit(IRDoComp bind) {
+    public String visit(IRDo bind) {
         return "do (\n" +
             getNextIndent() + indent().pprint(bind.boundComp) + "\n" +
             getIndent() + ") = " + inline().pprint(bind.name) + "\n" +
@@ -71,7 +74,14 @@ public class PrettyPrintIR extends VisitorIR<String> {
 
     @Override
     public String visit(IRLambda lambda) {
-        return "(\\" + lambda.paramName + " ->\n" +
+        var lambdaType = lambda.paramType;
+        var typeName = "";
+        if (lambdaType.equals(new NumberType())) typeName = "Number";
+        else if (lambdaType.equals(new StringType())) typeName = "String";
+        else if (lambdaType.equals(new Unit())) typeName = "Unit";
+        else throw new RuntimeException("Unknown type for lambda param: " + lambdaType);
+
+        return "(\\" + lambda.paramName + ": " + typeName + " ->\n" +
                 getNextIndent() + indent().pprint(lambda.body) + "\n" +
                 getIndent() + ")";
     }
@@ -88,8 +98,8 @@ public class PrettyPrintIR extends VisitorIR<String> {
     }
 
     @Override
-    public String visit(IRForceName force) {
-        return "#force " + pprint(force.name);
+    public String visit(IRForce force) {
+        return "#force " + pprint(force.thunk);
     }
 
     @Override

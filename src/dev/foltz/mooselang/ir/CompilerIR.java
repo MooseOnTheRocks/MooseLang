@@ -40,21 +40,25 @@ public class CompilerIR extends VisitorAST<IRNode> {
             // Bind evaluation of rhs to scope, then apply to lhs as value with push.
             if (rhs instanceof IRComp rhsComp) {
                 var argname = "__arg_" + (args++);
-                return new IRDoComp(argname, rhsComp, new IRPush(new IRName(argname), new IRForceName(name.name)));
+                return new IRDo(argname, rhsComp, new IRPush(new IRName(argname), new IRForce(name)));
             }
             else if (rhs instanceof IRValue rhsValue) {
-                return new IRPush(rhsValue, new IRForceName(name.name));
+                return new IRPush(rhsValue, new IRForce(name));
             }
             else {
                 return error("");
             }
         }
-        else if (lhs instanceof IRComp lhsComp && rhs instanceof IRValue rhsValue) {
-            var res = new IRPush(rhsValue, lhsComp);
-            System.out.println("PUSH: " + res);
-//            return res;
+        else if (lhs instanceof IRLambda lhsLambda && rhs instanceof IRComp rhsComp) {
             var argname = "__app_" + (args++);
-            return new IRDoComp(argname, lhsComp, new IRPush(rhsValue, new IRForceName(argname)));
+            return new IRDo(argname, rhsComp, new IRPush(new IRName(argname), lhsLambda));
+        }
+        else if (lhs instanceof IRComp lhsComp && rhs instanceof IRValue rhsValue) {
+            var argname = "__app_" + (args++);
+            return new IRDo(argname, lhsComp, new IRPush(rhsValue, new IRForce(new IRName(argname))));
+        }
+        else if (lhs instanceof IRValue lhsValue && rhs instanceof IRLambda rhsLambda) {
+            return new IRPush(lhsValue, rhsLambda);
         }
         else {
             return error("Application failed:\nlhs: " + lhs + "\nrhs: " + rhs);
@@ -131,7 +135,10 @@ public class CompilerIR extends VisitorAST<IRNode> {
     @Override
     public IRNode visit(ExprLambda lambda) {
         var body = compile(lambda.body);
-        if (body instanceof IRComp bodyComp) {
+        if (body instanceof IRLambda bodyLambda) {
+            return new IRLambda(lambda.param, getType(lambda.paramType), new IRProduce(new IRThunk(bodyLambda)));
+        }
+        else if (body instanceof IRComp bodyComp) {
             return new IRLambda(lambda.param, getType(lambda.paramType), bodyComp);
         }
         else if (body instanceof IRValue bodyValue) {
@@ -146,13 +153,13 @@ public class CompilerIR extends VisitorAST<IRNode> {
         var body = compile(let.body);
 
         if (expr instanceof IRLambda exprLambda && body instanceof IRComp bodyComp) {
-            return new IRLetValue(let.name.name, new IRThunk(exprLambda), bodyComp);
+            return new IRLet(let.name.name, new IRThunk(exprLambda), bodyComp);
         }
         else if (expr instanceof IRComp exprComp && body instanceof IRComp bodyComp) {
-            return new IRDoComp(let.name.name, exprComp, bodyComp);
+            return new IRDo(let.name.name, exprComp, bodyComp);
         }
         else if (expr instanceof IRValue exprValue && body instanceof IRComp bodyComp) {
-            return new IRLetValue(let.name.name, exprValue, bodyComp);
+            return new IRLet(let.name.name, exprValue, bodyComp);
         }
 
         return error("let-in:\nexpr: " + expr + "\nbody: " + body);

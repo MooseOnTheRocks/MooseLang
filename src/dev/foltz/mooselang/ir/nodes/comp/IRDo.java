@@ -2,11 +2,15 @@ package dev.foltz.mooselang.ir.nodes.comp;
 
 import dev.foltz.mooselang.ir.VisitorIR;
 
-public class IRForceName extends IRComp {
+public class IRDo extends IRComp {
     public final String name;
+    public final IRComp boundComp;
+    public final IRComp body;
 
-    public IRForceName(String name) {
+    public IRDo(String name, IRComp boundComp, IRComp body) {
         this.name = name;
+        this.boundComp = boundComp;
+        this.body = body;
     }
 
     @Override
@@ -16,6 +20,6 @@ public class IRForceName extends IRComp {
 
     @Override
     public String toString() {
-        return "IRForceName(" + name + ")";
+        return "IRDo(" + name + ", " + boundComp + ", " + body + ")";
     }
 }
