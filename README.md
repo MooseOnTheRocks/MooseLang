@@ -1,4 +1,4 @@
-![MooseLang](media/banner.png)
+![MooseLang](media/mooselang_banner.png)
 
 ## (WIP) Functional programming language implemented with call-by-push-value semantics.
 A functional programming language with support for static types, continuations, typed effects, and effect handlers.
