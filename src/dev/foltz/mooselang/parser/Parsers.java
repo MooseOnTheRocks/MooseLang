@@ -7,11 +7,13 @@ import dev.foltz.mooselang.ast.nodes.stmt.StmtLet;
 import java.util.ArrayList;
 import java.util.List;
 
+import static dev.foltz.mooselang.parser.BasicParsers.digit;
+import static dev.foltz.mooselang.parser.BasicParsers.letter;
 import static dev.foltz.mooselang.parser.ParserCombinators.*;
 
 public class Parsers {
     // -- Basic text parsers
-    public static final Parser<String> nl = BasicParsers::newlines;
+    public static final Parser<String> nl = BasicParsers.newlines;
     public static final Parser<String> ws =
         defaulted("",
             many1(
@@ -19,7 +21,7 @@ public class Parsers {
                 .map(s -> (String) s))
             .map(ls -> String.join("", ls)));
 
-    public static final Parser<String> comment = BasicParsers::comment;
+    public static final Parser<String> comment = BasicParsers.comment;
 
     public static final Parser<String> wsnl =
         many1(
@@ -28,10 +30,6 @@ public class Parsers {
         .map(ls -> String.join("", ls));
 
     public static final Parser<String> anyws = defaulted("", wsnl);
-    public static final Parser<String> letter = BasicParsers::letter;
-    public static final Parser<String> symbol = BasicParsers::symbol;
-    public static final Parser<String> digit = BasicParsers::digit;
-    public static final Parser<Double> number = BasicParsers::number;
 
     // -- AST Parsers
     public static final Parser<ASTExpr> expr = Parsers::expr;
@@ -64,14 +62,14 @@ public class Parsers {
                 : s)
         .map(ExprName::new);
 
-    public static final Parser<ExprString> exprString = BasicParsers::string;
+    public static final Parser<ExprString> exprString = BasicParsers.string.map(ExprString::new);
 
     public static final Parser<ExprSymbolic> exprSymbolic =
-        many1(symbol)
+        many1(BasicParsers.symbol)
         .map(ls -> String.join("", ls))
         .map(ExprSymbolic::new);
 
-    public static final Parser<ExprNumber> exprNumber = number.map(ExprNumber::new);
+    public static final Parser<ExprNumber> exprNumber = BasicParsers.number.map(ExprNumber::new);
 
     public static final Parser<ExprDirective> exprDirective =
         all(BasicParsers.match("#"), exprName, anyws, exprSimple)

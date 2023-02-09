@@ -24,6 +24,17 @@ public class ParserCombinators {
             return state.success(state.index, Optional.of(state.result));
         };
     }
+
+    public static Parser<List<?>> intersperse(Parser<?> sep, Parser<?> firstParser, Parser<?>... restParsers) {
+        var parserList = new ArrayList<Parser<?>>();
+        parserList.add(firstParser);
+        for (Parser<?> p : restParsers) {
+            parserList.add(all(sep, p).map(ls -> ls.get(1)));
+        }
+
+        return all(parserList.toArray(Parser[]::new));
+    }
+
     public static <T> Parser<List<T>> many1(Parser<T> parser) {
         return s -> {
             var state = parser.run(s);

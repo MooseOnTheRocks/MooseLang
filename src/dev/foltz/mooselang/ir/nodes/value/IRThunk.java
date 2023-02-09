@@ -1,5 +1,6 @@
-package dev.foltz.mooselang.ir.nodes.comp;
+package dev.foltz.mooselang.ir.nodes.value;
 
+import dev.foltz.mooselang.ir.nodes.comp.IRComp;
 import dev.foltz.mooselang.ir.nodes.value.IRValue;
 import dev.foltz.mooselang.ir.VisitorIR;
 

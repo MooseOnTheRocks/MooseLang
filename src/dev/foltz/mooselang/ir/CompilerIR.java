@@ -5,10 +5,7 @@ import dev.foltz.mooselang.ast.nodes.ASTNode;
 import dev.foltz.mooselang.ast.nodes.expr.*;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.*;
-import dev.foltz.mooselang.ir.nodes.value.IRName;
-import dev.foltz.mooselang.ir.nodes.value.IRNumber;
-import dev.foltz.mooselang.ir.nodes.value.IRString;
-import dev.foltz.mooselang.ir.nodes.value.IRValue;
+import dev.foltz.mooselang.ir.nodes.value.*;
 import dev.foltz.mooselang.typing.value.NumberType;
 import dev.foltz.mooselang.typing.value.StringType;
 import dev.foltz.mooselang.typing.value.Unit;
@@ -25,15 +22,19 @@ public class CompilerIR extends VisitorAST<IRNode> {
         };
     }
 
-    public IRNode compile(ASTNode node) {
+    public static IRNode compile(ASTNode node) {
+        return new CompilerIR().compileNode(node);
+    }
+
+    public IRNode compileNode(ASTNode node) {
         return node.apply(this);
     }
 
     static int args = 0;
     @Override
     public IRNode visit(ExprApply apply) {
-        var lhs = compile(apply.lhs);
-        var rhs = compile(apply.rhs);
+        var lhs = compileNode(apply.lhs);
+        var rhs = compileNode(apply.rhs);
 
         // Assume this is function application so name corresponds to (A -> B)
         if (lhs instanceof IRName name) {
@@ -134,7 +135,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(ExprLambda lambda) {
-        var body = compile(lambda.body);
+        var body = compileNode(lambda.body);
         if (body instanceof IRLambda bodyLambda) {
             return new IRLambda(lambda.param, getType(lambda.paramType), new IRProduce(new IRThunk(bodyLambda)));
         }
@@ -149,8 +150,8 @@ public class CompilerIR extends VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(ExprLetIn let) {
-        var expr = compile(let.expr);
-        var body = compile(let.body);
+        var expr = compileNode(let.expr);
+        var body = compileNode(let.body);
 
         if (expr instanceof IRLambda exprLambda && body instanceof IRComp bodyComp) {
             return new IRLet(let.name.name, new IRThunk(exprLambda), bodyComp);
@@ -187,7 +188,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(ExprParen paren) {
-        return compile(paren.expr);
+        return compileNode(paren.expr);
     }
 
     public IRNode error(String msg) {

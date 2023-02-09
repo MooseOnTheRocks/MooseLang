@@ -5,6 +5,7 @@ import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.IRName;
 import dev.foltz.mooselang.ir.nodes.value.IRNumber;
 import dev.foltz.mooselang.ir.nodes.value.IRString;
+import dev.foltz.mooselang.ir.nodes.value.IRThunk;
 import dev.foltz.mooselang.typing.BaseType;
 import dev.foltz.mooselang.typing.comp.CompType;
 import dev.foltz.mooselang.typing.comp.Lambda;

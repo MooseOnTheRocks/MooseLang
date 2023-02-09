@@ -3,10 +3,33 @@ package dev.foltz.mooselang.parser;
 import dev.foltz.mooselang.ast.nodes.expr.ExprString;
 import dev.foltz.mooselang.io.SourceDesc;
 
+import java.util.List;
+
 import static dev.foltz.mooselang.parser.ParserCombinators.*;
+import static dev.foltz.mooselang.parser.Parsers.*;
 
 public class BasicParsers {
-    public static ParserState<String> newlines(ParserState<?> s) {
+    public static final List<String> BAD_NAMES = List.of("_", "__");
+    public static final List<String> BAD_SYMBOLICS = List.of("_", "__");
+    public static final Parser<String> newlines = BasicParsers::newlines;
+    public static final Parser<String> letter = BasicParsers::letter;
+    public static final Parser<String> symbol = BasicParsers::symbol;
+    public static final Parser<String> digit = BasicParsers::digit;
+    public static final Parser<Double> number = BasicParsers::number;
+    public static final Parser<String> name = BasicParsers::name;
+    public static final Parser<String> symbolic = many1(symbol).map(ls -> String.join("", ls)).mapState(ss -> BAD_SYMBOLICS.contains(ss.result) ? ss.error() : ss);
+    public static final Parser<String> string = BasicParsers::string;
+    public static final Parser<String> comment = BasicParsers::comment;
+
+    public static Parser<String> match(String p) {
+        return s -> s.rem().startsWith(p) ? s.success(s.index + p.length(), p) : s.error();
+    }
+
+    public static <T> ParserState<T> parse(Parser<T> parser, SourceDesc source) {
+        return parser.run(ParserState.success(source, 0, null));
+    }
+
+    private static ParserState<String> newlines(ParserState<?> s) {
         var nl = any(match("\n"), match("\r\n")).map(ss -> (String) ss);
         var matchedState = nl.run(s);
         if (matchedState.isError) {
@@ -32,7 +55,7 @@ public class BasicParsers {
         return matchedState;
     }
 
-    public static ParserState<String> letter(ParserState<?> s) {
+    private static ParserState<String> letter(ParserState<?> s) {
         final String letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
         for (char c : letters.toCharArray()) {
             if (s.rem().startsWith("" + c)) {
@@ -42,7 +65,7 @@ public class BasicParsers {
         return s.error("Failed to match letter.");
     }
 
-    public static ParserState<String> symbol(ParserState<?> s) {
+    private static ParserState<String> symbol(ParserState<?> s) {
         final String symbols = "~!@#$%^&*-+./?|<>;:";
         for (char c : symbols.toCharArray()) {
             if (s.rem().startsWith("" + c)) {
@@ -52,7 +75,7 @@ public class BasicParsers {
         return s.error("Failed to match symbol.");
     }
 
-    public static ParserState<String> digit(ParserState<?> s) {
+    private static ParserState<String> digit(ParserState<?> s) {
         final String digits = "0123456789";
         for (char c : digits.toCharArray()) {
             if (s.rem().startsWith("" + c)) {
@@ -62,15 +85,28 @@ public class BasicParsers {
         return s.error("Failed to match digit.");
     }
 
-    public static ParserState<Double> number(ParserState<?> s) {
-        var res = many1(Parsers.digit).map(ls -> String.join("", ls)).run(s);
+    private static ParserState<Double> number(ParserState<?> s) {
+        var parseWhole = many1(digit).map(ls -> String.join("", ls));
+        var parseFrac =
+            all(match("."),
+                defaulted("",
+                    many1(digit)
+                    .map(ls -> String.join("", ls))))
+            .map(ls -> (String) ls.get(0) + ls.get(1));
+
+        var parseNum = any(
+                parseFrac,
+                all(parseWhole, parseFrac).map(ls -> (String) ls.get(0) + ls.get(1)),
+                parseWhole)
+            .map(x -> (String) x);
+
+        var res = parseNum.run(s);
         if (res.isError) {
             return res.error();
         }
 
-        String digits = res.result;
         try {
-            double value = Double.parseDouble(digits);
+            double value = Double.parseDouble(res.result);
             return res.success(res.index, value);
         }
         catch (NumberFormatException e) {
@@ -78,7 +114,20 @@ public class BasicParsers {
         }
     }
 
-    public static ParserState<ExprString> string(ParserState<?> s) {
+    private static ParserState<String> name(ParserState<?> s) {
+        var validFirst = any(match("_"), letter);
+        var validRest = any(match("_"), letter, digit);
+        return all(validFirst, many(validRest))
+            .map(ls -> {
+                var first = (String) ls.get(0);
+                var rest = (List<String>) ls.get(1);
+                return first + String.join("", rest);
+            })
+            .mapState(ss -> BAD_NAMES.contains(ss.result) ? ss.error() : ss)
+            .run(s);
+    }
+
+    private static ParserState<String> string(ParserState<?> s) {
         if (s.isError) {
             return s.error();
         }
@@ -98,10 +147,10 @@ public class BasicParsers {
             }
             nextState = nextState.success(nextState.index + 1, nextState.result + nextState.rem().charAt(0));
         }
-        return nextState.success(nextState.index, new ExprString(nextState.result));
+        return nextState;
     }
 
-    public static ParserState<String> comment(ParserState<?> s) {
+    private static ParserState<String> comment(ParserState<?> s) {
         if (s.isError) {
             return s.error();
         }
@@ -121,13 +170,5 @@ public class BasicParsers {
             }
             nextState = nextState.success(nextState.index + 1, nextState.result + nextState.rem().charAt(0));
         }
-    }
-
-    public static Parser<String> match(String p) {
-        return s -> s.rem().startsWith(p) ? s.success(s.index + p.length(), p) : s.error();
-    }
-
-    public static <T> ParserState<T> parse(Parser<T> parser, SourceDesc source) {
-        return parser.run(ParserState.success(source, 0, null));
     }
 }

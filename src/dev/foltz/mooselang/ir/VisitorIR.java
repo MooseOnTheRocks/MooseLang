@@ -3,10 +3,7 @@ package dev.foltz.mooselang.ir;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
-import dev.foltz.mooselang.ir.nodes.value.IRName;
-import dev.foltz.mooselang.ir.nodes.value.IRNumber;
-import dev.foltz.mooselang.ir.nodes.value.IRString;
-import dev.foltz.mooselang.ir.nodes.value.IRUnit;
+import dev.foltz.mooselang.ir.nodes.value.*;
 
 public abstract class VisitorIR<T> {
     public T visit(IRBuiltin builtin) { return undefined(builtin); }

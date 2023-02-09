@@ -3,6 +3,7 @@ package dev.foltz.mooselang.rt;
 import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.IRName;
+import dev.foltz.mooselang.ir.nodes.value.IRThunk;
 import dev.foltz.mooselang.ir.nodes.value.IRValue;
 
 import java.util.ArrayList;
@@ -22,15 +23,23 @@ public class Interpreter {
         this.terminated = terminated;
     }
 
+    public Interpreter execute() {
+        var state = this;
+        while (!state.terminated) {
+            state = stepExecution();
+        }
+        return state;
+    }
+
     public Interpreter stepExecution() {
         if (terminated) {
             return this;
         }
 
-        if (term instanceof IRLetValue let) return step(let);
-        else if (term instanceof IRDoComp let) return step(let);
+        if (term instanceof IRLet let) return step(let);
+        else if (term instanceof IRDo let) return step(let);
         else if (term instanceof IRProduce produce) return step(produce);
-        else if (term instanceof IRForceName force) return step(force);
+        else if (term instanceof IRForce force) return step(force);
         else if (term instanceof IRPush push) return step(push);
         else if (term instanceof IRLambda lambda) return step(lambda);
         else if (term instanceof IRBuiltin builtin) return step(builtin);
@@ -72,21 +81,31 @@ public class Interpreter {
         return new Interpreter(push.then, newStack, scope, false);
     }
 
-    public Interpreter step(IRForceName force) {
-        var mbound = scope.find(force.name);
-        if (mbound.isEmpty()) {
-            System.err.println("Cannot find " + force.name + " in scope");
+    public Interpreter step(IRForce force) {
+        IRThunk thunk = null;
+        if (force.thunk instanceof IRName name) {
+            var mbound = scope.find(name.name);
+            if (mbound.isEmpty()) {
+                System.err.println("Cannot find " + name.name + " in scope");
+                return new Interpreter(term, stack, scope, true);
+            }
+            else if (mbound.get() instanceof IRThunk irThunk) {
+                thunk = irThunk;
+            }
+            else {
+                System.err.println("Force expected thunk, (or named thunk), received: " + force.thunk);
+                return new Interpreter(term, stack, scope, true);
+            }
+        }
+        else if (force.thunk instanceof IRThunk irThunk) {
+            thunk = irThunk;
+        }
+        else {
+            System.err.println("Force expected thunk, received: " + force.thunk);
             return new Interpreter(term, stack, scope, true);
         }
 
-        var bound = mbound.get();
-        if (bound instanceof IRThunk thunk) {
-            return new Interpreter(thunk.comp, stack, scope, false);
-        }
-        else {
-            System.err.println("Force expected thunk, received: " + bound);
-            return new Interpreter(term, stack, scope, true);
-        }
+        return new Interpreter(thunk.comp, stack, scope, false);
     }
 
     public Interpreter step(IRProduce produce) {
@@ -105,7 +124,7 @@ public class Interpreter {
             return new Interpreter(produce, stack, scope, true);
         }
         var top = stack.get(stack.size() - 1);
-        if (top instanceof IRDoComp let) {
+        if (top instanceof IRDo let) {
             var newStack = new ArrayList<>(stack);
             newStack.remove(stack.size() - 1);
             return new Interpreter(let.body, newStack, scope.put(let.name, produce.value), false);
@@ -116,7 +135,7 @@ public class Interpreter {
         }
     }
 
-    public Interpreter step(IRLetValue let) {
+    public Interpreter step(IRLet let) {
         var name = let.name;
         var value = let.value;
         var body = let.body;
@@ -124,7 +143,7 @@ public class Interpreter {
         return new Interpreter(body, stack, scope.put(name, value), false);
     }
 
-    public Interpreter step(IRDoComp let) {
+    public Interpreter step(IRDo let) {
         var name = let.name;
         var expr = let.boundComp;
         var body = let.body;

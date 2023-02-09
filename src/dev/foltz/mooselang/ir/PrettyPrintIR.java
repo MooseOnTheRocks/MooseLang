@@ -5,6 +5,7 @@ import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.IRName;
 import dev.foltz.mooselang.ir.nodes.value.IRNumber;
 import dev.foltz.mooselang.ir.nodes.value.IRString;
+import dev.foltz.mooselang.ir.nodes.value.IRThunk;
 import dev.foltz.mooselang.typing.value.NumberType;
 import dev.foltz.mooselang.typing.value.StringType;
 import dev.foltz.mooselang.typing.value.Unit;
@@ -93,7 +94,7 @@ public class PrettyPrintIR extends VisitorIR<String> {
 
     @Override
     public String visit(IRPush push) {
-        return "#push " + pprint(push.value) + ";\n" +
+        return "#push " + pprint(push.value) + "\n" +
             getIndent() + pprint(push.then);
     }
 

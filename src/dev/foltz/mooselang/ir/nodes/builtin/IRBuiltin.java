@@ -4,7 +4,7 @@ import dev.foltz.mooselang.ir.VisitorIR;
 import dev.foltz.mooselang.ir.nodes.comp.IRComp;
 import dev.foltz.mooselang.ir.nodes.comp.IRLambda;
 import dev.foltz.mooselang.ir.nodes.comp.IRProduce;
-import dev.foltz.mooselang.ir.nodes.comp.IRThunk;
+import dev.foltz.mooselang.ir.nodes.value.IRThunk;
 import dev.foltz.mooselang.ir.nodes.value.IRNumber;
 import dev.foltz.mooselang.ir.nodes.value.IRString;
 import dev.foltz.mooselang.ir.nodes.value.IRUnit;

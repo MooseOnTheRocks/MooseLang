@@ -1,2 +1,4 @@
-package dev.foltz.mooselang.ast;public class ParserAST {
+package dev.foltz.mooselang.ast;
+
+public class ParserAST {
 }
