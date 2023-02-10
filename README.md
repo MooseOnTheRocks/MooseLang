@@ -96,6 +96,7 @@ Which, when executed, produces the value 15.0 of type Number.
 - Refine front-end syntax
   - Global definitions
   - Operator precedence and associativity
+- Tuples and tuple pattern matching.
 - Interpreter to execute front-end syntax.
 - Parser for CBPV IR syntax.
 - Implement REPL with interpreter.
