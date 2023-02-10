@@ -2,13 +2,12 @@ package dev.foltz.mooselang.ir;
 
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.*;
-import dev.foltz.mooselang.ir.nodes.value.IRName;
-import dev.foltz.mooselang.ir.nodes.value.IRNumber;
-import dev.foltz.mooselang.ir.nodes.value.IRString;
-import dev.foltz.mooselang.ir.nodes.value.IRThunk;
-import dev.foltz.mooselang.typing.value.NumberType;
-import dev.foltz.mooselang.typing.value.StringType;
-import dev.foltz.mooselang.typing.value.Unit;
+import dev.foltz.mooselang.ir.nodes.value.*;
+import dev.foltz.mooselang.typing.value.ValueNumber;
+import dev.foltz.mooselang.typing.value.ValueString;
+import dev.foltz.mooselang.typing.value.ValueUnit;
+
+import java.util.stream.Collectors;
 
 public class PrettyPrintIR extends VisitorIR<String> {
     public final int indentLevel;
@@ -77,14 +76,26 @@ public class PrettyPrintIR extends VisitorIR<String> {
     public String visit(IRLambda lambda) {
         var lambdaType = lambda.paramType;
         var typeName = "";
-        if (lambdaType.equals(new NumberType())) typeName = "Number";
-        else if (lambdaType.equals(new StringType())) typeName = "String";
-        else if (lambdaType.equals(new Unit())) typeName = "Unit";
+        if (lambdaType.equals(new ValueNumber())) typeName = "Number";
+        else if (lambdaType.equals(new ValueString())) typeName = "String";
+        else if (lambdaType.equals(new ValueUnit())) typeName = "Unit";
         else throw new RuntimeException("Unknown type for lambda param: " + lambdaType);
 
         return "(\\" + lambda.paramName + ": " + typeName + " ->\n" +
                 getNextIndent() + indent().pprint(lambda.body) + "\n" +
                 getIndent() + ")";
+    }
+
+    @Override
+    public String visit(IRCaseOf caseOf) {
+        return "case " + inline().pprint(caseOf.value) + " (\n" +
+            caseOf.branches.stream().map(b -> getNextIndent() + indent().pprint(b)).collect(Collectors.joining("\n")) + "\n" +
+            ")";
+    }
+
+    @Override
+    public String visit(IRCaseOfBranch caseOfBranch) {
+        return "of " + inline().pprint(caseOfBranch.pattern) + " in " + indent().pprint(caseOfBranch.body);
     }
 
     @Override
@@ -101,6 +112,11 @@ public class PrettyPrintIR extends VisitorIR<String> {
     @Override
     public String visit(IRForce force) {
         return "#force " + pprint(force.thunk);
+    }
+
+    @Override
+    public String visit(IRTuple tuple) {
+        return "(" + tuple.values.stream().map(inline()::pprint).collect(Collectors.joining(", ")) + ")";
     }
 
     @Override

@@ -1,15 +1,13 @@
 package dev.foltz.mooselang.typing.value;
 
-public class Unit extends ValueType {
-    public Unit() {}
-
+public class ValueString extends TypeValue {
     @Override
     public String toString() {
-        return "Unit()";
+        return "String()";
     }
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof Unit;
+        return other instanceof ValueString;
     }
 }

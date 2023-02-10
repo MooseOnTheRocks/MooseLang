@@ -1,12 +1,11 @@
 package dev.foltz.mooselang;
 
 import dev.foltz.mooselang.ast.nodes.ASTNode;
-import dev.foltz.mooselang.io.SourceString;
 import dev.foltz.mooselang.ir.*;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.IRComp;
-import dev.foltz.mooselang.parser.BasicParsers;
+import dev.foltz.mooselang.parser.Parsers;
 import dev.foltz.mooselang.io.SourceDesc;
 import dev.foltz.mooselang.rt.Interpreter;
 import dev.foltz.mooselang.rt.Scope;
@@ -19,9 +18,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
+import static dev.foltz.mooselang.ir.PrettyPrintIR.prettyPrint;
+import static dev.foltz.mooselang.parser.Parsers.comment;
 import static dev.foltz.mooselang.parser.ParserCombinators.any;
 import static dev.foltz.mooselang.parser.ParserCombinators.many;
-import static dev.foltz.mooselang.parser.Parsers.*;
+import static dev.foltz.mooselang.ast.ParserAST.*;
 
 public class MooseLang {
     public static final TypedIR globalTyper = new TypedIR(Map.of(
@@ -40,9 +41,9 @@ public class MooseLang {
 
     public static void testParseIR() {
         var sourceIR = SourceDesc.fromFile("irout", "test.mslir");
-        var topLevelIR = any(anyws, comment, ParserIR.irComp);
+        var topLevelIR = any(Parsers.anyws, comment, ParserIR.irComp);
         var parserIR = many(topLevelIR);
-        var res = BasicParsers.parse(parserIR, sourceIR);
+        var res = Parsers.parse(parserIR, sourceIR);
         boolean failed = res.isError || !res.rem().isEmpty();
 
         if (failed) {
@@ -73,12 +74,12 @@ public class MooseLang {
     public static void testInterp() {
         var sourceAST = SourceDesc.fromFile("tests", "test.msl");
         var topLevelAST = any(
-                anyws,
+                Parsers.anyws,
                 comment,
                 expr
         );
         var parserAST = many(topLevelAST);
-        var res = BasicParsers.parse(parserAST, sourceAST);
+        var res = Parsers.parse(parserAST, sourceAST);
         boolean failed = res.isError || !res.rem().isEmpty();
 
         if (failed) {
@@ -114,7 +115,7 @@ public class MooseLang {
                 var compiled = new CompilerIR().compileNode(ast);
                 System.out.println(compiled);
                 topLevelIR.add(compiled);
-                System.out.println(PrettyPrintIR.prettyPrint(compiled));
+                System.out.println(prettyPrint(compiled));
                 System.out.println("Type:");
                 var typed = globalTyper.typeOf(compiled);
                 System.out.println(typed);
@@ -136,7 +137,7 @@ public class MooseLang {
                     sourceName += sourceName.endsWith("msl") ? "ir" : ".mslir";
                     Path savePath = Path.of("irout", sourceName).toAbsolutePath();
                     System.out.println("Saving to: " + savePath);
-                    SourceDesc compiledCode = SourceDesc.fromString(sourceName, PrettyPrintIR.prettyPrint(compiled));
+                    SourceDesc compiledCode = SourceDesc.fromString(sourceName, prettyPrint(compiled));
                     SourceDesc.saveAsFile(compiledCode, savePath.toString());
                 }
                 else {
@@ -148,9 +149,9 @@ public class MooseLang {
     }
 
     public static List<ASTNode> parseASTs(SourceDesc sourceCode) {
-        var parseTopLevelAST = any(anyws, comment, expr);
+        var parseTopLevelAST = any(Parsers.anyws, comment, expr);
         var parserAST = many(parseTopLevelAST);
-        var res = BasicParsers.parse(parserAST, sourceCode);
+        var res = Parsers.parse(parserAST, sourceCode);
         boolean failed = res.isError || !res.rem().isEmpty();
         if (!failed) {
             return res.result.stream().filter(x -> x instanceof ASTNode).map(x -> (ASTNode) x).toList();
@@ -178,9 +179,9 @@ public class MooseLang {
     }
 
     public static List<IRComp> parseIR(SourceDesc sourceIR) {
-        var parseTopLevelIR = any(anyws, comment, ParserIR.irComp);
+        var parseTopLevelIR = any(Parsers.anyws, comment, ParserIR.irComp);
         var parserIR = many(parseTopLevelIR);
-        var res = BasicParsers.parse(parserIR, sourceIR);
+        var res = Parsers.parse(parserIR, sourceIR);
         boolean failed = res.isError || !res.rem().isEmpty();
         if (!failed) {
             return res.result.stream().filter(x -> x instanceof IRComp).map(x -> (IRComp) x).toList();
@@ -204,39 +205,14 @@ public class MooseLang {
     }
 
     public static void main(String[] args) {
-//        testInterp();
-//        testParseIR();
-        var source = SourceDesc.fromFile("tests", "test.msl");
-        var astNodes = parseASTs(source);
-        var irNodes = astNodes.stream().map(MooseLang::compileIR).toList();
-
-        for (int i = 0; i < irNodes.size(); i++) {
-            var irNode = irNodes.get(i);
-            var pathParts = source.name().split(File.separator.equals("\\") ? "\\\\" : File.separator);
-            var saveName = pathParts[pathParts.length - 1];
-            if (saveName.endsWith(".msl")) {
-                saveName = saveName.substring(0, saveName.length() - 4);
-            }
-            saveName += "_" + i + ".mslir";
-
-            var irSource = SourceDesc.fromString(saveName, PrettyPrintIR.prettyPrint(irNode));
-            SourceDesc.saveAsFile(irSource, "irout", saveName);
-            var irFile = SourceDesc.fromFile("irout", saveName);
-
-            var parseSource = parseIR(irSource).get(0);
-            var interpSource = globalInterpreter.apply(parseSource).execute();
-            System.out.println("-- From Source");
-            System.out.println(interpSource);
-            System.out.println();
-
-            var parseFile = parseIR(irFile).get(0);
-            var interpFile = globalInterpreter.apply(parseFile).execute();
-            System.out.println("-- From File");
-            System.out.println(interpFile);
-            System.out.println();
-
-            System.out.println("-- Equal?");
-            System.out.println(interpSource.toString().equals(interpFile.toString()));
-        }
+        testInterp();
+        testParseIR();
+//        var sourceFile = SourceDesc.fromFile("tests", "test.msl");
+//        var astNodes = parseASTs(sourceFile);
+//        var irNodes = astNodes.stream().map(MooseLang::compileIR).toList();
+//        System.out.println("-- IR");
+//        for (IRNode irNode : irNodes) {
+//            System.out.println(prettyPrint(irNode));
+//        }
     }
 }

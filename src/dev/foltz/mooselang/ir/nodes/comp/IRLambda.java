@@ -1,14 +1,14 @@
 package dev.foltz.mooselang.ir.nodes.comp;
 
 import dev.foltz.mooselang.ir.VisitorIR;
-import dev.foltz.mooselang.typing.value.ValueType;
+import dev.foltz.mooselang.typing.value.TypeValue;
 
 public class IRLambda extends IRComp {
     public final String paramName;
-    public final ValueType paramType;
+    public final TypeValue paramType;
     public final IRComp body;
 
-    public IRLambda(String paramName, ValueType paramType, IRComp body) {
+    public IRLambda(String paramName, TypeValue paramType, IRComp body) {
         this.paramName = paramName;
         this.paramType = paramType;
         this.body = body;

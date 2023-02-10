@@ -1,14 +1,20 @@
 package dev.foltz.mooselang.ir;
 
+import dev.foltz.mooselang.ast.nodes.expr.ASTExpr;
+import dev.foltz.mooselang.ast.nodes.expr.ExprCaseOf;
+import dev.foltz.mooselang.ast.nodes.expr.ExprCaseOfBranch;
+import dev.foltz.mooselang.ast.nodes.expr.ExprTuple;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.*;
-import dev.foltz.mooselang.parser.BasicParsers;
+import dev.foltz.mooselang.parser.Parsers;
 import dev.foltz.mooselang.parser.Parser;
 import dev.foltz.mooselang.parser.ParserState;
-import dev.foltz.mooselang.typing.value.ValueType;
+import dev.foltz.mooselang.typing.value.TypeValue;
 
-import static dev.foltz.mooselang.parser.BasicParsers.match;
-import static dev.foltz.mooselang.parser.BasicParsers.name;
+import java.util.List;
+
+import static dev.foltz.mooselang.parser.Parsers.match;
+import static dev.foltz.mooselang.parser.Parsers.name;
 import static dev.foltz.mooselang.parser.ParserCombinators.*;
 import static dev.foltz.mooselang.parser.Parsers.anyws;
 
@@ -18,10 +24,18 @@ public class ParserIR {
 
     // Values
     public static final Parser<IRValue> irParenValue = all(match("("), anyws, irValue, anyws, match(")")).map(ls -> (IRValue) ls.get(2));
-    public static final Parser<IRName> irName = any(BasicParsers.name, BasicParsers.symbolic).map(n -> (String) n).map(IRName::new);
+    public static final Parser<IRName> irName = any(Parsers.name, Parsers.symbolic).map(n -> (String) n).map(IRName::new);
     public static final Parser<IRUnit> irUnit = match("()").map(u -> new IRUnit());
-    public static final Parser<IRNumber> irNumber = BasicParsers.number.map(IRNumber::new);
-    public static final Parser<IRString> irString = BasicParsers.string.map(IRString::new);
+    public static final Parser<IRNumber> irNumber = Parsers.number.map(IRNumber::new);
+    public static final Parser<IRString> irString = Parsers.string.map(IRString::new);
+    public static final Parser<IRTuple> irTuple =
+        all(match("("),
+            anyws,
+            joining(all(anyws, match(","), anyws), irValue),
+            anyws,
+            match(")"))
+        .map(ls -> (List<IRValue>) ls.get(2))
+        .map(IRTuple::new);
     public static final Parser<IRThunk> irThunk = all(match("#thunk"), anyws, irComp).map(ls -> new IRThunk((IRComp) ls.get(2)));
 
     // Computations
@@ -51,7 +65,7 @@ public class ParserIR {
             irComp)
         .map(ls -> new IRLambda(
             (String) ls.get(1),
-            ValueType.fromString((String) ls.get(3)),
+            TypeValue.fromString((String) ls.get(3)),
             (IRComp) ls.get(5)));
 
     public static final Parser<IRLet> irLet =
@@ -77,8 +91,35 @@ public class ParserIR {
             (IRValue) ls.get(2),
             (IRComp) ls.get(4)));
 
+    public static final Parser<IRCaseOfBranch> irCaseOfBranch =
+        intersperse(anyws,
+            match("of"),
+            irValue,
+            match("in"),
+            irComp)
+        .map(ls -> new IRCaseOfBranch(
+            (IRValue) ls.get(1),
+            (IRComp) ls.get(3)
+        ));
+
+    public static final Parser<IRCaseOf> irCaseOf =
+        intersperse(anyws,
+            match("case"),
+            irValue,
+            any(
+                many1(any(
+                    irCaseOfBranch,
+                    intersperse(anyws, match("("), irCaseOfBranch, match(")"))
+                    .map(ls -> ls.get(1)))),
+                intersperse(anyws, match("("), many1(irCaseOfBranch), match(")"))
+                .map(ls -> ls.get(1))))
+        .map(ls -> new IRCaseOf(
+            (IRValue) ls.get(1),
+            (List<IRCaseOfBranch>) ls.get(2)));
+
     private static ParserState<IRValue> irValue(ParserState<?> s) {
         return any(
+                irTuple,
                 irParenValue,
                 irName,
                 irNumber,
@@ -90,6 +131,7 @@ public class ParserIR {
 
     private static ParserState<IRComp> irComp(ParserState<?> s) {
         return any(
+                irCaseOf,
                 irParenComp,
                 irDo,
                 irForce,

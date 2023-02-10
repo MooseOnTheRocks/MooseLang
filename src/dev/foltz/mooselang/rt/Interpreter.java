@@ -1,11 +1,14 @@
 package dev.foltz.mooselang.rt;
 
+import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.IRName;
 import dev.foltz.mooselang.ir.nodes.value.IRThunk;
+import dev.foltz.mooselang.ir.nodes.value.IRTuple;
 import dev.foltz.mooselang.ir.nodes.value.IRValue;
 
+import java.sql.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,13 +39,14 @@ public class Interpreter {
             return this;
         }
 
-        if (term instanceof IRLet let) return step(let);
+        if (term instanceof IRBuiltin builtin) return step(builtin);
+        else if (term instanceof IRLet let) return step(let);
         else if (term instanceof IRDo let) return step(let);
         else if (term instanceof IRProduce produce) return step(produce);
         else if (term instanceof IRForce force) return step(force);
         else if (term instanceof IRPush push) return step(push);
         else if (term instanceof IRLambda lambda) return step(lambda);
-        else if (term instanceof IRBuiltin builtin) return step(builtin);
+        else if (term instanceof IRCaseOf caseOf) return step(caseOf);
         else {
             System.err.println("Unhandled term: " + term);
             return new Interpreter(term, stack, scope, true);
@@ -51,6 +55,39 @@ public class Interpreter {
 
     public Interpreter step(IRBuiltin builtin) {
         return builtin.internal.apply(this);
+    }
+
+    public Interpreter step(IRCaseOf caseOf) {
+        var value = caseOf.value;
+        if (value instanceof IRName valueName) {
+            var maybeName = scope.find(valueName.name);
+            if (maybeName.isEmpty()) {
+                System.err.println("Cannot find " + valueName.name + " in scope");
+                return new Interpreter(term, stack, scope, true);
+            }
+            value = maybeName.get();
+        }
+
+        if (value instanceof IRTuple tuple && caseOf.branches.size() == 1) {
+            var branch = caseOf.branches.get(0);
+            boolean good = branch.pattern instanceof IRTuple pattern &&
+                pattern.values.size() == tuple.values.size() &&
+                pattern.values.stream().allMatch(v -> v instanceof IRName);
+            if (!(branch.pattern instanceof IRTuple pattern) || !good) {
+                System.err.println("Bad branch pattern: " + branch.pattern);
+                return new Interpreter(term, stack, scope, true);
+            }
+            var names = pattern.values.stream().map(v -> ((IRName) v).name).toList();
+            var newScope = scope;
+            for (int i = 0; i < names.size(); i++) {
+                newScope = newScope.put(names.get(i), tuple.values.get(i));
+            }
+            return new Interpreter(branch.body, stack, newScope, false);
+        }
+        else {
+            System.err.println("Unhandled case-of: " + caseOf);
+            return new Interpreter(term, stack, scope, true);
+        }
     }
 
     public Interpreter step(IRLambda lambda) {
@@ -117,6 +154,22 @@ public class Interpreter {
                 return new Interpreter(term, stack, scope, true);
             }
             produce = new IRProduce(mbound.get());
+        }
+        // Replace names in Tuple
+        else if (produce.value instanceof IRTuple tuple) {
+            var newValues = new ArrayList<>(tuple.values);
+            for (int i = 0; i < tuple.values.size(); i++) {
+                IRValue v = tuple.values.get(i);
+                if (v instanceof IRName name) {
+                    var mbound = scope.find(name.name);
+                    if (mbound.isEmpty()) {
+                        System.err.println("Cannot find " + name.name + " in scope");
+                        return new Interpreter(term, stack, scope, true);
+                    }
+                    newValues.set(i, mbound.get());
+                }
+            }
+            produce = new IRProduce(new IRTuple(newValues));
         }
 
         if (stack.isEmpty()) {

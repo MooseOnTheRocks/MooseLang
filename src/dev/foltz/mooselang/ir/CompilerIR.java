@@ -6,18 +6,18 @@ import dev.foltz.mooselang.ast.nodes.expr.*;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.*;
-import dev.foltz.mooselang.typing.value.NumberType;
-import dev.foltz.mooselang.typing.value.StringType;
-import dev.foltz.mooselang.typing.value.Unit;
-import dev.foltz.mooselang.typing.value.ValueType;
+import dev.foltz.mooselang.typing.value.*;
+
+import java.util.ArrayList;
+import java.util.function.Predicate;
 
 public class CompilerIR extends VisitorAST<IRNode> {
     // TODO: Move this somewhere else.
-    public ValueType getType(String typeName) {
+    public TypeValue getType(String typeName) {
         return switch (typeName) {
-            case "Number" -> new NumberType();
-            case "String" -> new StringType();
-            case "Unit" -> new Unit();
+            case "Number" -> new ValueNumber();
+            case "String" -> new ValueString();
+            case "Unit" -> new ValueUnit();
             default -> throw new RuntimeException("getType of unknown type: " + typeName);
         };
     }
@@ -66,73 +66,6 @@ public class CompilerIR extends VisitorAST<IRNode> {
         }
     }
 
-//    @Override
-//    public IRNode visit(ExprChain chain) {
-//        if (chain.first instanceof ExprDirective directive && directive.name.name.equals("push")) {
-//            var pushBody = compile(directive.body);
-//            if (!(pushBody instanceof IRValue pushValue)) {
-//                return error("#push expects rhs of value, received: " + directive.body + " >>> " + pushBody);
-//            }
-//            var csecond = compile(chain.second);
-//            if (!(csecond instanceof IRComp secondComp)) {
-//                return error("';' expects rhs of computation, received: " + chain.second + " >>> " + csecond);
-//            }
-//            return new IRPush(pushValue, secondComp);
-//        }
-//
-//        var cfirst = compile(chain.first);
-//        if (!(cfirst instanceof IRComp firstComp)) {
-//            return error("';' expects lhs of computation, received: " + chain.first + " >>> " + cfirst);
-//        }
-//
-//        var csecond = compile(chain.second);
-//        if (!(csecond instanceof IRComp secondComp)) {
-//            return error("';' expects rhs of computation, received: " + chain.second + " >>> " + csecond);
-//        }
-//
-//        return new IRLetComp("_", firstComp, secondComp);
-//    }
-//
-//    @Override
-//    public IRNode visit(ExprDirective directive) {
-//        switch (directive.name.name) {
-//            case "produce": {
-//                var cbody = compile(directive.body);
-//                if (!(cbody instanceof IRValue bodyValue)) {
-//                    return error("#produce expects value, received: " + cbody);
-//                }
-//                return new IRProduce(bodyValue);
-//            }
-//            case "push": {
-//                return error("Push should have been handled in a chain expression!");
-//            }
-//            case "thunk": {
-//                var cbody = compile(directive.body);
-//                if (cbody instanceof IRComp bodyComp) {
-//                    return new IRThunk(bodyComp);
-//                }
-//                else {
-//                    return error("#thunk expects computation, received: " + cbody);
-//                }
-//            }
-//            case "force": {
-//                var cbody = compile(directive.body);
-//                if (cbody instanceof IRThunk bodyThunk) {
-//                    return new IRForceThunk(bodyThunk);
-//                }
-//                else if (cbody instanceof IRName bodyName) {
-//                    return new IRForceName(bodyName.name);
-//                }
-//                else {
-//                    return error("#force expects thunk, received: " + cbody);
-//                }
-//            }
-//            default: {
-//                return error("Unknown directive: " + directive);
-//            }
-//        }
-//    }
-
     @Override
     public IRNode visit(ExprLambda lambda) {
         var body = compileNode(lambda.body);
@@ -162,8 +95,100 @@ public class CompilerIR extends VisitorAST<IRNode> {
         else if (expr instanceof IRValue exprValue && body instanceof IRComp bodyComp) {
             return new IRLet(let.name.name, exprValue, bodyComp);
         }
+        else if (expr instanceof IRValue exprValue && body instanceof IRValue bodyValue) {
+            return new IRLet(let.name.name, exprValue, new IRProduce(bodyValue));
+        }
 
         return error("let-in:\nexpr: " + expr + "\nbody: " + body);
+    }
+
+    @Override
+    public IRNode visit(ExprCaseOfBranch ofBranch) {
+        var pattern = compileNode(ofBranch.pattern);
+        var body = compileNode(ofBranch.body);
+        if (pattern instanceof IRValue patternValue && body instanceof IRComp bodyComp) {
+            return new IRCaseOfBranch(patternValue, bodyComp);
+        }
+        else if (pattern instanceof IRValue patternValue && body instanceof IRValue bodyValue) {
+            return new IRCaseOfBranch(patternValue, new IRProduce(bodyValue));
+        }
+        return error("Case-of-branch expects Value for pattern and Computation for body:\npattern: " + pattern + "\nbody: " + body);
+    }
+
+    @Override
+    public IRNode visit(ExprCaseOf caseOf) {
+        var value = compileNode(caseOf.value);
+        if (!(value instanceof IRValue caseOfValue)) {
+            return error("Case-of expects value, received: " + value);
+        }
+
+        var maybeBranches = caseOf.cases.stream().map(this::compileNode).toList();
+        for (IRNode branch : maybeBranches) {
+            if (!(branch instanceof IRCaseOfBranch)) {
+                return error("Expected IRBranchCaseOf, received: " + branch);
+            }
+        }
+        var branches = maybeBranches.stream().map(b -> (IRCaseOfBranch) b).toList();
+
+        Predicate<IRCaseOfBranch> branchPred = b -> true;
+        if (value instanceof IRTuple valueTuple) {
+            branchPred = b ->
+                b.pattern instanceof IRTuple pattern &&
+                pattern.values.size() == valueTuple.values.size() &&
+                pattern.values.stream().allMatch(v -> v instanceof IRName);
+        }
+
+        for (IRCaseOfBranch branch : branches) {
+            if (branchPred.negate().test(branch)) {
+                return error("Invalid CaseOfBranch: " + branch);
+            }
+        }
+
+        return new IRCaseOf(caseOfValue, branches);
+    }
+
+    @Override
+    public IRNode visit(ExprTuple tuple) {
+        var values = tuple.values.stream().map(this::compileNode).toList();
+        if (values.stream().allMatch(t -> t instanceof IRValue)) {
+            return new IRTuple(values.stream().map(t -> (IRValue) t).toList());
+        }
+        else {
+            // Should tuple construction be lazy or eager?
+            // Eager for now, return a value of tuple not a thunk of producer of tuple.
+            // Need to bind via do-in each computation in the tuple, values are fine as is.
+            var comps = new ArrayList<IRComp>();
+            var names = new ArrayList<String>();
+            for (IRNode node : values) {
+                if (node instanceof IRComp comp) {
+                    comps.add(comp);
+                    names.add("__arg_" + (args++));
+                }
+            }
+
+            var innerValues = new ArrayList<IRValue>();
+            int compCount = 0;
+            for (int i = 0; i < values.size(); i++) {
+                var v = values.get(i);
+                if (v instanceof IRComp) {
+                    innerValues.add(new IRName(names.get(compCount)));
+                    compCount += 1;
+                }
+                else if (v instanceof IRValue val) {
+                    innerValues.add(val);
+                }
+                else {
+                    return error("Bad value for tuple: " + v);
+                }
+            }
+
+            var innerTuple = new IRTuple(innerValues);
+            IRComp wrappedTuple = new IRProduce(innerTuple);
+            for (int i = 0; i < compCount; i++) {
+                wrappedTuple = new IRDo(names.get(i), comps.get(i), wrappedTuple);
+            }
+            return wrappedTuple;
+        }
     }
 
     @Override

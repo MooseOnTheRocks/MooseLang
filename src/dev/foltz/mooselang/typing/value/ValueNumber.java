@@ -1,13 +1,16 @@
 package dev.foltz.mooselang.typing.value;
 
-public class StringType extends ValueType {
+public class ValueNumber extends TypeValue {
+    public ValueNumber() {
+    }
+
     @Override
     public String toString() {
-        return "String()";
+        return "Number()";
     }
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof StringType;
+        return other instanceof ValueNumber;
     }
 }

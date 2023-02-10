@@ -1,19 +1,19 @@
 package dev.foltz.mooselang.typing;
 
-import dev.foltz.mooselang.typing.value.ValueType;
+import dev.foltz.mooselang.typing.value.TypeValue;
 
 import java.util.*;
 
 public class Scope {
     public final Scope outerScope;
-    public final Map<String, ValueType> localScope;
+    public final Map<String, TypeValue> localScope;
 
     public Scope(Scope outerScope) {
         this.outerScope = outerScope;
         localScope = outerScope == null ? Map.of() : outerScope.localScope;
     }
 
-    private Scope(Scope outerScope, Map<String, ValueType> localScope) {
+    private Scope(Scope outerScope, Map<String, TypeValue> localScope) {
         this.outerScope = outerScope;
         this.localScope = localScope;
     }
@@ -29,13 +29,13 @@ public class Scope {
         return outerScope;
     }
 
-    public Scope put(String name, ValueType value) {
+    public Scope put(String name, TypeValue value) {
         var newScope = new HashMap<>(localScope);
         newScope.put(name, value);
         return new Scope(outerScope, Map.copyOf(newScope));
     }
 
-    public Optional<ValueType> find(String name) {
+    public Optional<TypeValue> find(String name) {
         if (localScope.containsKey(name)) {
             return Optional.of(localScope.get(name));
         }

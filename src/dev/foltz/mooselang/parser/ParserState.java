@@ -29,11 +29,11 @@ public class ParserState<T> {
         return error(prev.source, prev.index, prev.error);
     }
 
-    <U> ParserState<U> error(String msg) {
+    public<U> ParserState<U> error(String msg) {
         return error(this.source, this.index, msg);
     }
 
-    <U> ParserState<U> error() {
+    public <U> ParserState<U> error() {
         return error(this);
     }
 
@@ -45,7 +45,7 @@ public class ParserState<T> {
         return success(prev.source, index, result);
     }
 
-    <U> ParserState<U> success(int index, U result) {
+    public <U> ParserState<U> success(int index, U result) {
         return success(this, index, result);
     }
 }

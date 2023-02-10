@@ -3,17 +3,17 @@ package dev.foltz.mooselang.typing;
 import dev.foltz.mooselang.ast.VisitorAST;
 import dev.foltz.mooselang.ast.nodes.*;
 import dev.foltz.mooselang.ast.nodes.expr.*;
-import dev.foltz.mooselang.typing.comp.CompType;
-import dev.foltz.mooselang.typing.comp.Lambda;
-import dev.foltz.mooselang.typing.comp.Producer;
-import dev.foltz.mooselang.typing.comp.StackPush;
+import dev.foltz.mooselang.typing.comp.TypeComp;
+import dev.foltz.mooselang.typing.comp.CompLambda;
+import dev.foltz.mooselang.typing.comp.CompProducer;
+import dev.foltz.mooselang.typing.comp.CompStackPush;
 import dev.foltz.mooselang.typing.value.*;
 
 public class TypedAST extends VisitorAST<TypedAST> {
     public final Scope context;
-    public final BaseType result;
+    public final TypeBase result;
 
-    public TypedAST(Scope context, BaseType lastType) {
+    public TypedAST(Scope context, TypeBase lastType) {
         this.context = context;
         this.result = lastType;
     }
@@ -22,11 +22,11 @@ public class TypedAST extends VisitorAST<TypedAST> {
         throw new IllegalStateException("[Typing Error] " + msg);
     }
 
-    private TypedAST typed(BaseType type) {
+    private TypedAST typed(TypeBase type) {
         return new TypedAST(context, type);
     }
 
-    public TypedAST pushContext(String key, ValueType value) {
+    public TypedAST pushContext(String key, TypeValue value) {
         return new TypedAST(context.push().put(key, value), result);
     }
 
@@ -47,9 +47,9 @@ public class TypedAST extends VisitorAST<TypedAST> {
         }
         else {
             var lhsType = evalTypeAST(lhs).result;
-            if (lhsType instanceof Thunk thunk) {
+            if (lhsType instanceof ValueThunk thunk) {
                 var compType = thunk.comp;
-                if (compType instanceof Lambda lambda) {
+                if (compType instanceof CompLambda lambda) {
                     return typed(lambda.bodyType);
                 }
             }
@@ -61,21 +61,21 @@ public class TypedAST extends VisitorAST<TypedAST> {
     public TypedAST visit(ExprChain chain) {
         var firstType = evalTypeAST(chain.first);
         var secondType = evalTypeAST(chain.second);
-        if (firstType.result instanceof StackPush push) {
+        if (firstType.result instanceof CompStackPush push) {
             System.out.println("PUSH INFO::");
-            if (secondType.result instanceof Lambda lam) {
+            if (secondType.result instanceof CompLambda lam) {
                 System.out.println("Param type: " + lam.paramType);
                 System.out.println("Body type: " + lam.bodyType);
             }
             System.out.println("Push type: " + push.value);
-            if (secondType.result instanceof Lambda lambda && lambda.paramType.equals(push.value)) {
+            if (secondType.result instanceof CompLambda lambda && lambda.paramType.equals(push.value)) {
                 return typed(lambda.bodyType);
             }
             else {
                 return error("Cannot chain push with: " + chain.second + " <<< " + secondType.result);
             }
         }
-        else if (firstType.result instanceof CompType firstComp && secondType.result instanceof CompType secondComp) {
+        else if (firstType.result instanceof TypeComp firstComp && secondType.result instanceof TypeComp secondComp) {
             return typed(secondComp);
         }
         else {
@@ -90,23 +90,23 @@ public class TypedAST extends VisitorAST<TypedAST> {
         switch (directive.name.name) {
             case "produce" -> {
                 var rhsType = evalTypeAST(directive.body).result;
-                if (rhsType instanceof ValueType value) {
-                    return typed(new Producer(value));
+                if (rhsType instanceof TypeValue value) {
+                    return typed(new CompProducer(value));
                 } else {
                     return error("produce expects rhs of value type, received: " + rhsType);
                 }
             }
             case "thunk" -> {
                 var rhsType = evalTypeAST(directive.body).result;
-                if (rhsType instanceof CompType comp) {
-                    return typed(new Thunk(comp));
+                if (rhsType instanceof TypeComp comp) {
+                    return typed(new ValueThunk(comp));
                 } else {
                     return error("thunk expects rhs of computation type, received: " + rhsType);
                 }
             }
             case "force" -> {
                 var rhsType = evalTypeAST(directive.body).result;
-                if (rhsType instanceof Thunk thunk) {
+                if (rhsType instanceof ValueThunk thunk) {
                     return typed(thunk.comp);
                 } else {
                     return error("force expects rhs of thunk type, received: " + rhsType);
@@ -114,8 +114,8 @@ public class TypedAST extends VisitorAST<TypedAST> {
             }
             case "push" -> {
                 var rhsType = evalTypeAST(directive.body).result;
-                if (rhsType instanceof ValueType value) {
-                    return typed(new StackPush(value));
+                if (rhsType instanceof TypeValue value) {
+                    return typed(new CompStackPush(value));
                 }
                 else {
                     return error("Push expects rhs of value type, received: " + rhsType);
@@ -130,13 +130,13 @@ public class TypedAST extends VisitorAST<TypedAST> {
     @Override
     public TypedAST visit(ExprLambda lambda) {
         var paramType = switch (lambda.paramType) {
-            case "Number" -> new NumberType();
-            case "()" -> new Unit();
+            case "Number" -> new ValueNumber();
+            case "()" -> new ValueUnit();
             default -> throw new RuntimeException("Invalid lambda parameter type: " + lambda.paramType);
         };
         var bodyType = pushContext(lambda.param, paramType).evalTypeAST(lambda.body);
-        if (bodyType.result instanceof CompType comp) {
-            return bodyType.popContext().typed(new Lambda(lambda.param, paramType, comp));
+        if (bodyType.result instanceof TypeComp comp) {
+            return bodyType.popContext().typed(new CompLambda(lambda.param, paramType, comp));
         }
         else {
             return error("Lambda expects body of computation type, received: " + bodyType.result);
@@ -166,10 +166,10 @@ public class TypedAST extends VisitorAST<TypedAST> {
     public TypedAST visit(ExprLetIn letIn) {
         var name = letIn.name;
         var exprType = evalTypeAST(letIn.expr).result;
-        if (exprType instanceof ValueType value) {
+        if (exprType instanceof TypeValue value) {
             var s1 = pushContext(name.name, value);
             var s2 = s1.evalTypeAST(letIn.body);
-            if (s2.result instanceof CompType comp) {
+            if (s2.result instanceof TypeComp comp) {
                 return s2.popContext();
             }
             else {
@@ -193,12 +193,12 @@ public class TypedAST extends VisitorAST<TypedAST> {
 
     @Override
     public TypedAST visit(ExprNumber number) {
-        return typed(new NumberType());
+        return typed(new ValueNumber());
     }
 
     @Override
     public TypedAST visit(ExprString string) {
-        return typed(new StringType());
+        return typed(new ValueString());
     }
 
     @Override

@@ -7,6 +7,8 @@ import dev.foltz.mooselang.ast.nodes.expr.*;
 
 public abstract class VisitorAST<T> {
     public T visit(ExprApply apply) { return undefined(apply); }
+    public T visit(ExprCaseOf caseOf) { return undefined(caseOf); }
+    public T visit(ExprCaseOfBranch ofBranch) { return undefined(ofBranch); }
     public T visit(ExprChain chain) { return undefined(chain); }
     public T visit(ExprDirective directive) { return undefined(directive); }
     public T visit(ExprLambda lambda) { return undefined(lambda); }
@@ -16,7 +18,8 @@ public abstract class VisitorAST<T> {
     public T visit(ExprString string) { return undefined(string); }
     public T visit(ExprParen paren) { return undefined(paren); }
     public T visit(ExprSymbolic symbolic) { return undefined(symbolic); }
-    
+    public T visit(ExprTuple tuple) { return undefined(tuple); }
+
     public T visit(StmtDef def) { return undefined(def); }
     public T visit(StmtLet let) { return undefined(let); }
 

@@ -25,6 +25,19 @@ public class ParserCombinators {
         };
     }
 
+    public static <T> Parser<List<T>> joining(Parser<?> sep, Parser<T> parser) {
+        return all(
+            parser,
+            many(all(sep, parser).map(ls -> (T) ls.get(1))))
+        .map(ls -> {
+            var first = (T) ls.get(0);
+            var rest = (List<T>) ls.get(1);
+            var newList = new ArrayList<>(rest);
+            newList.add(0, first);
+            return List.copyOf(newList);
+        });
+    }
+
     public static Parser<List<?>> intersperse(Parser<?> sep, Parser<?> firstParser, Parser<?>... restParsers) {
         var parserList = new ArrayList<Parser<?>>();
         parserList.add(firstParser);
