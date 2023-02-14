@@ -97,18 +97,20 @@ Which, when executed, produces the value 15.0 of type Number.
   - Global definitions
   - Operator precedence and associativity
 - Tuples and tuple pattern matching.
+- Simple type pattern matching.
 - Interpreter to execute front-end syntax.
 - Parser for CBPV IR syntax.
 - Implement REPL with interpreter.
 
 ### Iteration 5 (Proposed)
+- Define sum types with tags.
 - Support for product types with pattern matching.
 - Support for sum types with pattern matching.
 - More robust user data type capabilities
+  - Nested value deconstruction
+    - Pattern match and function arguments
   - Records?
   - Explicit typing of expressions?
-  - Nested value deconstruction
-    - Pattern match and function argument
 
 ### Iteration ? (Exploration)
 - Static typing system:
@@ -118,6 +120,7 @@ Which, when executed, produces the value 15.0 of type Number.
 - Dispatch mechanism:
   - Single, multiple, universal, overloading?
 - Recursive function/data definitions.
+- Implement sum and products in terms of Jumbo Calculus.
 
 ## User Instructions
 Coming soon once interpreter and CLI are finished.
