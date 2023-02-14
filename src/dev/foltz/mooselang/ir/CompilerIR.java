@@ -37,22 +37,24 @@ public class CompilerIR extends VisitorAST<IRNode> {
         var rhs = compileNode(apply.rhs);
 
         // Assume this is function application so name corresponds to (A -> B)
-        if (lhs instanceof IRName name) {
-            // Bind evaluation of rhs to scope, then apply to lhs as value with push.
-            if (rhs instanceof IRComp rhsComp) {
-                var argname = "__arg_" + (args++);
-                return new IRDo(argname, rhsComp, new IRPush(new IRName(argname), new IRForce(name)));
-            }
-            else if (rhs instanceof IRValue rhsValue) {
+        if (lhs instanceof IRName name && rhs instanceof IRComp rhsComp) {
+            var argname = "__arg_" + (args++);
+            return new IRDo(argname, rhsComp, new IRPush(new IRName(argname), new IRForce(name)));
+        }
+        else if (lhs instanceof IRName name && rhs instanceof IRValue rhsValue) {
                 return new IRPush(rhsValue, new IRForce(name));
-            }
-            else {
-                return error("");
-            }
+        }
+        else if (lhs instanceof IRValue lhsValue && rhs instanceof IRName name) {
+            return new IRPush(lhsValue, new IRForce(name));
         }
         else if (lhs instanceof IRLambda lhsLambda && rhs instanceof IRComp rhsComp) {
             var argname = "__app_" + (args++);
             return new IRDo(argname, rhsComp, new IRPush(new IRName(argname), lhsLambda));
+        }
+        else if (lhs instanceof IRComp lhsComp && rhs instanceof IRComp rhsComp) {
+            var rhsName = "__arg_" + (args++);
+            var lhsName = "__app_" + (args++);
+            return new IRDo(rhsName, rhsComp, new IRDo(lhsName, lhsComp, new IRPush(new IRName(rhsName), new IRForce(new IRName(lhsName)))));
         }
         else if (lhs instanceof IRComp lhsComp && rhs instanceof IRValue rhsValue) {
             var argname = "__app_" + (args++);
@@ -61,6 +63,9 @@ public class CompilerIR extends VisitorAST<IRNode> {
         else if (lhs instanceof IRValue lhsValue && rhs instanceof IRLambda rhsLambda) {
             return new IRPush(lhsValue, rhsLambda);
         }
+//        else if (lhs instanceof IRValue lhsValue && rhs instanceof IRName rhsName) {
+//            return new IRPush(lhsValue, new IRForce(rhsName));
+//        }
         else {
             return error("Application failed:\nlhs: " + lhs + "\nrhs: " + rhs);
         }

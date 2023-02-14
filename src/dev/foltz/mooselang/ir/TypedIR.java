@@ -1,6 +1,7 @@
 package dev.foltz.mooselang.ir;
 
 import dev.foltz.mooselang.ir.nodes.IRNode;
+import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.*;
 import dev.foltz.mooselang.typing.TypeBase;
@@ -9,9 +10,7 @@ import dev.foltz.mooselang.typing.comp.CompLambda;
 import dev.foltz.mooselang.typing.comp.CompProducer;
 import dev.foltz.mooselang.typing.value.*;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class TypedIR extends VisitorIR<TypeBase> {
     public final Map<String, TypeValue> scope;
@@ -37,6 +36,11 @@ public class TypedIR extends VisitorIR<TypeBase> {
 
     public TypeBase typeOf(IRNode node) {
         return node.apply(this);
+    }
+
+    @Override
+    public TypeBase visit(IRBuiltin builtin) {
+        return builtin.innerType;
     }
 
     @Override
@@ -141,32 +145,64 @@ public class TypedIR extends VisitorIR<TypeBase> {
 
     @Override
     public TypeBase visit(IRCaseOf caseOf) {
-        var type = typeOf(caseOf.value);
-        // Match tuple with 1 branch
-        if (type instanceof ValueTuple tuple && caseOf.branches.size() == 1) {
-            IRCaseOfBranch branch = caseOf.branches.get(0);
-            boolean good = branch.pattern instanceof IRTuple pattern &&
-                pattern.values.size() == tuple.values.size() &&
-                pattern.values.stream().allMatch(v -> v instanceof IRName);
-            if (!(branch.pattern instanceof IRTuple pattern) || !good) {
-                return error("Bad branch pattern: " + branch.pattern);
-            }
-            var names = pattern.values.stream().map(v -> ((IRName) v).name).toList();
-            var typeState = this;
-            for (int i = 0; i < names.size(); i++) {
-                typeState = typeState.put(names.get(i), tuple.values.get(i));
-            }
+        var baseType = typeOf(caseOf.value);
+        if (!(baseType instanceof TypeValue valueType)) {
+            return error("case-of expects Value, received: " + baseType);
+        }
 
-            var branchType = typeState.typeOf(branch.body);
-            if (branchType instanceof TypeComp) {
-                return branchType;
-            }
-            else {
-                return error("Expected branch of Computation, received: " + branchType);
+        List<TypeBase> branchTypes = caseOf.branches.stream().map(b -> typeOfPattern(valueType, b.pattern, b.body)).toList();
+        for (var type : branchTypes) {
+            var expectedType = branchTypes.get(0);
+            if (!type.equals(expectedType)) {
+                return error("Expected branch type of " + expectedType + ", received: " + type);
             }
         }
+
+        return branchTypes.get(0);
+
+//        if (type instanceof ValueTuple tuple && caseOf.branches.size() == 1) {
+//            IRCaseOfBranch branch = caseOf.branches.get(0);
+//            boolean good = branch.pattern instanceof IRTuple pattern &&
+//                pattern.values.size() == tuple.values.size() &&
+//                pattern.values.stream().allMatch(v -> v instanceof IRName);
+//            if (!(branch.pattern instanceof IRTuple pattern) || !good) {
+//                return error("Bad branch pattern: " + branch.pattern);
+//            }
+//            var names = pattern.values.stream().map(v -> ((IRName) v).name).toList();
+//            var typeState = this;
+//            for (int i = 0; i < names.size(); i++) {
+//                typeState = typeState.put(names.get(i), tuple.values.get(i));
+//            }
+//
+//            var branchType = typeState.typeOf(branch.body);
+//            if (branchType instanceof TypeComp) {
+//                return branchType;
+//            }
+//            else {
+//                return error("Expected branch of Computation, received: " + branchType);
+//            }
+//        }
+//        else {
+//            return error("Invalid IRCaseOf:\ntype: " + type + "\nbranches: " + caseOf.branches);
+//        }
+    }
+
+    private TypeBase typeOfPattern(TypeValue valueType, IRValue pattern, IRComp body) {
+        // This function does two things:
+        //   - Ensure pattern can destruct value appropriately.
+        //   - Return a typer with pattern in scope.
+
+        if (pattern instanceof IRName patternName) {
+            return put(patternName.name, valueType).typeOf(body);
+        }
+        else if (valueType instanceof ValueNumber typeNumber && pattern instanceof IRNumber patternNumber) {
+            return typeOf(body);
+        }
+        else if (valueType instanceof ValueString typeString && pattern instanceof IRString patternString) {
+            return typeOf(body);
+        }
         else {
-            return error("Invalid IRCaseOf:\ntype: " + type + "\nbranches: " + caseOf.branches);
+            return error("Cannot match type " + valueType + " with pattern: " + pattern);
         }
     }
 

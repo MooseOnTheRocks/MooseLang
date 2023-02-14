@@ -27,7 +27,7 @@ public class ParserAST {
         .map(ls -> new ExprParen((ASTExpr) ls.get(2)));
 
     public static final List<String> KEYWORDS = List.of(
-        "let", "in", "case", "of", "do"
+        "let", "in", "case", "of", "do", "->"
     );
 
     public static final Parser<ExprName> exprName =
@@ -50,6 +50,8 @@ public class ParserAST {
     public static final Parser<ExprSymbolic> exprSymbolic =
         many1(Parsers.symbol)
         .map(ls -> String.join("", ls))
+        .mapState(s -> KEYWORDS.stream().anyMatch(s.result::startsWith)
+            ? s.error("Invalid name, clash with keyword") : s)
         .map(ExprSymbolic::new);
 
     public static final Parser<ExprNumber> exprNumber = Parsers.number.map(ExprNumber::new);
@@ -90,29 +92,27 @@ public class ParserAST {
 
     public static final Parser<ExprCaseOfBranch> exprCaseOfBranch =
         intersperse(anyws,
-            match("of"),
             expr,
-            match("in"),
+            match("->"),
             expr)
         .map(ls -> new ExprCaseOfBranch(
-            (ASTExpr) ls.get(1),
-            (ASTExpr) ls.get(3)
+            (ASTExpr) ls.get(0),
+            (ASTExpr) ls.get(2)
         ));
 
     public static final Parser<ExprCaseOf> exprCaseOf =
         intersperse(anyws,
             match("case"),
             expr,
-            any(
-                many1(any(
-                    exprCaseOfBranch,
+            match("of"),
+            joining(anyws,
+                any(exprCaseOfBranch,
                     intersperse(anyws, match("("), exprCaseOfBranch, match(")"))
-                    .map(ls -> ls.get(1)))),
-                intersperse(anyws, match("("), many1(exprCaseOfBranch), match(")"))
-                .map(ls -> ls.get(1))))
+                    .map(ls -> ls.get(1)))))
         .map(ls -> new ExprCaseOf(
             (ASTExpr) ls.get(1),
-            (List<ExprCaseOfBranch>) ls.get(2)));
+//            List.of((ExprCaseOfBranch) ls.get(3))));
+            (List<ExprCaseOfBranch>) ls.get(3)));
 
 
     public static final Parser<ExprLambda> exprLambda =
@@ -169,9 +169,9 @@ public class ParserAST {
             any(
                 exprLetIn,
                 exprCaseOf,
+                exprParen,
                 exprTuple,
                 exprLambda,
-                exprParen,
                 exprName,
                 exprSymbolic,
                 exprNumber,

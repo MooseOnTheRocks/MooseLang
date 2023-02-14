@@ -3,10 +3,7 @@ package dev.foltz.mooselang.rt;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
-import dev.foltz.mooselang.ir.nodes.value.IRName;
-import dev.foltz.mooselang.ir.nodes.value.IRThunk;
-import dev.foltz.mooselang.ir.nodes.value.IRTuple;
-import dev.foltz.mooselang.ir.nodes.value.IRValue;
+import dev.foltz.mooselang.ir.nodes.value.*;
 
 import java.sql.Array;
 import java.util.ArrayList;
@@ -39,6 +36,12 @@ public class Interpreter {
             return this;
         }
 
+//        System.out.println("== STEP");
+//        System.out.println("Term: " + term);
+//        System.out.println("Stack: " + stack);
+//        System.out.println("Scope: " + scope);
+//        System.out.println("---");
+
         if (term instanceof IRBuiltin builtin) return step(builtin);
         else if (term instanceof IRLet let) return step(let);
         else if (term instanceof IRDo let) return step(let);
@@ -68,25 +71,67 @@ public class Interpreter {
             value = maybeName.get();
         }
 
-        if (value instanceof IRTuple tuple && caseOf.branches.size() == 1) {
-            var branch = caseOf.branches.get(0);
-            boolean good = branch.pattern instanceof IRTuple pattern &&
-                pattern.values.size() == tuple.values.size() &&
-                pattern.values.stream().allMatch(v -> v instanceof IRName);
-            if (!(branch.pattern instanceof IRTuple pattern) || !good) {
-                System.err.println("Bad branch pattern: " + branch.pattern);
-                return new Interpreter(term, stack, scope, true);
+        for (var branch : caseOf.branches) {
+            if (patternMatches(value, branch.pattern)) {
+                var interp = destructPattern(value, branch.pattern);
+                return new Interpreter(branch.body, interp.stack, interp.scope, interp.terminated);
             }
-            var names = pattern.values.stream().map(v -> ((IRName) v).name).toList();
-            var newScope = scope;
-            for (int i = 0; i < names.size(); i++) {
-                newScope = newScope.put(names.get(i), tuple.values.get(i));
-            }
-            return new Interpreter(branch.body, stack, newScope, false);
+        }
+
+        System.err.println("Unhandled case-of: " + caseOf);
+        return new Interpreter(term, stack, scope, true);
+
+//        if (value instanceof IRTuple tuple && caseOf.branches.size() == 1) {
+//            var branch = caseOf.branches.get(0);
+//            boolean good = branch.pattern instanceof IRTuple pattern &&
+//                pattern.values.size() == tuple.values.size() &&
+//                pattern.values.stream().allMatch(v -> v instanceof IRName);
+//            if (!(branch.pattern instanceof IRTuple pattern) || !good) {
+//                System.err.println("Bad branch pattern: " + branch.pattern);
+//                return new Interpreter(term, stack, scope, true);
+//            }
+//            var names = pattern.values.stream().map(v -> ((IRName) v).name).toList();
+//            var newScope = scope;
+//            for (int i = 0; i < names.size(); i++) {
+//                newScope = newScope.put(names.get(i), tuple.values.get(i));
+//            }
+//            return new Interpreter(branch.body, stack, newScope, false);
+//        }
+//        else {
+//            System.err.println("Unhandled case-of: " + caseOf);
+//            return new Interpreter(term, stack, scope, true);
+//        }
+    }
+
+    public boolean patternMatches(IRValue value, IRValue pattern) {
+        if (pattern instanceof IRName) {
+            return true;
+        }
+        else if (value instanceof IRNumber valueNum && pattern instanceof IRNumber patternNum) {
+            return valueNum.value == patternNum.value;
+        }
+        else if (value instanceof IRString valueString && pattern instanceof IRString patternString) {
+            return valueString.value.equals(patternString.value);
+        }
+        else if (value instanceof IRUnit && pattern instanceof IRUnit) {
+            return true;
         }
         else {
-            System.err.println("Unhandled case-of: " + caseOf);
+            return false;
+        }
+    }
+
+    public Interpreter destructPattern(IRValue value, IRValue pattern) {
+        if (!patternMatches(value, pattern)) {
+            System.err.println("Cannot destruct " + value + ", on pattern: " + pattern);
             return new Interpreter(term, stack, scope, true);
+        }
+
+        if (pattern instanceof IRName patternName) {
+            return new Interpreter(term, stack, scope.put(patternName.name, value), false);
+        }
+        else {
+            return this;
         }
     }
 

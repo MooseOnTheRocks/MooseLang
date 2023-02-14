@@ -8,7 +8,7 @@ import static dev.foltz.mooselang.parser.ParserCombinators.*;
 
 public class Parsers {
     public static final List<String> BAD_NAMES = List.of();
-    public static final List<String> BAD_SYMBOLICS = List.of("_", "__");
+    public static final List<String> BAD_SYMBOLICS = List.of("_", "__", "->");
 
     public static Parser<String> match(String p) {
         return s -> s.rem().startsWith(p) ? s.success(s.index + p.length(), p) : s.error();

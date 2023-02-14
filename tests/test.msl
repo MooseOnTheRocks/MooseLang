@@ -1,3 +1,6 @@
-let w = (1, 2) in case w (
-    of (x, y) in let sum = x + y in (x, y, sum, num2str sum)
-)
+let xor = \x: Number -> case x of
+    0 -> 1
+    1 -> 0
+    n -> n
+in
+    xor 1 + xor 0

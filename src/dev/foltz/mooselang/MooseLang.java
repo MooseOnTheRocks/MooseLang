@@ -9,6 +9,7 @@ import dev.foltz.mooselang.parser.Parsers;
 import dev.foltz.mooselang.io.SourceDesc;
 import dev.foltz.mooselang.rt.Interpreter;
 import dev.foltz.mooselang.rt.Scope;
+import dev.foltz.mooselang.typing.value.TypeValue;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -19,29 +20,31 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import static dev.foltz.mooselang.ir.PrettyPrintIR.prettyPrint;
+import static dev.foltz.mooselang.parser.Parsers.anyws;
 import static dev.foltz.mooselang.parser.Parsers.comment;
 import static dev.foltz.mooselang.parser.ParserCombinators.any;
 import static dev.foltz.mooselang.parser.ParserCombinators.many;
 import static dev.foltz.mooselang.ast.ParserAST.*;
 
 public class MooseLang {
+    public static final TypedIR localTyper = new TypedIR(Map.of());
     public static final TypedIR globalTyper = new TypedIR(Map.of(
-            "print", IRBuiltin.PRINT_TYPE,
-            "+", IRBuiltin.ADD_TYPE,
-            "num2str", IRBuiltin.NUM2STR_TYPE
+            "print", (TypeValue) localTyper.typeOf(Builtins.PRINT),
+            "+", (TypeValue) localTyper.typeOf(Builtins.ADD),
+            "num2str", (TypeValue) localTyper.typeOf(Builtins.NUM2STR)
     ));
 
     public static final Scope globalScope = new Scope(null, null, Map.of(
-            "print", IRBuiltin.PRINT_THUNK,
-            "+", IRBuiltin.ADD_THUNK,
-            "num2str", IRBuiltin.NUM2STR_THUNK
+            "print", Builtins.PRINT,
+            "+", Builtins.ADD,
+            "num2str", Builtins.NUM2STR
     ));
 
     public static final Function<IRComp, Interpreter> globalInterpreter = term -> new Interpreter(term, List.of(), globalScope, false);
 
     public static void testParseIR() {
         var sourceIR = SourceDesc.fromFile("irout", "test.mslir");
-        var topLevelIR = any(Parsers.anyws, comment, ParserIR.irComp);
+        var topLevelIR = any(anyws, comment, ParserIR.irComp);
         var parserIR = many(topLevelIR);
         var res = Parsers.parse(parserIR, sourceIR);
         boolean failed = res.isError || !res.rem().isEmpty();
@@ -74,9 +77,9 @@ public class MooseLang {
     public static void testInterp() {
         var sourceAST = SourceDesc.fromFile("tests", "test.msl");
         var topLevelAST = any(
-                Parsers.anyws,
-                comment,
-                expr
+            anyws,
+            comment,
+            expr
         );
         var parserAST = many(topLevelAST);
         var res = Parsers.parse(parserAST, sourceAST);
@@ -149,7 +152,7 @@ public class MooseLang {
     }
 
     public static List<ASTNode> parseASTs(SourceDesc sourceCode) {
-        var parseTopLevelAST = any(Parsers.anyws, comment, expr);
+        var parseTopLevelAST = any(anyws, comment, expr);
         var parserAST = many(parseTopLevelAST);
         var res = Parsers.parse(parserAST, sourceCode);
         boolean failed = res.isError || !res.rem().isEmpty();
@@ -179,7 +182,7 @@ public class MooseLang {
     }
 
     public static List<IRComp> parseIR(SourceDesc sourceIR) {
-        var parseTopLevelIR = any(Parsers.anyws, comment, ParserIR.irComp);
+        var parseTopLevelIR = any(anyws, comment, ParserIR.irComp);
         var parserIR = many(parseTopLevelIR);
         var res = Parsers.parse(parserIR, sourceIR);
         boolean failed = res.isError || !res.rem().isEmpty();
@@ -206,7 +209,7 @@ public class MooseLang {
 
     public static void main(String[] args) {
         testInterp();
-        testParseIR();
+//        testParseIR();
 //        var sourceFile = SourceDesc.fromFile("tests", "test.msl");
 //        var astNodes = parseASTs(sourceFile);
 //        var irNodes = astNodes.stream().map(MooseLang::compileIR).toList();

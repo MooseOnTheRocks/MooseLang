@@ -90,7 +90,7 @@ public class PrettyPrintIR extends VisitorIR<String> {
     public String visit(IRCaseOf caseOf) {
         return "case " + inline().pprint(caseOf.value) + " (\n" +
             caseOf.branches.stream().map(b -> getNextIndent() + indent().pprint(b)).collect(Collectors.joining("\n")) + "\n" +
-            ")";
+            getIndent() + ")";
     }
 
     @Override
