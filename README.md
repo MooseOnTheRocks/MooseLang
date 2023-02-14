@@ -103,6 +103,12 @@ Which, when executed, produces the value 15.0 of type Number.
 - Implement REPL with interpreter.
 
 ### Iteration 5 (Proposed)
+- Recursive functions
+  - Finite, divergent
+  - Semantics for each?
+- Recursive data types
+  - Finite, infinite
+  - Semantics for each?
 - Define sum types with tags.
 - Support for product types with pattern matching.
 - Support for sum types with pattern matching.
