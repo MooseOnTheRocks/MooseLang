@@ -1,257 +1,181 @@
 package dev.foltz.mooselang.rt;
 
+import dev.foltz.mooselang.ir.VisitorIR;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
-import dev.foltz.mooselang.ir.nodes.value.*;
+import dev.foltz.mooselang.ir.nodes.value.IRName;
+import dev.foltz.mooselang.ir.nodes.value.IRThunk;
+import dev.foltz.mooselang.ir.nodes.value.IRValue;
 
-import java.sql.Array;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
-public class Interpreter {
+public class Interpreter extends VisitorIR<Interpreter> {
     public final IRComp term;
-    public final List<Object> stack;
-    public final Scope scope;
+    public final Map<String, IRValue> context;
+    public final List<StackType> stack;
     public final boolean terminated;
 
-    public Interpreter(IRComp term, List<Object> stack, Scope scope, boolean terminated) {
+    public Interpreter(IRComp term, Map<String, IRValue> context, List<StackType> stack, boolean terminated) {
         this.term = term;
+        this.context = Map.copyOf(context);
         this.stack = List.copyOf(stack);
-        this.scope = scope;
         this.terminated = terminated;
     }
 
-    public Interpreter execute() {
-        var state = this;
-        while (!state.terminated) {
-            state = state.stepExecution();
-        }
-        return state;
+    public Interpreter terminate() {
+        return new Interpreter(term, context, stack, true);
     }
 
-    public Interpreter stepExecution() {
-        if (terminated) {
-            return this;
-        }
-
-//        System.out.println("== STEP");
-//        System.out.println("Term: " + term);
-//        System.out.println("Stack: " + stack);
-//        System.out.println("Scope: " + scope);
-//        System.out.println("---");
-
-        if (term instanceof IRBuiltin builtin) return step(builtin);
-        else if (term instanceof IRLet let) return step(let);
-        else if (term instanceof IRDo let) return step(let);
-        else if (term instanceof IRProduce produce) return step(produce);
-        else if (term instanceof IRForce force) return step(force);
-        else if (term instanceof IRPush push) return step(push);
-        else if (term instanceof IRLambda lambda) return step(lambda);
-        else if (term instanceof IRCaseOf caseOf) return step(caseOf);
-        else {
-            System.err.println("Unhandled term: " + term);
-            return new Interpreter(term, stack, scope, true);
-        }
+    public Interpreter withTerm(IRComp newTerm) {
+        return new Interpreter(newTerm, context, stack, terminated);
     }
 
-    public Interpreter step(IRBuiltin builtin) {
-        return builtin.internal.apply(this);
+    public Interpreter bind(String name, IRValue value) {
+        var resolved = resolve(value);
+        System.out.println("bind " + name + " = " + value);
+        var newContext = new HashMap<>(context);
+        newContext.put(name, resolved);
+        return new Interpreter(term, newContext, stack, terminated);
     }
 
-    public Interpreter step(IRCaseOf caseOf) {
-        var value = caseOf.value;
-        if (value instanceof IRName valueName) {
-            var maybeName = scope.find(valueName.name);
-            if (maybeName.isEmpty()) {
-                System.err.println("Cannot find " + valueName.name + " in scope");
-                return new Interpreter(term, stack, scope, true);
-            }
-            value = maybeName.get();
+    public IRValue find(String name) {
+        if (context.containsKey(name)) {
+            return context.get(name);
         }
-
-        for (var branch : caseOf.branches) {
-            if (patternMatches(value, branch.pattern)) {
-                var interp = destructPattern(value, branch.pattern);
-                return new Interpreter(branch.body, interp.stack, interp.scope, interp.terminated);
-            }
-        }
-
-        System.err.println("Unhandled case-of: " + caseOf);
-        return new Interpreter(term, stack, scope, true);
-
-//        if (value instanceof IRTuple tuple && caseOf.branches.size() == 1) {
-//            var branch = caseOf.branches.get(0);
-//            boolean good = branch.pattern instanceof IRTuple pattern &&
-//                pattern.values.size() == tuple.values.size() &&
-//                pattern.values.stream().allMatch(v -> v instanceof IRName);
-//            if (!(branch.pattern instanceof IRTuple pattern) || !good) {
-//                System.err.println("Bad branch pattern: " + branch.pattern);
-//                return new Interpreter(term, stack, scope, true);
-//            }
-//            var names = pattern.values.stream().map(v -> ((IRName) v).name).toList();
-//            var newScope = scope;
-//            for (int i = 0; i < names.size(); i++) {
-//                newScope = newScope.put(names.get(i), tuple.values.get(i));
-//            }
-//            return new Interpreter(branch.body, stack, newScope, false);
-//        }
-//        else {
-//            System.err.println("Unhandled case-of: " + caseOf);
-//            return new Interpreter(term, stack, scope, true);
-//        }
+        throw new RuntimeException("[Interpreter Error] Cannot find " + name + " in scope.");
     }
 
-    public boolean patternMatches(IRValue value, IRValue pattern) {
-        if (pattern instanceof IRName) {
-            return true;
-        }
-        else if (value instanceof IRNumber valueNum && pattern instanceof IRNumber patternNum) {
-            return valueNum.value == patternNum.value;
-        }
-        else if (value instanceof IRString valueString && pattern instanceof IRString patternString) {
-            return valueString.value.equals(patternString.value);
-        }
-        else if (value instanceof IRUnit && pattern instanceof IRUnit) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    public Interpreter destructPattern(IRValue value, IRValue pattern) {
-        if (!patternMatches(value, pattern)) {
-            System.err.println("Cannot destruct " + value + ", on pattern: " + pattern);
-            return new Interpreter(term, stack, scope, true);
-        }
-
-        if (pattern instanceof IRName patternName) {
-            return new Interpreter(term, stack, scope.put(patternName.name, value), false);
-        }
-        else {
-            return this;
-        }
-    }
-
-    public Interpreter step(IRLambda lambda) {
-        if (stack.isEmpty()) {
-            return new Interpreter(lambda, stack, scope, true);
-        }
-
-        var top = stack.get(stack.size() - 1);
-        if (top instanceof IRValue value) {
-            var newStack = new ArrayList<>(stack);
-            newStack.remove(newStack.size() - 1);
-            return new Interpreter(lambda.body, newStack, scope.put(lambda.paramName, value), false);
-        }
-        else {
-            System.err.println("Lambda expects value on the stack, received: " + top);
-            return new Interpreter(term, stack, scope, true);
-        }
-    }
-
-    public Interpreter step(IRPush push) {
+    public Interpreter push(IRValue value) {
+        System.out.println("push " + value);
         var newStack = new ArrayList<>(stack);
-        if (push.value instanceof IRName name) {
-            newStack.add(scope.find(name.name).get());
-        }
-        else {
-            newStack.add(push.value);
-        }
-        return new Interpreter(push.then, newStack, scope, false);
+        newStack.add(new StackValue(resolve(value)));
+        return new Interpreter(term, context, newStack, terminated);
     }
 
-    public Interpreter step(IRForce force) {
-        IRThunk thunk = null;
-        if (force.thunk instanceof IRName name) {
-            var mbound = scope.find(name.name);
-            if (mbound.isEmpty()) {
-                System.err.println("Cannot find " + name.name + " in scope");
-                return new Interpreter(term, stack, scope, true);
-            }
-            else if (mbound.get() instanceof IRThunk irThunk) {
-                thunk = irThunk;
-            }
-            else {
-                System.err.println("Force expected thunk, (or named thunk), received: " + force.thunk);
-                return new Interpreter(term, stack, scope, true);
-            }
-        }
-        else if (force.thunk instanceof IRThunk irThunk) {
-            thunk = irThunk;
-        }
-        else {
-            System.err.println("Force expected thunk, received: " + force.thunk);
-            return new Interpreter(term, stack, scope, true);
-        }
-
-        return new Interpreter(thunk.comp, stack, scope, false);
-    }
-
-    public Interpreter step(IRProduce produce) {
-        // If producing identifier, replace with value from scope.
-        if (produce.value instanceof IRName name) {
-            var mbound = scope.find(name.name);
-            if (mbound.isEmpty()) {
-                System.err.println("Cannot find " + name.name + " in scope");
-                return new Interpreter(term, stack, scope, true);
-            }
-            produce = new IRProduce(mbound.get());
-        }
-        // Replace names in Tuple
-        else if (produce.value instanceof IRTuple tuple) {
-            var newValues = new ArrayList<>(tuple.values);
-            for (int i = 0; i < tuple.values.size(); i++) {
-                IRValue v = tuple.values.get(i);
-                if (v instanceof IRName name) {
-                    var mbound = scope.find(name.name);
-                    if (mbound.isEmpty()) {
-                        System.err.println("Cannot find " + name.name + " in scope");
-                        return new Interpreter(term, stack, scope, true);
-                    }
-                    newValues.set(i, mbound.get());
-                }
-            }
-            produce = new IRProduce(new IRTuple(newValues));
-        }
-
-        if (stack.isEmpty()) {
-            // Terminal configuration if stack is empty.
-            return new Interpreter(produce, stack, scope, true);
-        }
-        var top = stack.get(stack.size() - 1);
-        if (top instanceof IRDo let) {
-            var newStack = new ArrayList<>(stack);
-            newStack.remove(stack.size() - 1);
-            return new Interpreter(let.body, newStack, scope.put(let.name, produce.value), false);
-        }
-        else {
-            System.err.println("Unable to produce!");
-            return new Interpreter(term, stack, scope, true);
-        }
-    }
-
-    public Interpreter step(IRLet let) {
-        var name = let.name;
-        var value = let.value;
-        var body = let.body;
-
-        return new Interpreter(body, stack, scope.put(name, value), false);
-    }
-
-    public Interpreter step(IRDo let) {
-        var name = let.name;
-        var expr = let.boundComp;
-        var body = let.body;
+    public Interpreter pushFrame(StackFrame frame) {
+        System.out.println("push " + frame);
         var newStack = new ArrayList<>(stack);
-        newStack.add(let);
-        return new Interpreter(expr, newStack, scope, false);
+        newStack.add(frame);
+        return new Interpreter(term, context, newStack, terminated);
+    }
+
+    public Interpreter pop() {
+        if (stack.isEmpty()) {
+            return error("Cannot pop empty stack.");
+        }
+        System.out.println("pop " + top());
+        var newStack = new ArrayList<>(stack);
+        newStack.remove(newStack.size() - 1);
+        return new Interpreter(term, context, newStack, terminated);
+    }
+
+    public StackType top() {
+        if (stack.isEmpty()) {
+            return null;
+        }
+        return stack.get(stack.size() - 1);
+    }
+
+    public Interpreter error(String msg) {
+        throw new RuntimeException("[Interpreter Error] " + msg);
+    }
+
+    public Interpreter step() {
+        return terminated ? this : evaluate(term);
+    }
+
+    public Interpreter stepAll() {
+        var interp = this;
+        while (!interp.terminated) {
+            System.out.println("Step!");
+            System.out.println("Term: " + interp.term);
+            System.out.println("Context: " + interp.context.entrySet().stream().filter(e -> !e.getKey().equals("-")).collect(Collectors.toMap(s -> s, item -> item)));
+            System.out.println("Stack: " + interp.stack);
+//            System.out.println("Terminated: " + interp.terminated);
+            System.out.println("---");
+            interp = interp.step();
+        }
+        return interp;
+    }
+
+    public IRValue resolve(IRValue value) {
+        if (value instanceof IRName name) {
+            return resolve(find(name.name));
+        }
+        return value;
+    }
+
+    public Interpreter evaluate(IRComp comp) {
+        return comp.apply(this);
     }
 
     @Override
-    public String toString() {
-        return "Interpreter(" + term + ", " + terminated + ", " + stack + ", " + scope.allBindings(Map.of()) + ")";
+    public Interpreter visit(IRBuiltin builtin) {
+        return builtin.internal.apply(this);
+    }
+
+    @Override
+    public Interpreter visit(IRProduce produce) {
+        var top = top();
+        if (top instanceof StackFrame stackFrame) {
+            return pop().bind(stackFrame.name, produce.value).withTerm(stackFrame.body);
+        }
+        else if (top == null) {
+            return withTerm(produce).terminate();
+        }
+        return error("Produce expects null or StackFrame, received: " + top);
+//        return withTerm(new IRProduce(resolve(produce.value))).terminate();
+    }
+
+    @Override
+    public Interpreter visit(IRDo bind) {
+        return pushFrame(new StackFrame(bind.name, bind.body)).withTerm(bind.boundComp);
+//        var eval = evaluate(bind.boundComp);
+//        if (eval.term instanceof IRProduce produce) {
+//            return eval.bind(bind.name, produce.value).evaluate(bind.body);
+//            return eval.bind(bind.name, produce.value).withTerm(bind.body);
+//        }
+//        return error("Expected IRProduce, received: " + eval.term);
+//        return eval.term instanceof IRProduce produce
+//            ? eval.bind(bind.name, produce.value).evaluate(bind.body)
+//            : error("Expected IRProduce, received: " + eval.term);
+    }
+
+    @Override
+    public Interpreter visit(IRLambda lambda) {
+        var top = top();
+        if (top instanceof StackValue stackValue) {
+            return pop().bind(lambda.paramName, stackValue.value).withTerm(lambda.body);
+        }
+        return error("Lambda expects Value, received: " + top);
+    }
+
+    @Override
+    public Interpreter visit(IRPush push) {
+        return push(push.value).withTerm(push.then);
+//        var eval = evaluate(push.then);
+//        if (eval.term instanceof IRLambda lambda) {
+//            return eval.bind(lambda.paramName, resolve(push.value)).withTerm(lambda.body);
+//        }
+//        return error("Expected IRLambda, received: " + eval.term);
+//        return eval.term instanceof IRLambda lambda
+//            ? eval.bind(lambda.paramName, push.value).evaluate(lambda.body)
+//            : error("Expected IRLambda, received: " + eval.term);
+    }
+
+    @Override
+    public Interpreter visit(IRLet bind) {
+        return bind(bind.name, resolve(bind.value)).withTerm(bind.body);
+    }
+
+    @Override
+    public Interpreter visit(IRForce force) {
+        var mthunk = resolve(force.thunk);
+        if (mthunk instanceof IRThunk thunk) {
+            return withTerm(thunk.comp);
+        }
+        return error("Force expects Thunk, received: " + mthunk);
     }
 }

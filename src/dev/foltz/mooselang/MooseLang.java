@@ -3,21 +3,18 @@ package dev.foltz.mooselang;
 import dev.foltz.mooselang.ast.nodes.ASTNode;
 import dev.foltz.mooselang.ir.*;
 import dev.foltz.mooselang.ir.nodes.IRNode;
-import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.IRComp;
+import dev.foltz.mooselang.ir.nodes.value.IRValue;
 import dev.foltz.mooselang.parser.Parsers;
 import dev.foltz.mooselang.io.SourceDesc;
 import dev.foltz.mooselang.rt.Interpreter;
-import dev.foltz.mooselang.rt.Scope;
+import dev.foltz.mooselang.rt.InterpreterOld;
+import dev.foltz.mooselang.rt.ScopeOld;
 import dev.foltz.mooselang.typing.value.TypeValue;
 
-import java.io.File;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.Function;
 
 import static dev.foltz.mooselang.ir.PrettyPrintIR.prettyPrint;
 import static dev.foltz.mooselang.parser.Parsers.anyws;
@@ -31,16 +28,20 @@ public class MooseLang {
     public static final TypedIR globalTyper = new TypedIR(Map.of(
             "print", (TypeValue) localTyper.typeOf(Builtins.PRINT),
             "+", (TypeValue) localTyper.typeOf(Builtins.ADD),
+            "-", (TypeValue) localTyper.typeOf(Builtins.SUBTRACT),
+            "*", (TypeValue) localTyper.typeOf(Builtins.MULTIPLY),
             "num2str", (TypeValue) localTyper.typeOf(Builtins.NUM2STR)
     ));
 
-    public static final Scope globalScope = new Scope(null, null, Map.of(
+    public static final ScopeOld globalScope = new ScopeOld(null, null, Map.of(
             "print", Builtins.PRINT,
             "+", Builtins.ADD,
+            "-", Builtins.SUBTRACT,
+            "*", Builtins.MULTIPLY,
             "num2str", Builtins.NUM2STR
     ));
 
-    public static final Function<IRComp, Interpreter> globalInterpreter = term -> new Interpreter(term, List.of(), globalScope, false);
+//    public static final Function<IRComp, Interpreter> globalInterpreter = term -> new Interpreter(term, List.of(), globalScope, false);
 
     public static void testParseIR() {
         var sourceIR = SourceDesc.fromFile("irout", "test.mslir");
@@ -124,7 +125,7 @@ public class MooseLang {
                 System.out.println(typed);
                 System.out.println("Execution:");
                 if (compiled instanceof IRComp comp) {
-                    var state = globalInterpreter.apply(comp);
+                    var state = new InterpreterOld(comp, List.of(), globalScope, false);
                     while (!state.terminated) {
                         state = state.stepExecution();
                     }
@@ -134,14 +135,14 @@ public class MooseLang {
                     System.out.println("Stack: " + state.stack);
                     System.out.println();
                     System.out.println("Name: " + sourceAST.name());
-                    var sep = Objects.equals(File.separator, "\\") ? "\\\\" : File.separator;
-                    var sourceSep = sourceAST.name().split(sep);
-                    var sourceName = sourceSep[sourceSep.length - 1];
-                    sourceName += sourceName.endsWith("msl") ? "ir" : ".mslir";
-                    Path savePath = Path.of("irout", sourceName).toAbsolutePath();
-                    System.out.println("Saving to: " + savePath);
-                    SourceDesc compiledCode = SourceDesc.fromString(sourceName, prettyPrint(compiled));
-                    SourceDesc.saveAsFile(compiledCode, savePath.toString());
+//                    var sep = Objects.equals(File.separator, "\\") ? "\\\\" : File.separator;
+//                    var sourceSep = sourceAST.name().split(sep);
+//                    var sourceName = sourceSep[sourceSep.length - 1];
+//                    sourceName += sourceName.endsWith("msl") ? "ir" : ".mslir";
+//                    Path savePath = Path.of("irout", sourceName).toAbsolutePath();
+//                    System.out.println("Saving to: " + savePath);
+//                    SourceDesc compiledCode = SourceDesc.fromString(sourceName, prettyPrint(compiled));
+//                    SourceDesc.saveAsFile(compiledCode, savePath.toString());
                 }
                 else {
                     System.out.println("Value: " + compiled);
@@ -208,7 +209,39 @@ public class MooseLang {
     }
 
     public static void main(String[] args) {
-        testInterp();
+        Map<String, IRValue> builtins = Map.of(
+            "+", Builtins.ADD,
+            "-", Builtins.SUBTRACT,
+            "*", Builtins.MULTIPLY,
+            "print", Builtins.PRINT,
+            "num2str", Builtins.NUM2STR
+        );
+
+        var source = SourceDesc.fromFile("tests", "test.msl");
+        var ast = parseASTs(source);
+        System.out.println("== AST");
+        ast.forEach(System.out::println);
+        System.out.println();
+        if (true) {
+            return;
+        }
+
+        var ir = compileIR(ast.get(0));
+        System.out.println("== IR");
+        System.out.println(PrettyPrintIR.prettyPrint(ir));
+        System.out.println();
+        if (ir instanceof IRComp term) {
+            var interp = new Interpreter(term, builtins, List.of(), false);
+            interp = interp.stepAll();
+            System.out.println("== Execution finished");
+            System.out.println("Term: " + interp.term);
+            System.out.println("Context: " + interp.context);
+            System.out.println("Stack: " + interp.stack);
+        }
+        else {
+            System.out.println("Not computation: " + ir);
+        }
+//        testInterp();
 //        testParseIR();
 //        var sourceFile = SourceDesc.fromFile("tests", "test.msl");
 //        var astNodes = parseASTs(sourceFile);

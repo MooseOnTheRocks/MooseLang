@@ -190,7 +190,7 @@ public class ParserAST {
                 case "+", "-" -> 25;
                 case "*", "/" -> 50;
                 case "^" -> 75;
-                default -> 10;
+                default -> 100;
             };
         }
         else {
@@ -214,15 +214,83 @@ public class ParserAST {
         var lhs = s;
         var lookahead = exprSimple(lhs);
         while (!lookahead.isError) {
-            /*if (lookahead.result instanceof ExprSymbolic symbolic && symbolic.symbol.equals(";")) {
+//            System.out.println("Lookahead: " + lookahead.result);
+            if (lookahead.result instanceof ExprSymbolic && getOpPrec(lookahead.result) >= minPrec) {
                 var op = lookahead;
-                var rhs = all(anyws, expr).map(ls -> (ASTExpr) ls.get(1)).run(op);
-                if (rhs.isError) {
-                    return lhs;
+                var rhs = exprSimple(op);
+                lookahead = exprSimple(rhs);
+//                System.out.println("lhs = " + lhs.result);
+//                System.out.println("op = " + op.result);
+//                System.out.println("rhs = " + rhs.result);
+//                System.out.println("lookahead = " + lookahead.result);
+                while (!lookahead.isError) {
+//                    System.out.println("Inner lookahead: " + lookahead.result);
+                    if (lookahead.result instanceof ExprSymbolic && getOpPrec(lookahead.result) > getOpPrec(op.result)) {
+                        if (getOpPrec(lookahead.result) > getOpPrec(op.result)) {
+                            rhs = expr_inner(rhs, getOpPrec(op.result) + 1);
+                        }
+                        else {
+                            rhs = expr_inner(rhs, getOpPrec(op.result));
+                        }
+                        lookahead = exprSimple(rhs);
+                    }
+                    else if (!(lookahead.result instanceof ExprSymbolic)) {
+//                        System.out.println("SPECIAL BREAKING");
+//                        System.out.println("lhs = " + lhs.result);
+//                        System.out.println("op = " + op.result);
+//                        System.out.println("rhs = " + rhs.result);
+//                        System.out.println("lookahead = " + lookahead.result);
+                        rhs = lookahead.success(lookahead.index, new ExprApply(rhs.result, lookahead.result));
+                        lookahead = exprSimple(rhs);
+                    }
+                    else {
+//                        System.out.println("BREAKING");
+//                        System.out.println("lhs = " + lhs.result);
+//                        System.out.println("op = " + op.result);
+//                        System.out.println("rhs = " + rhs.result);
+//                        System.out.println("lookahead = " + lookahead.result);
+                        break;
+                    }
                 }
-                return rhs.success(rhs.index, new ExprChain(lhs.result, rhs.result));
+
+                if (rhs.result == null) {
+                    System.out.println("Got a null: " + op.result + ", " + lhs.result);
+                    return rhs.error();
+//                    break;
+//                    lhs = rhs.success(rhs.index, new ExprApply(op.result, lhs.result));
+                }
+                else {
+                    lhs = rhs.success(rhs.index, new ExprApply(new ExprApply(op.result, lhs.result), rhs.result));
+                }
             }
-            else */if (lookahead.result instanceof ExprSymbolic symbolic && getOpPrec(lookahead.result) >= minPrec) {
+            else if (lookahead.result instanceof ExprSymbolic) {
+                break;
+            }
+            else if (lhs.result instanceof ExprSymbolic) {
+                return lhs.error();
+            }
+            else {
+                System.out.println("OUTER BREAKING");
+                System.out.println("LHS: " + lhs.result);
+                System.out.println("LOOKAHEAD: " + lookahead.result);
+                var rhs = lookahead;
+                lhs = rhs.success(rhs.index, new ExprApply(lhs.result, rhs.result));
+//                System.out.println("NEW LHS: " + lhs.result);
+                lookahead = exprSimple(lhs);
+//                var rhs = lookahead;
+//                lhs = rhs.success(rhs.index, new ExprApply(lhs.result, rhs.result));
+//                System.out.println("NEW LHS: " + lhs.result);
+//                lookahead = exprSimple(lhs);
+//                break;
+            }
+        }
+        return lhs;
+
+        /*
+        var lhs = s;
+        var lookahead = exprSimple(lhs);
+        while (!lookahead.isError) {
+            if (lookahead.result instanceof ExprSymbolic symbolic && getOpPrec(lookahead.result) >= minPrec) {
                 var op = lookahead;
                 var rhs = exprSimple(op);
                 if (rhs.isError) {
@@ -247,5 +315,6 @@ public class ParserAST {
             }
         }
         return lhs;
+        */
     }
 }

@@ -1,24 +1,7 @@
-let xor = #thunk (\x: Number ->
-    case x (
-        of 0.0 in #produce 1.0
-        of 1.0 in #produce 0.0
-        of n in #produce n
-    )
-) in
 do (
-    #push 0.0
-    #force xor
-) = __arg_1
+    #push 9.0
+    #force -
+) = __app_0
 in
-do (
-    do (
-        #push 1.0
-        #force xor
-    ) = __arg_0
-    in
-    #push __arg_0
-    #force +
-) = __app_2
-in
-#push __arg_1
-#force __app_2
+#push 1.0
+#force __app_0

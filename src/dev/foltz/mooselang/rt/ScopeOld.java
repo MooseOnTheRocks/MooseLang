@@ -6,12 +6,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class Scope {
-    public final Scope prev;
-    public final Scope outer;
+public class ScopeOld {
+    public final ScopeOld prev;
+    public final ScopeOld outer;
     public final Map<String, IRValue> localScope;
 
-    public Scope(Scope prev, Scope outer, Map<String, IRValue> localScope) {
+    public ScopeOld(ScopeOld prev, ScopeOld outer, Map<String, IRValue> localScope) {
         this.prev = prev;
         this.outer = outer;
         this.localScope = Map.copyOf(localScope);
@@ -34,15 +34,15 @@ public class Scope {
         return prev == null ? Optional.empty() : prev.find(name);
     }
 
-    public Scope put(String name, IRValue value) {
-        return new Scope(this, outer, Map.of(name, value));
+    public ScopeOld put(String name, IRValue value) {
+        return new ScopeOld(this, outer, Map.of(name, value));
     }
 
-    public Scope push() {
-        return new Scope(this, this, Map.of());
+    public ScopeOld push() {
+        return new ScopeOld(this, this, Map.of());
     }
 
-    public Scope pop() {
+    public ScopeOld pop() {
         return outer;
     }
 

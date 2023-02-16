@@ -36,39 +36,60 @@ public class CompilerIR extends VisitorAST<IRNode> {
         var lhs = compileNode(apply.lhs);
         var rhs = compileNode(apply.rhs);
 
-        // Assume this is function application so name corresponds to (A -> B)
-        if (lhs instanceof IRName name && rhs instanceof IRComp rhsComp) {
-            var argname = "__arg_" + (args++);
-            return new IRDo(argname, rhsComp, new IRPush(new IRName(argname), new IRForce(name)));
+        if (lhs instanceof IRName lhsName && rhs instanceof IRValue rhsValue) {
+            return new IRPush(rhsValue, new IRForce(lhsName));
         }
-        else if (lhs instanceof IRName name && rhs instanceof IRValue rhsValue) {
-                return new IRPush(rhsValue, new IRForce(name));
+        else if (lhs instanceof IRName lhsName && rhs instanceof IRComp rhsComp) {
+            var argname = "_app_" + (args++);
+            return new IRDo(argname, rhsComp, new IRPush(new IRName(argname), new IRForce(lhsName)));
         }
-        else if (lhs instanceof IRValue lhsValue && rhs instanceof IRName name) {
-            return new IRPush(lhsValue, new IRForce(name));
-        }
-        else if (lhs instanceof IRLambda lhsLambda && rhs instanceof IRComp rhsComp) {
-            var argname = "__app_" + (args++);
-            return new IRDo(argname, rhsComp, new IRPush(new IRName(argname), lhsLambda));
-        }
-        else if (lhs instanceof IRComp lhsComp && rhs instanceof IRComp rhsComp) {
-            var rhsName = "__arg_" + (args++);
-            var lhsName = "__app_" + (args++);
-            return new IRDo(rhsName, rhsComp, new IRDo(lhsName, lhsComp, new IRPush(new IRName(rhsName), new IRForce(new IRName(lhsName)))));
-        }
+//        else if (lhs instanceof IRComp lhsComp && rhs instanceof IRName rhsName) {
+//            var argname = "_app_" + (args++);
+//            return new IRDo(argname, lhsComp, new IRPush(new IRName(argname), new IRForce(rhsName)));
+//        }
         else if (lhs instanceof IRComp lhsComp && rhs instanceof IRValue rhsValue) {
-            var argname = "__app_" + (args++);
+            var argname = "_app_" + (args++);
             return new IRDo(argname, lhsComp, new IRPush(rhsValue, new IRForce(new IRName(argname))));
         }
-        else if (lhs instanceof IRValue lhsValue && rhs instanceof IRLambda rhsLambda) {
-            return new IRPush(lhsValue, rhsLambda);
+        else if (lhs instanceof IRComp lhsComp && rhs instanceof IRComp rhsComp) {
+            var lhsName = "_app_" + (args++);
+            var rhsName = "_app_" + (args++);
+            return new IRDo(lhsName, lhsComp, new IRDo(rhsName, rhsComp, new IRPush(new IRName(rhsName), new IRForce(new IRName(lhsName)))));
         }
+
+        // Assume this is function application so name corresponds to (A -> B)
+//        if (lhs instanceof IRName name && rhs instanceof IRComp rhsComp) {
+//            var argname = "__arg_" + (args++);
+//            return new IRDo(argname, rhsComp, new IRPush(new IRName(argname), new IRForce(name)));
+//        }
+//        else if (lhs instanceof IRName name && rhs instanceof IRValue rhsValue) {
+//                return new IRPush(rhsValue, new IRForce(name));
+//        }
+//        else if (lhs instanceof IRValue lhsValue && rhs instanceof IRName name) {
+//            return new IRPush(lhsValue, new IRForce(name));
+//        }
+//        else if (lhs instanceof IRLambda lhsLambda && rhs instanceof IRComp rhsComp) {
+//            var argname = "__app_" + (args++);
+//            return new IRDo(argname, rhsComp, new IRPush(new IRName(argname), lhsLambda));
+//        }
+//        else if (lhs instanceof IRComp lhsComp && rhs instanceof IRComp rhsComp) {
+//            var rhsName = "__arg_" + (args++);
+//            var lhsName = "__app_" + (args++);
+//            return new IRDo(rhsName, rhsComp, new IRDo(lhsName, lhsComp, new IRPush(new IRName(rhsName), new IRForce(new IRName(lhsName)))));
+//        }
+//        else if (lhs instanceof IRComp lhsComp && rhs instanceof IRValue rhsValue) {
+//            var argname = "__app_" + (args++);
+//            return new IRDo(argname, lhsComp, new IRPush(rhsValue, new IRForce(new IRName(argname))));
+//        }
+//        else if (lhs instanceof IRValue lhsValue && rhs instanceof IRLambda rhsLambda) {
+//            return new IRPush(lhsValue, rhsLambda);
+//        }
 //        else if (lhs instanceof IRValue lhsValue && rhs instanceof IRName rhsName) {
 //            return new IRPush(lhsValue, new IRForce(rhsName));
 //        }
-        else {
+//        else {
             return error("Application failed:\nlhs: " + lhs + "\nrhs: " + rhs);
-        }
+//        }
     }
 
     @Override
@@ -102,6 +123,9 @@ public class CompilerIR extends VisitorAST<IRNode> {
         }
         else if (expr instanceof IRValue exprValue && body instanceof IRValue bodyValue) {
             return new IRLet(let.name.name, exprValue, new IRProduce(bodyValue));
+        }
+        else if (expr instanceof IRComp exprComp && body instanceof IRValue bodyValue) {
+            return new IRDo(let.name.name, exprComp, new IRProduce(bodyValue));
         }
 
         return error("let-in:\nexpr: " + expr + "\nbody: " + body);

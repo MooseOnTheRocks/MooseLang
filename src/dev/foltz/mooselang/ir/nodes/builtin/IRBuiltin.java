@@ -2,14 +2,9 @@ package dev.foltz.mooselang.ir.nodes.builtin;
 
 import dev.foltz.mooselang.ir.VisitorIR;
 import dev.foltz.mooselang.ir.nodes.comp.IRComp;
-import dev.foltz.mooselang.ir.nodes.comp.IRLambda;
-import dev.foltz.mooselang.ir.nodes.comp.IRProduce;
-import dev.foltz.mooselang.ir.nodes.value.*;
 import dev.foltz.mooselang.rt.Interpreter;
-import dev.foltz.mooselang.typing.comp.CompLambda;
-import dev.foltz.mooselang.typing.comp.CompProducer;
+import dev.foltz.mooselang.rt.InterpreterOld;
 import dev.foltz.mooselang.typing.comp.TypeComp;
-import dev.foltz.mooselang.typing.value.*;
 
 import java.util.function.Function;
 
