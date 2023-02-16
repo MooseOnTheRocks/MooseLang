@@ -1,5 +1,7 @@
 package dev.foltz.mooselang.ir;
 
+import dev.foltz.mooselang.ir.nodes.IRGlobalDef;
+import dev.foltz.mooselang.ir.nodes.IRModule;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.*;
@@ -53,6 +55,29 @@ public class PrettyPrintIR extends VisitorIR<String> {
     }
 
     @Override
+    public String visit(IRModule module) {
+        var sb = new StringBuilder();
+        sb.append("\n-- Top Level Definitions\n\n");
+        for (var topDef : module.topLevelDefs) {
+            sb.append(pprint(topDef));
+            sb.append("\n");
+            sb.append("\n");
+        }
+        sb.append("\n-- Top Level Computations\n\n");
+        for (var topComp : module.topLevelComps) {
+            sb.append(pprint(topComp));
+            sb.append("\n");
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public String visit(IRGlobalDef globalDef) {
+        return "def " + globalDef.name + " = " + indent().pprint(globalDef.value);
+    }
+
+    @Override
     public String visit(IRLet bind) {
         return "let " + inline().pprint(bind.name) + " = " + pprint(bind.value) + " in\n" +
             getIndent() + pprint(bind.body);
@@ -88,14 +113,14 @@ public class PrettyPrintIR extends VisitorIR<String> {
 
     @Override
     public String visit(IRCaseOf caseOf) {
-        return "case " + inline().pprint(caseOf.value) + " (\n" +
+        return "case " + inline().pprint(caseOf.value) + " of (\n" +
             caseOf.branches.stream().map(b -> getNextIndent() + indent().pprint(b)).collect(Collectors.joining("\n")) + "\n" +
             getIndent() + ")";
     }
 
     @Override
     public String visit(IRCaseOfBranch caseOfBranch) {
-        return "of " + inline().pprint(caseOfBranch.pattern) + " in " + indent().pprint(caseOfBranch.body);
+        return inline().pprint(caseOfBranch.pattern) + " -> " + indent().pprint(caseOfBranch.body);
     }
 
     @Override

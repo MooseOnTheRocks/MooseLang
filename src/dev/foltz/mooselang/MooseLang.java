@@ -2,6 +2,8 @@ package dev.foltz.mooselang;
 
 import dev.foltz.mooselang.ast.nodes.ASTNode;
 import dev.foltz.mooselang.ir.*;
+import dev.foltz.mooselang.ir.nodes.IRGlobalDef;
+import dev.foltz.mooselang.ir.nodes.IRModule;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.IRComp;
 import dev.foltz.mooselang.ir.nodes.value.IRValue;
@@ -13,6 +15,7 @@ import dev.foltz.mooselang.rt.ScopeOld;
 import dev.foltz.mooselang.typing.value.TypeValue;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -153,7 +156,7 @@ public class MooseLang {
     }
 
     public static List<ASTNode> parseASTs(SourceDesc sourceCode) {
-        var parseTopLevelAST = any(anyws, comment, expr);
+        var parseTopLevelAST = any(anyws, comment, stmtDef, expr);
         var parserAST = many(parseTopLevelAST);
         var res = Parsers.parse(parserAST, sourceCode);
         boolean failed = res.isError || !res.rem().isEmpty();
@@ -218,29 +221,59 @@ public class MooseLang {
         );
 
         var source = SourceDesc.fromFile("tests", "test.msl");
-        var ast = parseASTs(source);
+        var asts = parseASTs(source);
         System.out.println("== AST");
-        ast.forEach(System.out::println);
+        asts.forEach(System.out::println);
         System.out.println();
-        if (true) {
-            return;
+
+        var irs = asts.stream().map(MooseLang::compileIR).toList();
+        var topLevelDefs = irs.stream().filter(node -> node instanceof IRGlobalDef).map(n -> (IRGlobalDef) n).toList();
+        var topLevelComps = irs.stream().filter(node -> node instanceof IRComp).map(n -> (IRComp) n).toList();
+        var irModule = new IRModule(topLevelDefs, topLevelComps);
+        System.out.println("== IR Module");
+        System.out.println(PrettyPrintIR.prettyPrint(irModule));
+        System.out.println();
+
+        Map<String, IRValue> globalDefs = new HashMap<>(builtins);
+        for (var topDef : irModule.topLevelDefs) {
+            var name = topDef.name;
+            if (globalDefs.containsKey(name)) {
+                throw new RuntimeException("Illegal redefinition of " + name);
+            }
+            globalDefs.put(name, topDef.value);
+        }
+        globalDefs = Map.copyOf(globalDefs);
+
+//        for (var globalDef : globalDefs.entrySet()) {
+//            var name = globalDef.getKey();
+//            var value = globalDef.getValue();
+//            System.out.println("-- " + name);
+//            System.out.println(value);
+//            System.out.println();
+//        }
+
+        var globalInterp = new Interpreter(null, globalDefs, List.of(), false);
+        int comps = 0;
+        for (var topComp : irModule.topLevelComps) {
+            System.out.println("== Starting computation #" + comps);
+            var res = globalInterp.withTerm(topComp).stepAll();
+            System.out.println("== Finished computation #" + comps);
+            System.out.println(res.term);
+            System.out.println("---");
+            comps += 1;
         }
 
-        var ir = compileIR(ast.get(0));
-        System.out.println("== IR");
-        System.out.println(PrettyPrintIR.prettyPrint(ir));
-        System.out.println();
-        if (ir instanceof IRComp term) {
-            var interp = new Interpreter(term, builtins, List.of(), false);
-            interp = interp.stepAll();
-            System.out.println("== Execution finished");
-            System.out.println("Term: " + interp.term);
-            System.out.println("Context: " + interp.context);
-            System.out.println("Stack: " + interp.stack);
-        }
-        else {
-            System.out.println("Not computation: " + ir);
-        }
+//        if (ir instanceof IRComp term) {
+//            var interp = new Interpreter(term, builtins, List.of(), false);
+//            interp = interp.stepAll();
+//            System.out.println("== Execution finished");
+//            System.out.println("Term: " + interp.term);
+//            System.out.println("Context: " + interp.context);
+//            System.out.println("Stack: " + interp.stack);
+//        }
+//        else {
+//            System.out.println("Not computation: " + ir);
+//        }
 //        testInterp();
 //        testParseIR();
 //        var sourceFile = SourceDesc.fromFile("tests", "test.msl");

@@ -1,1 +1,3 @@
-2 + log x * 3 + 3 + 2 * 5 - 1
+pret v: Number = let x = print (num2str v) in v
+
+pret 10 + 5

@@ -3,12 +3,15 @@ package dev.foltz.mooselang.ir;
 import dev.foltz.mooselang.ast.VisitorAST;
 import dev.foltz.mooselang.ast.nodes.ASTNode;
 import dev.foltz.mooselang.ast.nodes.expr.*;
+import dev.foltz.mooselang.ast.nodes.stmt.StmtDef;
+import dev.foltz.mooselang.ir.nodes.IRGlobalDef;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.*;
 import dev.foltz.mooselang.typing.value.*;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
 
 public class CompilerIR extends VisitorAST<IRNode> {
@@ -28,6 +31,40 @@ public class CompilerIR extends VisitorAST<IRNode> {
 
     public IRNode compileNode(ASTNode node) {
         return node.apply(this);
+    }
+
+    private static IRThunk curry(IRComp body, List<String> paramNames, List<TypeValue> paramTypes) {
+        if (paramNames.size() != paramTypes.size()) {
+            throw new RuntimeException("curry with different sized name and type lists: " + paramNames + ", " + paramTypes);
+        }
+
+        // U(A -> F(...))
+        // F(InnerType)
+        IRThunk wrapped = null;
+        int apps = 0;
+//        var paramEntries = new ArrayList<>(typedParams.entrySet().stream().toList());
+//        Collections.reverse(paramEntries);
+        for (int i = paramNames.size() - 1; i >= 0; i--) {
+            var name = paramNames.get(i);
+            var type = paramTypes.get(i);
+            if (apps == 0) {
+                wrapped = new IRThunk(new IRLambda(name, type, body));
+            }
+            else {
+                wrapped = new IRThunk(new IRLambda(name, type, new IRProduce(wrapped)));
+            }
+            apps += 1;
+        }
+        return wrapped;
+    }
+
+    @Override
+    public IRNode visit(StmtDef def) {
+        var body = compileNode(def.body);
+        if (body instanceof IRComp bodyComp) {
+            return new IRGlobalDef(def.name.name, curry(bodyComp, def.paramNames, def.paramTypes.stream().map(this::getType).toList()));
+        }
+        return error("StmtDef expects body of computation.");
     }
 
     static int args = 0;
@@ -146,10 +183,15 @@ public class CompilerIR extends VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(ExprCaseOf caseOf) {
-        var value = compileNode(caseOf.value);
-        if (!(value instanceof IRValue caseOfValue)) {
-            return error("Case-of expects value, received: " + value);
+        var compiledValue = compileNode(caseOf.value);
+        var value = compiledValue;
+        if (value instanceof IRComp) {
+            var argname = "_pmarg_" + (args++);
+            value = new IRName(argname);
         }
+//        if (!(value instanceof IRValue caseOfValue)) {
+//            return error("Case-of expects value, received: " + value);
+//        }
 
         var maybeBranches = caseOf.cases.stream().map(this::compileNode).toList();
         for (IRNode branch : maybeBranches) {
@@ -173,7 +215,15 @@ public class CompilerIR extends VisitorAST<IRNode> {
             }
         }
 
-        return new IRCaseOf(caseOfValue, branches);
+        if (compiledValue instanceof IRComp caseOfComp) {
+            return new IRDo(((IRName) value).name, caseOfComp, new IRCaseOf((IRName) value, branches));
+        }
+        else if (value instanceof IRValue caseOfValue) {
+            return new IRCaseOf(caseOfValue, branches);
+        }
+        else {
+            return error("Unhandled case of value: " + value);
+        }
     }
 
     @Override

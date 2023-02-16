@@ -3,17 +3,20 @@ package dev.foltz.mooselang.ast.nodes.stmt;
 import dev.foltz.mooselang.ast.VisitorAST;
 import dev.foltz.mooselang.ast.nodes.expr.ASTExpr;
 import dev.foltz.mooselang.ast.nodes.expr.ExprName;
+import dev.foltz.mooselang.typing.value.TypeValue;
 
 import java.util.List;
 
 public class StmtDef extends ASTStmt {
     public final ExprName name;
-    public final List<ASTExpr> params;
+    public final List<String> paramNames;
+    public final List<String> paramTypes;
     public final ASTExpr body;
 
-    public StmtDef(ExprName name, List<ASTExpr> params, ASTExpr body) {
+    public StmtDef(ExprName name, List<String> paramNames, List<String> paramTypes, ASTExpr body) {
         this.name = name;
-        this.params = params;
+        this.paramNames = paramNames;
+        this.paramTypes = paramTypes;
         this.body = body;
     }
 
@@ -24,6 +27,6 @@ public class StmtDef extends ASTStmt {
 
     @Override
     public String toString() {
-        return "Def(" + name + ", " + params + ", " + body + ")";
+        return "Def(" + name + ", " + paramNames + ", " + paramTypes + ", " + body + ")";
     }
 }

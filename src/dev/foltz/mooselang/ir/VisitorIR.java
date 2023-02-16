@@ -1,11 +1,15 @@
 package dev.foltz.mooselang.ir;
 
+import dev.foltz.mooselang.ir.nodes.IRGlobalDef;
+import dev.foltz.mooselang.ir.nodes.IRModule;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.*;
 
 public abstract class VisitorIR<T> {
+    public T visit(IRModule module) { return undefined(module); }
+    public T visit(IRGlobalDef globalDef) { return undefined(globalDef); }
     public T visit(IRBuiltin builtin) { return undefined(builtin); }
     public T visit(IRForce force) { return undefined(force); }
     public T visit(IRLambda lambda) { return undefined(lambda); }

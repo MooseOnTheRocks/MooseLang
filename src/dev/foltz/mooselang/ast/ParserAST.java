@@ -6,6 +6,7 @@ import dev.foltz.mooselang.ast.nodes.stmt.StmtLet;
 import dev.foltz.mooselang.parser.Parsers;
 import dev.foltz.mooselang.parser.Parser;
 import dev.foltz.mooselang.parser.ParserState;
+import dev.foltz.mooselang.typing.value.TypeValue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,7 +112,6 @@ public class ParserAST {
                     .map(ls -> ls.get(1)))))
         .map(ls -> new ExprCaseOf(
             (ASTExpr) ls.get(1),
-//            List.of((ExprCaseOfBranch) ls.get(3))));
             (List<ExprCaseOfBranch>) ls.get(3)));
 
 
@@ -147,19 +147,41 @@ public class ParserAST {
             (ASTExpr) ls.get(6)));
 
     public static final Parser<StmtDef> stmtDef =
-        all(
+        intersperse(anyws,
             exprName,
-            many(
-                all(ws, exprSimple)
-                .map(ls -> (ASTExpr) ls.get(1))),
-            anyws,
-            Parsers.match("="),
-            anyws,
+            joining(anyws,
+                intersperse(anyws, exprName, match(":"), exprName))
+            .map(ls -> {
+                var names = new ArrayList<String>();
+                var types = new ArrayList<String>();
+                for (List<?> l : ls) {
+                    names.add(((ExprName) l.get(0)).name);
+                    types.add(((ExprName) l.get(2)).name);
+                }
+                return List.of(names, types);
+            }),
+            match("="),
             expr)
         .map(ls -> new StmtDef(
             (ExprName) ls.get(0),
-            (List<ASTExpr>) ls.get(1),
-            (ASTExpr) ls.get(5)));
+            (List<String>) ((List<?>) ls.get(1)).get(0),
+            (List<String>) ((List<?>) ls.get(1)).get(1),
+            (ASTExpr) ls.get(3)
+        ));
+//
+//        all(
+//            exprName,
+//            many(
+//                all(ws, exprSimple)
+//                .map(ls -> (ASTExpr) ls.get(1))),
+//            anyws,
+//            Parsers.match("="),
+//            anyws,
+//            expr)
+//        .map(ls -> new StmtDef(
+//            (ExprName) ls.get(0),
+//            (List<ASTExpr>) ls.get(1),
+//            (ASTExpr) ls.get(5)));
 
     // -- Function definitions
 

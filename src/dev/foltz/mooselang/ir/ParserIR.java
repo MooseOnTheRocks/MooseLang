@@ -93,29 +93,26 @@ public class ParserIR {
 
     public static final Parser<IRCaseOfBranch> irCaseOfBranch =
         intersperse(anyws,
-            match("of"),
             irValue,
-            match("in"),
+            match("->"),
             irComp)
         .map(ls -> new IRCaseOfBranch(
-            (IRValue) ls.get(1),
-            (IRComp) ls.get(3)
+            (IRValue) ls.get(0),
+            (IRComp) ls.get(2)
         ));
 
     public static final Parser<IRCaseOf> irCaseOf =
         intersperse(anyws,
             match("case"),
             irValue,
-            any(
-                many1(any(
-                    irCaseOfBranch,
+            match("of"),
+            joining(anyws,
+                any(irCaseOfBranch,
                     intersperse(anyws, match("("), irCaseOfBranch, match(")"))
-                    .map(ls -> ls.get(1)))),
-                intersperse(anyws, match("("), many1(irCaseOfBranch), match(")"))
-                .map(ls -> ls.get(1))))
+                    .map(ls -> ls.get(1)))))
         .map(ls -> new IRCaseOf(
             (IRValue) ls.get(1),
-            (List<IRCaseOfBranch>) ls.get(2)));
+            (List<IRCaseOfBranch>) ls.get(3)));
 
     private static ParserState<IRValue> irValue(ParserState<?> s) {
         return any(

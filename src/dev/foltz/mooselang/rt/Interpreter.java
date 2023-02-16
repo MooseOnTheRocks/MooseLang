@@ -4,9 +4,7 @@ import dev.foltz.mooselang.ir.VisitorIR;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
-import dev.foltz.mooselang.ir.nodes.value.IRName;
-import dev.foltz.mooselang.ir.nodes.value.IRThunk;
-import dev.foltz.mooselang.ir.nodes.value.IRValue;
+import dev.foltz.mooselang.ir.nodes.value.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,7 +32,7 @@ public class Interpreter extends VisitorIR<Interpreter> {
 
     public Interpreter bind(String name, IRValue value) {
         var resolved = resolve(value);
-        System.out.println("bind " + name + " = " + value);
+//        System.out.println("bind " + name + " = " + value);
         var newContext = new HashMap<>(context);
         newContext.put(name, resolved);
         return new Interpreter(term, newContext, stack, terminated);
@@ -48,14 +46,14 @@ public class Interpreter extends VisitorIR<Interpreter> {
     }
 
     public Interpreter push(IRValue value) {
-        System.out.println("push " + value);
+//        System.out.println("push " + value);
         var newStack = new ArrayList<>(stack);
         newStack.add(new StackValue(resolve(value)));
         return new Interpreter(term, context, newStack, terminated);
     }
 
     public Interpreter pushFrame(StackFrame frame) {
-        System.out.println("push " + frame);
+//        System.out.println("push " + frame);
         var newStack = new ArrayList<>(stack);
         newStack.add(frame);
         return new Interpreter(term, context, newStack, terminated);
@@ -65,7 +63,7 @@ public class Interpreter extends VisitorIR<Interpreter> {
         if (stack.isEmpty()) {
             return error("Cannot pop empty stack.");
         }
-        System.out.println("pop " + top());
+//        System.out.println("pop " + top());
         var newStack = new ArrayList<>(stack);
         newStack.remove(newStack.size() - 1);
         return new Interpreter(term, context, newStack, terminated);
@@ -89,12 +87,12 @@ public class Interpreter extends VisitorIR<Interpreter> {
     public Interpreter stepAll() {
         var interp = this;
         while (!interp.terminated) {
-            System.out.println("Step!");
-            System.out.println("Term: " + interp.term);
-            System.out.println("Context: " + interp.context.entrySet().stream().filter(e -> !e.getKey().equals("-")).collect(Collectors.toMap(s -> s, item -> item)));
-            System.out.println("Stack: " + interp.stack);
+//            System.out.println("Step!");
+//            System.out.println("Term: " + interp.term);
+//            System.out.println("Context: " + interp.context.entrySet().stream().filter(e -> !e.getKey().equals("-")).collect(Collectors.toMap(s -> s, item -> item)));
+//            System.out.println("Stack: " + interp.stack);
 //            System.out.println("Terminated: " + interp.terminated);
-            System.out.println("---");
+//            System.out.println("---");
             interp = interp.step();
         }
         return interp;
@@ -116,6 +114,58 @@ public class Interpreter extends VisitorIR<Interpreter> {
         return builtin.internal.apply(this);
     }
 
+    private boolean patternMatches(IRValue value, IRValue pattern) {
+        value = resolve(value);
+        if (pattern instanceof IRName) {
+            return true;
+        }
+        else if (value instanceof IRNumber valueNumber && pattern instanceof IRNumber patternNumber) {
+            return valueNumber.value == patternNumber.value;
+        }
+        else if (value instanceof IRString valueString && pattern instanceof IRString patternString) {
+            return valueString.value.equals(patternString.value);
+        }
+        else if (value instanceof IRUnit && pattern instanceof IRUnit) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    private Interpreter bindPattern(IRValue value, IRValue pattern) {
+        value = resolve(value);
+        if (pattern instanceof IRName name) {
+            return bind(name.name, value);
+        }
+        else if (value instanceof IRNumber valueNumber && pattern instanceof IRNumber patternNumber) {
+            return this;
+        }
+        else if (value instanceof IRString valueString && pattern instanceof IRString patternString) {
+            return this;
+        }
+        else if (value instanceof IRUnit && pattern instanceof IRUnit) {
+            return this;
+        }
+        else {
+            return error("Cannot bind destruct " + value + " into " + pattern);
+        }
+    }
+
+    @Override
+    public Interpreter visit(IRCaseOf caseOf) {
+        // Find a matching branch, perform destructure-bindings, set term to matching body.
+        // If no match (including no default branch), error.
+        var value = resolve(caseOf.value);
+        for (var branch : caseOf.branches) {
+            var pattern = branch.pattern;
+            if (patternMatches(value, pattern)) {
+                return bindPattern(value, pattern).withTerm(branch.body);
+            }
+        }
+        return error("Unhandled case: " + value);
+    }
+
     @Override
     public Interpreter visit(IRProduce produce) {
         var top = top();
@@ -123,7 +173,7 @@ public class Interpreter extends VisitorIR<Interpreter> {
             return pop().bind(stackFrame.name, produce.value).withTerm(stackFrame.body);
         }
         else if (top == null) {
-            return withTerm(produce).terminate();
+            return withTerm(new IRProduce(resolve(produce.value))).terminate();
         }
         return error("Produce expects null or StackFrame, received: " + top);
 //        return withTerm(new IRProduce(resolve(produce.value))).terminate();
