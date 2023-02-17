@@ -3,7 +3,7 @@ package dev.foltz.mooselang.ir;
 import dev.foltz.mooselang.ast.VisitorAST;
 import dev.foltz.mooselang.ast.nodes.ASTNode;
 import dev.foltz.mooselang.ast.nodes.expr.*;
-import dev.foltz.mooselang.ast.nodes.stmt.StmtDef;
+import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtDef;
 import dev.foltz.mooselang.ir.nodes.IRGlobalDef;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.*;
@@ -59,7 +59,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(StmtDef def) {
+    public IRNode visit(ASTStmtDef def) {
         var body = compileNode(def.body);
         if (body instanceof IRComp bodyComp) {
             return new IRGlobalDef(def.name.name, curry(bodyComp, def.paramNames, def.paramTypes.stream().map(this::getType).toList()));
@@ -68,7 +68,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(ExprChain chain) {
+    public IRNode visit(ASTExprChain chain) {
         var lhs = compileNode(chain.first);
         var rhs = compileNode(chain.second);
 
@@ -83,7 +83,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
 
     static int args = 0;
     @Override
-    public IRNode visit(ExprApply apply) {
+    public IRNode visit(ASTExprApply apply) {
         var lhs = compileNode(apply.lhs);
         var rhs = compileNode(apply.rhs);
 
@@ -144,7 +144,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(ExprLambda lambda) {
+    public IRNode visit(ASTExprLambda lambda) {
         var body = compileNode(lambda.body);
         if (body instanceof IRCompLambda bodyLambda) {
             return new IRCompLambda(lambda.param, getType(lambda.paramType), new IRCompProduce(new IRValueThunk(bodyLambda, Map.of())));
@@ -159,7 +159,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(ExprLetIn let) {
+    public IRNode visit(ASTExprLetIn let) {
         var expr = compileNode(let.expr);
         var body = compileNode(let.body);
 
@@ -183,7 +183,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(ExprCaseOfBranch ofBranch) {
+    public IRNode visit(ASTExprCaseOfBranch ofBranch) {
         var pattern = compileNode(ofBranch.pattern);
         var body = compileNode(ofBranch.body);
         if (pattern instanceof IRValue patternValue && body instanceof IRComp bodyComp) {
@@ -227,7 +227,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(ExprCaseOf caseOf) {
+    public IRNode visit(ASTExprCaseOf caseOf) {
         var compiledValue = compileNode(caseOf.value);
         var value = compiledValue;
         if (value instanceof IRComp) {
@@ -262,7 +262,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(ExprTuple tuple) {
+    public IRNode visit(ASTExprTuple tuple) {
         var values = tuple.values.stream().map(this::compileNode).toList();
         if (values.stream().allMatch(t -> t instanceof IRValue)) {
             return new IRValueTuple(values.stream().map(t -> (IRValue) t).toList());
@@ -306,27 +306,27 @@ public class CompilerIR extends VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(ExprName name) {
+    public IRNode visit(ASTExprName name) {
         return new IRValueName(name.name);
     }
 
     @Override
-    public IRNode visit(ExprSymbolic symbolic) {
+    public IRNode visit(ASTExprSymbolic symbolic) {
         return new IRValueName(symbolic.symbol);
     }
 
     @Override
-    public IRNode visit(ExprNumber number) {
+    public IRNode visit(ASTExprNumber number) {
         return new IRValueNumber(number.value);
     }
 
     @Override
-    public IRNode visit(ExprString string) {
+    public IRNode visit(ASTExprString string) {
         return new IRValueString(string.value);
     }
 
     @Override
-    public IRNode visit(ExprParen paren) {
+    public IRNode visit(ASTExprParen paren) {
         return compileNode(paren.expr);
     }
 

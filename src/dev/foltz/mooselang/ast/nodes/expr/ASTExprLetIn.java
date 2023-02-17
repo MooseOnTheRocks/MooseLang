@@ -2,12 +2,12 @@ package dev.foltz.mooselang.ast.nodes.expr;
 
 import dev.foltz.mooselang.ast.VisitorAST;
 
-public class ExprLetIn extends ASTExpr {
-    public final ExprName name;
+public class ASTExprLetIn extends ASTExpr {
+    public final ASTExprName name;
     public final ASTExpr expr;
     public final ASTExpr body;
 
-    public ExprLetIn(ExprName name, ASTExpr expr, ASTExpr body) {
+    public ASTExprLetIn(ASTExprName name, ASTExpr expr, ASTExpr body) {
         this.name = name;
         this.expr = expr;
         this.body = body;

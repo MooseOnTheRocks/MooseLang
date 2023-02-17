@@ -1,32 +1,34 @@
 package dev.foltz.mooselang.ast;
 
 import dev.foltz.mooselang.ast.nodes.ASTNode;
-import dev.foltz.mooselang.ast.nodes.stmt.StmtDef;
-import dev.foltz.mooselang.ast.nodes.stmt.StmtLet;
+import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtDef;
+import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtLet;
 import dev.foltz.mooselang.ast.nodes.expr.*;
 import dev.foltz.mooselang.ast.nodes.type.ASTTypeName;
+import dev.foltz.mooselang.ast.nodes.type.ASTTypeTuple;
 
 public abstract class VisitorAST<T> {
     // AST Types
     public T visit(ASTTypeName name) { return undefined(name); }
+    public T visit(ASTTypeTuple tuple) { return undefined(tuple); }
 
     // AST Expressions
-    public T visit(ExprApply apply) { return undefined(apply); }
-    public T visit(ExprCaseOf caseOf) { return undefined(caseOf); }
-    public T visit(ExprCaseOfBranch ofBranch) { return undefined(ofBranch); }
-    public T visit(ExprChain chain) { return undefined(chain); }
-    public T visit(ExprLambda lambda) { return undefined(lambda); }
-    public T visit(ExprLetIn letIn) { return undefined(letIn); }
-    public T visit(ExprName name) { return undefined(name); }
-    public T visit(ExprNumber number) { return undefined(number); }
-    public T visit(ExprString string) { return undefined(string); }
-    public T visit(ExprParen paren) { return undefined(paren); }
-    public T visit(ExprSymbolic symbolic) { return undefined(symbolic); }
-    public T visit(ExprTuple tuple) { return undefined(tuple); }
+    public T visit(ASTExprApply apply) { return undefined(apply); }
+    public T visit(ASTExprCaseOf caseOf) { return undefined(caseOf); }
+    public T visit(ASTExprCaseOfBranch ofBranch) { return undefined(ofBranch); }
+    public T visit(ASTExprChain chain) { return undefined(chain); }
+    public T visit(ASTExprLambda lambda) { return undefined(lambda); }
+    public T visit(ASTExprLetIn letIn) { return undefined(letIn); }
+    public T visit(ASTExprName name) { return undefined(name); }
+    public T visit(ASTExprNumber number) { return undefined(number); }
+    public T visit(ASTExprString string) { return undefined(string); }
+    public T visit(ASTExprParen paren) { return undefined(paren); }
+    public T visit(ASTExprSymbolic symbolic) { return undefined(symbolic); }
+    public T visit(ASTExprTuple tuple) { return undefined(tuple); }
 
     // AST Statements
-    public T visit(StmtDef def) { return undefined(def); }
-    public T visit(StmtLet let) { return undefined(let); }
+    public T visit(ASTStmtDef def) { return undefined(def); }
+    public T visit(ASTStmtLet let) { return undefined(let); }
 
     public T undefined(ASTNode node) {
         throw new UnsupportedOperationException(getClass().getSimpleName() + " cannot visit " + node);

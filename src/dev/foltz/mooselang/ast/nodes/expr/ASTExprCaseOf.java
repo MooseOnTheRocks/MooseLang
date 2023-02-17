@@ -4,11 +4,11 @@ import dev.foltz.mooselang.ast.VisitorAST;
 
 import java.util.List;
 
-public class ExprCaseOf extends ASTExpr {
+public class ASTExprCaseOf extends ASTExpr {
     public final ASTExpr value;
-    public final List<ExprCaseOfBranch> cases;
+    public final List<ASTExprCaseOfBranch> cases;
 
-    public ExprCaseOf(ASTExpr value, List<ExprCaseOfBranch> cases) {
+    public ASTExprCaseOf(ASTExpr value, List<ASTExprCaseOfBranch> cases) {
         this.value = value;
         this.cases = List.copyOf(cases);
     }

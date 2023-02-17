@@ -2,13 +2,13 @@ package dev.foltz.mooselang.ast.nodes.stmt;
 
 import dev.foltz.mooselang.ast.VisitorAST;
 import dev.foltz.mooselang.ast.nodes.expr.ASTExpr;
-import dev.foltz.mooselang.ast.nodes.expr.ExprName;
+import dev.foltz.mooselang.ast.nodes.expr.ASTExprName;
 
-public class StmtLet extends ASTStmt {
-    public final ExprName name;
+public class ASTStmtLet extends ASTStmt {
+    public final ASTExprName name;
     public final ASTExpr expr;
 
-    public StmtLet(ExprName name, ASTExpr expr) {
+    public ASTStmtLet(ASTExprName name, ASTExpr expr) {
         this.name = name;
         this.expr = expr;
     }

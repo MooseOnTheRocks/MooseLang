@@ -2,11 +2,11 @@ package dev.foltz.mooselang.ast.nodes.expr;
 
 import dev.foltz.mooselang.ast.VisitorAST;
 
-public class ExprChain extends ASTExpr {
+public class ASTExprChain extends ASTExpr {
     public final ASTExpr first;
     public final ASTExpr second;
 
-    public ExprChain(ASTExpr first, ASTExpr second) {
+    public ASTExprChain(ASTExpr first, ASTExpr second) {
         this.first = first;
         this.second = second;
     }

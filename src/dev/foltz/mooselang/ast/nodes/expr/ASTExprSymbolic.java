@@ -2,11 +2,11 @@ package dev.foltz.mooselang.ast.nodes.expr;
 
 import dev.foltz.mooselang.ast.VisitorAST;
 
-public class ExprName extends ASTExpr {
-    public final String name;
+public class ASTExprSymbolic extends ASTExpr {
+    public final String symbol;
 
-    public ExprName(String name) {
-        this.name = name;
+    public ASTExprSymbolic(String symbol) {
+        this.symbol = symbol;
     }
 
     @Override
@@ -16,6 +16,6 @@ public class ExprName extends ASTExpr {
 
     @Override
     public String toString() {
-        return "Name(" + name + ")";
+        return "Symbolic(" + symbol + ")";
     }
 }

@@ -2,13 +2,11 @@ package dev.foltz.mooselang.ast.nodes.expr;
 
 import dev.foltz.mooselang.ast.VisitorAST;
 
-import java.util.List;
+public class ASTExprString extends ASTExpr {
+    public final String value;
 
-public class ExprTuple extends ASTExpr {
-    public final List<ASTExpr> values;
-
-    public ExprTuple(List<ASTExpr> exprs) {
-        this.values = exprs;
+    public ASTExprString(String value) {
+        this.value = value;
     }
 
     @Override
@@ -18,6 +16,6 @@ public class ExprTuple extends ASTExpr {
 
     @Override
     public String toString() {
-        return "Tuple(" + values + ")";
+        return "String(\"" + value + "\")";
     }
 }

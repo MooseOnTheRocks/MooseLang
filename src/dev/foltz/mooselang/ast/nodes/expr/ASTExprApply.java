@@ -2,11 +2,13 @@ package dev.foltz.mooselang.ast.nodes.expr;
 
 import dev.foltz.mooselang.ast.VisitorAST;
 
-public class ExprNumber extends ASTExpr {
-    public final double value;
+public class ASTExprApply extends ASTExpr {
+    public final ASTExpr lhs;
+    public final ASTExpr rhs;
 
-    public ExprNumber(double value) {
-        this.value = value;
+    public ASTExprApply(ASTExpr lhs, ASTExpr rhs) {
+        this.lhs = lhs;
+        this.rhs = rhs;
     }
 
     @Override
@@ -16,6 +18,6 @@ public class ExprNumber extends ASTExpr {
 
     @Override
     public String toString() {
-        return "Number(" + value + ")";
+        return "Apply(" + lhs + ", " + rhs + ")";
     }
 }

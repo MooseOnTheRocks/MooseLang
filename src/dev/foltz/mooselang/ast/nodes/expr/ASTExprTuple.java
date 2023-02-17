@@ -2,11 +2,13 @@ package dev.foltz.mooselang.ast.nodes.expr;
 
 import dev.foltz.mooselang.ast.VisitorAST;
 
-public class ExprSymbolic extends ASTExpr {
-    public final String symbol;
+import java.util.List;
 
-    public ExprSymbolic(String symbol) {
-        this.symbol = symbol;
+public class ASTExprTuple extends ASTExpr {
+    public final List<ASTExpr> values;
+
+    public ASTExprTuple(List<ASTExpr> exprs) {
+        this.values = exprs;
     }
 
     @Override
@@ -16,6 +18,6 @@ public class ExprSymbolic extends ASTExpr {
 
     @Override
     public String toString() {
-        return "Symbolic(" + symbol + ")";
+        return "Tuple(" + values + ")";
     }
 }
