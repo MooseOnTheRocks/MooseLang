@@ -7,8 +7,8 @@ import java.util.List;
 import static dev.foltz.mooselang.parser.ParserCombinators.*;
 
 public class Parsers {
-    public static final List<String> BAD_NAMES = List.of();
-    public static final List<String> BAD_SYMBOLICS = List.of("_", "__", "->");
+    public static final List<String> BAD_NAMES = List.of("-");
+    public static final List<String> BAD_SYMBOLICS = List.of("_", "__", "->", ":");
 
     public static Parser<String> match(String p) {
         return s -> s.rem().startsWith(p) ? s.success(s.index + p.length(), p) : s.error();
@@ -128,8 +128,8 @@ public class Parsers {
     }
 
     private static ParserState<String> name(ParserState<?> s) {
-        var validFirst = any(match("_"), letter);
-        var validRest = any(match("_"), letter, digit);
+        var validFirst = any(match("_"), match("-"), letter);
+        var validRest = any(match("_"), match("-"), match("'"), letter, digit);
         return all(validFirst, many(validRest))
             .map(ls -> {
                 var first = (String) ls.get(0);

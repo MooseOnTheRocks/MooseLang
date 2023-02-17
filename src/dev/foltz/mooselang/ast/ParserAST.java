@@ -41,7 +41,7 @@ public class ParserAST {
 //        })
 //        .map(ls -> String.join("", ls))
         name
-        .mapState(s -> KEYWORDS.stream().anyMatch(s.result::startsWith)
+        .mapState(s -> KEYWORDS.stream().anyMatch(s.result::equals)
                 ? s.error("Invalid name, clash with keyword")
                 : s)
         .map(ExprName::new);
@@ -49,8 +49,7 @@ public class ParserAST {
     public static final Parser<ExprString> exprString = Parsers.string.map(ExprString::new);
 
     public static final Parser<ExprSymbolic> exprSymbolic =
-        many1(Parsers.symbol)
-        .map(ls -> String.join("", ls))
+        symbolic
         .mapState(s -> KEYWORDS.stream().anyMatch(s.result::startsWith)
             ? s.error("Invalid name, clash with keyword") : s)
         .map(ExprSymbolic::new);
@@ -113,7 +112,6 @@ public class ParserAST {
         .map(ls -> new ExprCaseOf(
             (ASTExpr) ls.get(1),
             (List<ExprCaseOfBranch>) ls.get(3)));
-
 
     public static final Parser<ExprLambda> exprLambda =
         all(
@@ -282,7 +280,14 @@ public class ParserAST {
 //                    lhs = rhs.success(rhs.index, new ExprApply(op.result, lhs.result));
                 }
                 else {
-                    lhs = rhs.success(rhs.index, new ExprApply(new ExprApply(op.result, lhs.result), rhs.result));
+//                    System.out.println("SUCCESSFUL BIN-OP PARSE: " + op.result);
+                    var symbol = ((ExprSymbolic) op.result).symbol;
+                    if (symbol.equals(";")) {
+                        lhs = rhs.success(rhs.index, new ExprChain(lhs.result, rhs.result));
+                    }
+                    else {
+                        lhs = rhs.success(rhs.index, new ExprApply(new ExprApply(op.result, lhs.result), rhs.result));
+                    }
                 }
             }
             else if (lookahead.result instanceof ExprSymbolic) {
@@ -292,9 +297,9 @@ public class ParserAST {
                 return lhs.error();
             }
             else {
-                System.out.println("OUTER BREAKING");
-                System.out.println("LHS: " + lhs.result);
-                System.out.println("LOOKAHEAD: " + lookahead.result);
+//                System.out.println("OUTER BREAKING");
+//                System.out.println("LHS: " + lhs.result);
+//                System.out.println("LOOKAHEAD: " + lookahead.result);
                 var rhs = lookahead;
                 lhs = rhs.success(rhs.index, new ExprApply(lhs.result, rhs.result));
 //                System.out.println("NEW LHS: " + lhs.result);
@@ -306,6 +311,7 @@ public class ParserAST {
 //                break;
             }
         }
+//        System.out.println("RETURNING LHS: " + lhs.result);
         return lhs;
 
         /*

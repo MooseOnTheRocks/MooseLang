@@ -1,5 +1,6 @@
 package dev.foltz.mooselang.ir;
 
+import dev.foltz.mooselang.MooseLang;
 import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.IRLambda;
 import dev.foltz.mooselang.ir.nodes.comp.IRProduce;
@@ -9,6 +10,7 @@ import dev.foltz.mooselang.ir.nodes.value.IRThunk;
 import dev.foltz.mooselang.ir.nodes.value.IRUnit;
 import dev.foltz.mooselang.rt.Interpreter;
 import dev.foltz.mooselang.rt.InterpreterOld;
+import dev.foltz.mooselang.typing.Scope;
 import dev.foltz.mooselang.typing.TypeBase;
 import dev.foltz.mooselang.typing.comp.CompProducer;
 import dev.foltz.mooselang.typing.value.*;
@@ -34,10 +36,10 @@ public class Builtins {
             var name = paramNames.get(i);
             var type = paramTypes.get(i);
             if (apps == 0) {
-                wrapped = new IRThunk(new IRLambda(name, type, builtin));
+                wrapped = new IRThunk(new IRLambda(name, type, builtin), Map.of());
             }
             else {
-                wrapped = new IRThunk(new IRLambda(name, type, new IRProduce(wrapped)));
+                wrapped = new IRThunk(new IRLambda(name, type, new IRProduce(wrapped)), Map.of());
             }
             apps += 1;
         }
@@ -45,7 +47,20 @@ public class Builtins {
     }
 
     private static final IRBuiltin PRINT_BUILTIN = new IRBuiltin("print", new CompProducer(new ValueUnit()), interp -> {
-        System.out.println("BUILTIN PRINTING: " + interp.find("_print_0"));
+//        System.out.println("BUILTIN PRINTING: " + interp.find("_print_0"));
+        var value = interp.resolve(interp.find("_print_0"));
+        var str = value.toString();
+        if (value instanceof IRString string) {
+            str = string.value;
+        }
+        else if (value instanceof IRNumber number) {
+            str = "" + number.value;
+        }
+        else if (value instanceof IRUnit) {
+            str = "()";
+        }
+        System.out.println(str);
+//        System.out.println(interp.find("_print_0"));
 //        return new Interpreter(new IRProduce(new IRUnit()), interp.context, interp.stack, false);
         return interp.withTerm(new IRProduce(new IRUnit()));
     });
@@ -132,6 +147,7 @@ public class Builtins {
 
 //    public static final IRThunk NUM2STR = curry(NUM2STR_BUILTIN, Map.of("_num2str_0", new ValueNumber()));
     public static final IRThunk NUM2STR = curry(NUM2STR_BUILTIN, List.of("_num2str_0"), List.of(new ValueNumber()));
+
 
 //    public static final IRThunk NUM2STR_THUNK =
 //            new IRThunk(new IRLambda("_num2str_1", new ValueNumber(),

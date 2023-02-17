@@ -1,3 +1,5 @@
-pret v: Number = let x = print (num2str v) in v
+pret n: String = print n; n
 
-pret 10 + 5
+complex n: Number = n * 2 + n * 3
+
+pret (complex 10) + pret (complex 40)

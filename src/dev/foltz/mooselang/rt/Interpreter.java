@@ -38,6 +38,14 @@ public class Interpreter extends VisitorIR<Interpreter> {
         return new Interpreter(term, newContext, stack, terminated);
     }
 
+    public Interpreter bindAll(Map<String, IRValue> bindings) {
+        var interp = this;
+        for (var binding : bindings.entrySet()) {
+            interp = interp.bind(binding.getKey(), binding.getValue());
+        }
+        return interp;
+    }
+
     public IRValue find(String name) {
         if (context.containsKey(name)) {
             return context.get(name);
@@ -168,12 +176,24 @@ public class Interpreter extends VisitorIR<Interpreter> {
 
     @Override
     public Interpreter visit(IRProduce produce) {
+        var value = produce.value;
+        if (value instanceof IRThunk thunk) {
+            var newClosure = new HashMap<>(thunk.closure);
+            context.forEach((name, v) -> {
+                if (!newClosure.containsKey(name)) {
+//                    System.out.println("Adding to closure: " + name + " = " + v);
+                }
+                newClosure.putIfAbsent(name, v);
+            });
+            value = new IRThunk(thunk.comp, newClosure);
+        }
+
         var top = top();
         if (top instanceof StackFrame stackFrame) {
-            return pop().bind(stackFrame.name, produce.value).withTerm(stackFrame.body);
+            return pop().bind(stackFrame.name, value).withTerm(stackFrame.body);
         }
         else if (top == null) {
-            return withTerm(new IRProduce(resolve(produce.value))).terminate();
+            return withTerm(new IRProduce(resolve(value))).terminate();
         }
         return error("Produce expects null or StackFrame, received: " + top);
 //        return withTerm(new IRProduce(resolve(produce.value))).terminate();
@@ -224,7 +244,7 @@ public class Interpreter extends VisitorIR<Interpreter> {
     public Interpreter visit(IRForce force) {
         var mthunk = resolve(force.thunk);
         if (mthunk instanceof IRThunk thunk) {
-            return withTerm(thunk.comp);
+            return bindAll(thunk.closure).withTerm(thunk.comp);
         }
         return error("Force expects Thunk, received: " + mthunk);
     }

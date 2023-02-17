@@ -12,6 +12,7 @@ import dev.foltz.mooselang.typing.value.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 public class CompilerIR extends VisitorAST<IRNode> {
@@ -48,10 +49,10 @@ public class CompilerIR extends VisitorAST<IRNode> {
             var name = paramNames.get(i);
             var type = paramTypes.get(i);
             if (apps == 0) {
-                wrapped = new IRThunk(new IRLambda(name, type, body));
+                wrapped = new IRThunk(new IRLambda(name, type, body), Map.of());
             }
             else {
-                wrapped = new IRThunk(new IRLambda(name, type, new IRProduce(wrapped)));
+                wrapped = new IRThunk(new IRLambda(name, type, new IRProduce(wrapped)), Map.of());
             }
             apps += 1;
         }
@@ -65,6 +66,20 @@ public class CompilerIR extends VisitorAST<IRNode> {
             return new IRGlobalDef(def.name.name, curry(bodyComp, def.paramNames, def.paramTypes.stream().map(this::getType).toList()));
         }
         return error("StmtDef expects body of computation.");
+    }
+
+    @Override
+    public IRNode visit(ExprChain chain) {
+        var lhs = compileNode(chain.first);
+        var rhs = compileNode(chain.second);
+
+        if (lhs instanceof IRComp lhsComp && rhs instanceof IRComp rhsComp) {
+            return new IRDo("_", lhsComp, rhsComp);
+        }
+        else if (lhs instanceof IRComp lhsComp && rhs instanceof IRValue rhsValue) {
+            return new IRDo("_", lhsComp, new IRProduce(rhsValue));
+        }
+        return error("Cannot chain:\nlhs: " + lhs + "\nrhs: " + rhs);
     }
 
     static int args = 0;
@@ -133,7 +148,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
     public IRNode visit(ExprLambda lambda) {
         var body = compileNode(lambda.body);
         if (body instanceof IRLambda bodyLambda) {
-            return new IRLambda(lambda.param, getType(lambda.paramType), new IRProduce(new IRThunk(bodyLambda)));
+            return new IRLambda(lambda.param, getType(lambda.paramType), new IRProduce(new IRThunk(bodyLambda, Map.of())));
         }
         else if (body instanceof IRComp bodyComp) {
             return new IRLambda(lambda.param, getType(lambda.paramType), bodyComp);
@@ -150,7 +165,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
         var body = compileNode(let.body);
 
         if (expr instanceof IRLambda exprLambda && body instanceof IRComp bodyComp) {
-            return new IRLet(let.name.name, new IRThunk(exprLambda), bodyComp);
+            return new IRLet(let.name.name, new IRThunk(exprLambda, Map.of()), bodyComp);
         }
         else if (expr instanceof IRComp exprComp && body instanceof IRComp bodyComp) {
             return new IRDo(let.name.name, exprComp, bodyComp);

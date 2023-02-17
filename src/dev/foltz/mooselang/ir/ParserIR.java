@@ -12,6 +12,7 @@ import dev.foltz.mooselang.parser.ParserState;
 import dev.foltz.mooselang.typing.value.TypeValue;
 
 import java.util.List;
+import java.util.Map;
 
 import static dev.foltz.mooselang.parser.Parsers.match;
 import static dev.foltz.mooselang.parser.Parsers.name;
@@ -36,7 +37,7 @@ public class ParserIR {
             match(")"))
         .map(ls -> (List<IRValue>) ls.get(2))
         .map(IRTuple::new);
-    public static final Parser<IRThunk> irThunk = all(match("#thunk"), anyws, irComp).map(ls -> new IRThunk((IRComp) ls.get(2)));
+    public static final Parser<IRThunk> irThunk = all(match("#thunk"), anyws, irComp).map(ls -> new IRThunk((IRComp) ls.get(2), Map.of()));
 
     // Computations
     public static final Parser<IRComp> irParenComp = all(match("("), anyws, irComp, anyws, match(")")).map(ls -> (IRComp) ls.get(2));
