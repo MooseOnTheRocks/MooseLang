@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static dev.foltz.mooselang.ast.ParserAST.expr;
-import static dev.foltz.mooselang.ast.ParserAST.stmtDef;
+import static dev.foltz.mooselang.ast.ParsersASTExpr.expr;
+import static dev.foltz.mooselang.ast.ParsersASTStmt.stmtDef;
 import static dev.foltz.mooselang.parser.ParserCombinators.any;
 import static dev.foltz.mooselang.parser.ParserCombinators.many1;
 import static dev.foltz.mooselang.parser.Parsers.anyws;

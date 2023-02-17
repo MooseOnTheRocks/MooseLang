@@ -13,6 +13,7 @@ public abstract class VisitorAST<T> {
     public T visit(ASTTypeTuple tuple) { return undefined(tuple); }
 
     // AST Expressions
+    public T visit(ASTExprTypeAnnotated annotated) { return undefined(annotated); }
     public T visit(ASTExprApply apply) { return undefined(apply); }
     public T visit(ASTExprCaseOf caseOf) { return undefined(caseOf); }
     public T visit(ASTExprCaseOfBranch ofBranch) { return undefined(ofBranch); }

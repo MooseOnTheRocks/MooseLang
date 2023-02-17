@@ -4,9 +4,14 @@ import dev.foltz.mooselang.ast.VisitorAST;
 import dev.foltz.mooselang.ast.nodes.ASTNode;
 import dev.foltz.mooselang.ast.nodes.expr.*;
 import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtDef;
+import dev.foltz.mooselang.ast.nodes.type.ASTType;
+import dev.foltz.mooselang.ast.nodes.type.ASTTypeName;
+import dev.foltz.mooselang.ast.nodes.type.ASTTypeTuple;
 import dev.foltz.mooselang.ir.nodes.IRGlobalDef;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.*;
+import dev.foltz.mooselang.ir.nodes.types.IRTypeName;
+import dev.foltz.mooselang.ir.nodes.types.IRTypeTuple;
 import dev.foltz.mooselang.ir.nodes.value.*;
 import dev.foltz.mooselang.typing.value.*;
 
@@ -16,13 +21,19 @@ import java.util.Map;
 
 public class CompilerIR extends VisitorAST<IRNode> {
     // TODO: Move this somewhere else.
-    public TypeValue getType(String typeName) {
-        return switch (typeName) {
-            case "Number" -> new ValueNumber();
-            case "String" -> new ValueString();
-            case "Unit" -> new ValueUnit();
-            default -> throw new RuntimeException("getType of unknown type: " + typeName);
-        };
+    public TypeValue getType(ASTType type) {
+        if (type instanceof ASTTypeName name) {
+            return switch (name.name) {
+                case "Number" -> new ValueNumber();
+                case "String" -> new ValueString();
+                case "()" -> new ValueUnit();
+                default -> throw new RuntimeException("getType of unknown type: " + name.name);
+            };
+        }
+        else if (type instanceof ASTTypeTuple tuple) {
+            return new ValueTuple(tuple.types.stream().map(this::getType).toList());
+        }
+        throw new RuntimeException("getType of unknown type: " + type);
     }
 
     public static IRNode compile(ASTNode node) {
@@ -65,6 +76,16 @@ public class CompilerIR extends VisitorAST<IRNode> {
             return new IRGlobalDef(def.name.name, curry(bodyComp, def.paramNames, def.paramTypes.stream().map(this::getType).toList()));
         }
         return error("StmtDef expects body of computation.");
+    }
+
+    @Override
+    public IRNode visit(ASTExprTypeAnnotated annotated) {
+        var value = compileNode(annotated.expr);
+//        var type = compileNode(annotated.type);
+        if (value instanceof IRValue irValue) {
+            return irValue;
+        }
+        return error("Invalid type annotation: " + value + " :: " + annotated.type);
     }
 
     @Override
@@ -153,9 +174,9 @@ public class CompilerIR extends VisitorAST<IRNode> {
             return new IRCompLambda(lambda.param, getType(lambda.paramType), bodyComp);
         }
         else if (body instanceof IRValue bodyValue) {
-            return new IRCompLambda(lambda.param, getType(lambda.paramType), new IRCompProduce(new IRValueName(lambda.param)));
+            return new IRCompLambda(lambda.param, getType(lambda.paramType), new IRCompProduce(bodyValue));
         }
-        return error("Lambda expected body of computation, received: " + lambda.body);
+        return error("Lambda expected body of computation or value, received: " + lambda.body);
     }
 
     @Override
@@ -265,7 +286,10 @@ public class CompilerIR extends VisitorAST<IRNode> {
     public IRNode visit(ASTExprTuple tuple) {
         var values = tuple.values.stream().map(this::compileNode).toList();
         if (values.stream().allMatch(t -> t instanceof IRValue)) {
-            return new IRValueTuple(values.stream().map(t -> (IRValue) t).toList());
+            var tupleValues = values.stream().map(t -> (IRValue) t).toList();
+//            var tupleTypes = tupleValues.stream().map(t -> type)
+//            return new IRValueAnnotated(new IRValueTuple(tupleValues), new IRTypeTuple(tupleTypes));
+            return new IRValueTuple(tupleValues);
         }
         else {
             // Should tuple construction be lazy or eager?
@@ -317,12 +341,12 @@ public class CompilerIR extends VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(ASTExprNumber number) {
-        return new IRValueNumber(number.value);
+        return new IRValueAnnotated(new IRValueNumber(number.value), new IRTypeName("Number"));
     }
 
     @Override
     public IRNode visit(ASTExprString string) {
-        return new IRValueString(string.value);
+        return new IRValueAnnotated(new IRValueString(string.value), new IRTypeName("String"));
     }
 
     @Override

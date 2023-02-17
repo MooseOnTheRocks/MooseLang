@@ -4,6 +4,8 @@ import dev.foltz.mooselang.ir.nodes.IRGlobalDef;
 import dev.foltz.mooselang.ir.nodes.IRModule;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.*;
+import dev.foltz.mooselang.ir.nodes.types.IRTypeName;
+import dev.foltz.mooselang.ir.nodes.types.IRTypeTuple;
 import dev.foltz.mooselang.ir.nodes.value.*;
 import dev.foltz.mooselang.typing.value.ValueNumber;
 import dev.foltz.mooselang.typing.value.ValueString;
@@ -52,6 +54,21 @@ public class PrettyPrintIR extends VisitorIR<String> {
 
     public String pprint(String string) {
         return string;
+    }
+
+    @Override
+    public String visit(IRValueAnnotated typed) {
+        return "(" + pprint(typed.value) + ") : " + indent().pprint(typed.type);
+    }
+
+    @Override
+    public String visit(IRTypeName name) {
+        return name.name;
+    }
+
+    @Override
+    public String visit(IRTypeTuple tuple) {
+        return "(" + tuple.types.stream().map(inline()::pprint).collect(Collectors.joining(", ")) + ")";
     }
 
     @Override

@@ -31,6 +31,8 @@ public abstract class VisitorIR<T> {
     public T visit(IRCompPush push) { return undefined(push); }
 
     // IR Values
+
+    public T visit(IRValueAnnotated typed) { return undefined(typed); }
     public T visit(IRValueString string) { return undefined(string); }
     public T visit(IRValueThunk thunk) { return undefined(thunk); }
     public T visit(IRValueTuple tuple) { return undefined(tuple); }

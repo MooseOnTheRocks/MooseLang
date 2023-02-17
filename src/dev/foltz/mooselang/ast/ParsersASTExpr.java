@@ -1,86 +1,59 @@
 package dev.foltz.mooselang.ast;
 
 import dev.foltz.mooselang.ast.nodes.expr.*;
-import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtDef;
-import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtLet;
-import dev.foltz.mooselang.parser.Parsers;
+import dev.foltz.mooselang.ast.nodes.type.ASTType;
 import dev.foltz.mooselang.parser.Parser;
 import dev.foltz.mooselang.parser.ParserState;
+import dev.foltz.mooselang.parser.Parsers;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import static dev.foltz.mooselang.parser.Parsers.*;
 import static dev.foltz.mooselang.parser.ParserCombinators.*;
+import static dev.foltz.mooselang.parser.ParserCombinators.all;
+import static dev.foltz.mooselang.ast.ParsersASTType.type;
+import static dev.foltz.mooselang.parser.Parsers.*;
+import static dev.foltz.mooselang.parser.Parsers.anyws;
 
-public class ParserAST {
-    public static final Parser<ASTExpr> expr = ParserAST::expr;
-    public static final Parser<ASTExpr> exprSimple = ParserAST::exprSimple;
-
-    public static final Parser<ASTExpr> exprParen =
-        all(
-            Parsers.match("("),
-            anyws,
-            expr,
-            anyws,
-            Parsers.match(")"))
-        .map(ls -> new ASTExprParen((ASTExpr) ls.get(2)));
-
-    public static final List<String> KEYWORDS = List.of(
-        "let", "in", "case", "of", "do", "->"
-    );
+public class ParsersASTExpr {
+    public static final Parser<ASTExpr> expr = ParsersASTExpr::expr;
+    public static final Parser<ASTExpr> exprSimple = ParsersASTExpr::exprSimple;
+    public static final Parser<ASTExprParen> exprParen =
+        intersperse(anyws, match("("), expr, match(")"))
+        .map(ls -> new ASTExprParen((ASTExpr) ls.get(1)));
 
     public static final Parser<ASTExprName> exprName =
-//        all(letter, many(any(letter, digit)))
-//        .map(ls -> {
-//            List<String> arr = new ArrayList<>();
-//            arr.add((String) ls.get(0));
-//            arr.addAll((List<String>) ls.get(1));
-//            return List.copyOf(arr);
-//        })
-//        .map(ls -> String.join("", ls))
-        name
-        .mapState(s -> KEYWORDS.stream().anyMatch(s.result::equals)
-                ? s.error("Invalid name, clash with keyword")
-                : s)
+        name.mapState(s -> ParsersAST.KEYWORDS.stream().anyMatch(s.result::equals)
+            ? s.error("Invalid name, clash with keyword") : s)
         .map(ASTExprName::new);
 
     public static final Parser<ASTExprString> exprString = Parsers.string.map(ASTExprString::new);
 
     public static final Parser<ASTExprSymbolic> exprSymbolic =
-        symbolic
-        .mapState(s -> KEYWORDS.stream().anyMatch(s.result::startsWith)
+        symbolic.mapState(s -> ParsersAST.KEYWORDS.stream().anyMatch(s.result::startsWith)
             ? s.error("Invalid name, clash with keyword") : s)
         .map(ASTExprSymbolic::new);
 
     public static final Parser<ASTExprNumber> exprNumber = Parsers.number.map(ASTExprNumber::new);
 
     public static final Parser<ASTExprLetIn> exprLetIn =
-        all(
+        intersperse(anyws,
             Parsers.match("let"),
-            anyws,
             exprName,
-            anyws,
             Parsers.match("="),
-            anyws,
             expr,
-            anyws,
             Parsers.match("in"),
-            anyws,
             expr)
         .map(ls -> new ASTExprLetIn(
-            (ASTExprName) ls.get(2),
-            (ASTExpr) ls.get(6),
-            (ASTExpr) ls.get(10)));
+            (ASTExprName) ls.get(1),
+            (ASTExpr) ls.get(3),
+            (ASTExpr) ls.get(5)));
 
     public static final Parser<ASTExprTuple> exprTuple =
-        all(match("("),
-            anyws,
+        intersperse(anyws,
+            match("("),
             joining(all(anyws, match(","), anyws), expr),
-            anyws,
             match(")"))
-        .map(ls -> (List<ASTExpr>) ls.get(2))
-        .map(ASTExprTuple::new);
+        .map(ls -> new ASTExprTuple((List<ASTExpr>) ls.get(1)));
 
     public static final Parser<ASTExprCaseOfBranch> exprCaseOfBranch =
         intersperse(anyws,
@@ -89,8 +62,7 @@ public class ParserAST {
             expr)
         .map(ls -> new ASTExprCaseOfBranch(
             (ASTExpr) ls.get(0),
-            (ASTExpr) ls.get(2)
-        ));
+            (ASTExpr) ls.get(2)));
 
     public static final Parser<ASTExprCaseOf> exprCaseOf =
         intersperse(anyws,
@@ -106,72 +78,17 @@ public class ParserAST {
             (List<ASTExprCaseOfBranch>) ls.get(3)));
 
     public static final Parser<ASTExprLambda> exprLambda =
-        all(
+        intersperse(anyws,
             Parsers.match("\\"),
-            ws,
             exprName,
-            ws,
             Parsers.match(":"),
-            ws,
-            exprName,
-            anyws,
+            type,
             Parsers.match("->"),
-            anyws,
             expr)
         .map(ls -> new ASTExprLambda(
-            ((ASTExprName) ls.get(2)).name,
-            ((ASTExprName) ls.get(6)).name,
-            (ASTExpr) ls.get(10)));
-
-    public static final Parser<ASTStmtLet> stmtLet =
-        all(
-            Parsers.match("let"),
-            anyws,
-            exprName,
-            anyws,
-            Parsers.match("="),
-            anyws,
-            expr)
-        .map(ls -> new ASTStmtLet(
-            (ASTExprName) ls.get(2),
-            (ASTExpr) ls.get(6)));
-
-    public static final Parser<ASTStmtDef> stmtDef =
-        intersperse(anyws,
-            exprName,
-            joining(anyws,
-                intersperse(anyws, exprName, match(":"), exprName))
-            .map(ls -> {
-                var names = new ArrayList<String>();
-                var types = new ArrayList<String>();
-                for (List<?> l : ls) {
-                    names.add(((ASTExprName) l.get(0)).name);
-                    types.add(((ASTExprName) l.get(2)).name);
-                }
-                return List.of(names, types);
-            }),
-            match("="),
-            expr)
-        .map(ls -> new ASTStmtDef(
-            (ASTExprName) ls.get(0),
-            (List<String>) ((List<?>) ls.get(1)).get(0),
-            (List<String>) ((List<?>) ls.get(1)).get(1),
-            (ASTExpr) ls.get(3)
-        ));
-//
-//        all(
-//            exprName,
-//            many(
-//                all(ws, exprSimple)
-//                .map(ls -> (ASTExpr) ls.get(1))),
-//            anyws,
-//            Parsers.match("="),
-//            anyws,
-//            expr)
-//        .map(ls -> new StmtDef(
-//            (ExprName) ls.get(0),
-//            (List<ASTExpr>) ls.get(1),
-//            (ASTExpr) ls.get(5)));
+            ((ASTExprName) ls.get(1)).name,
+            ((ASTType) ls.get(3)),
+            (ASTExpr) ls.get(5)));
 
     // -- Function definitions
 
@@ -189,7 +106,7 @@ public class ParserAST {
                 exprNumber,
                 exprString))
             .map(ls -> (ASTExpr) ls.get(1))
-        .run(s);
+            .run(s);
     }
 
     private static int getOpPrec(ASTExpr op) {
@@ -212,7 +129,18 @@ public class ParserAST {
         if (expr.isError) {
             return expr;
         }
-        return expr_inner(expr, 0);
+        var res = expr_inner(expr, 0);
+        if (res.isError) {
+            return res;
+        }
+        else {
+            var annotation = intersperse(anyws, match(":"), type).map(ls -> (ASTType) ls.get(1));
+            var ares = annotation.run(res);
+            if (ares.isError) {
+                return res;
+            }
+            return ares.success(ares.index, new ASTExprTypeAnnotated(res.result, ares.result));
+        }
     }
 
     private static ParserState<ASTExpr> expr_inner(ParserState<ASTExpr> s, int minPrec) {
@@ -302,36 +230,5 @@ public class ParserAST {
         }
 //        System.out.println("RETURNING LHS: " + lhs.result);
         return lhs;
-
-        /*
-        var lhs = s;
-        var lookahead = exprSimple(lhs);
-        while (!lookahead.isError) {
-            if (lookahead.result instanceof ExprSymbolic symbolic && getOpPrec(lookahead.result) >= minPrec) {
-                var op = lookahead;
-                var rhs = exprSimple(op);
-                if (rhs.isError) {
-                    return lhs;
-                }
-                lookahead = exprSimple(rhs);
-
-                while (!lookahead.isError) {
-                    rhs = lookahead.result instanceof ExprSymbolic && getOpPrec(lookahead.result) > getOpPrec(op.result)
-                        // Operator
-                        ? expr_inner(rhs, getOpPrec(op.result) + 1)
-                        // Function application
-                        : lookahead.success(lookahead.index, new ExprApply(rhs.result, lookahead.result));
-                    lookahead = exprSimple(rhs);
-                }
-                lhs = rhs.success(rhs.index, new ExprApply(new ExprApply(op.result, lhs.result), rhs.result));
-            }
-            // Function application
-            else {
-                lhs = lookahead.success(lookahead.index, new ExprApply(lhs.result, lookahead.result));
-                lookahead = exprSimple(lhs);
-            }
-        }
-        return lhs;
-        */
     }
 }

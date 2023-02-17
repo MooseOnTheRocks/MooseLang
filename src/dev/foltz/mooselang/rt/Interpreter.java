@@ -207,7 +207,7 @@ public class Interpreter extends VisitorIR<Interpreter> {
             var newClosure = new HashMap<>(thunk.closure);
             context.forEach((name, v) -> {
                 if (!newClosure.containsKey(name)) {
-                    System.out.println("Adding to closure: " + name + " = " + v);
+//                    System.out.println("Adding to closure: " + name + " = " + v);
                 }
                 newClosure.putIfAbsent(name, v);
             });
