@@ -3,11 +3,15 @@ package dev.foltz.mooselang.ir.nodes.comp;
 import dev.foltz.mooselang.ir.nodes.value.IRValue;
 import dev.foltz.mooselang.ir.VisitorIR;
 
-public class IRProduce extends IRComp {
+public class IRCompLet extends IRComp {
+    public final String name;
     public final IRValue value;
+    public final IRComp body;
 
-    public IRProduce(IRValue value) {
+    public IRCompLet(String name, IRValue value, IRComp body) {
+        this.name = name;
         this.value = value;
+        this.body = body;
     }
 
     @Override
@@ -17,6 +21,6 @@ public class IRProduce extends IRComp {
 
     @Override
     public String toString() {
-        return "IRProduce(" + value + ")";
+        return "IRLetValue(" + name + ", " + value + ", " + body + ")";
     }
 }

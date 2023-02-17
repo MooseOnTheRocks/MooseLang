@@ -1,14 +1,12 @@
 package dev.foltz.mooselang.ir.nodes.comp;
 
 import dev.foltz.mooselang.ir.VisitorIR;
-import dev.foltz.mooselang.ir.nodes.value.IRName;
-import dev.foltz.mooselang.ir.nodes.value.IRThunk;
 import dev.foltz.mooselang.ir.nodes.value.IRValue;
 
-public class IRForce extends IRComp {
+public class IRCompForce extends IRComp {
     public final IRValue thunk;
 
-    public IRForce(IRValue thunk) {
+    public IRCompForce(IRValue thunk) {
         this.thunk = thunk;
     }
     @Override

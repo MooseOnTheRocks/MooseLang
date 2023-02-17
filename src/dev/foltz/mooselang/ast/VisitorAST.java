@@ -4,13 +4,17 @@ import dev.foltz.mooselang.ast.nodes.ASTNode;
 import dev.foltz.mooselang.ast.nodes.stmt.StmtDef;
 import dev.foltz.mooselang.ast.nodes.stmt.StmtLet;
 import dev.foltz.mooselang.ast.nodes.expr.*;
+import dev.foltz.mooselang.ast.nodes.type.ASTTypeName;
 
 public abstract class VisitorAST<T> {
+    // AST Types
+    public T visit(ASTTypeName name) { return undefined(name); }
+
+    // AST Expressions
     public T visit(ExprApply apply) { return undefined(apply); }
     public T visit(ExprCaseOf caseOf) { return undefined(caseOf); }
     public T visit(ExprCaseOfBranch ofBranch) { return undefined(ofBranch); }
     public T visit(ExprChain chain) { return undefined(chain); }
-    public T visit(ExprDirective directive) { return undefined(directive); }
     public T visit(ExprLambda lambda) { return undefined(lambda); }
     public T visit(ExprLetIn letIn) { return undefined(letIn); }
     public T visit(ExprName name) { return undefined(name); }
@@ -20,6 +24,7 @@ public abstract class VisitorAST<T> {
     public T visit(ExprSymbolic symbolic) { return undefined(symbolic); }
     public T visit(ExprTuple tuple) { return undefined(tuple); }
 
+    // AST Statements
     public T visit(StmtDef def) { return undefined(def); }
     public T visit(StmtLet let) { return undefined(let); }
 

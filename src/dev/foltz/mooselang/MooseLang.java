@@ -11,7 +11,7 @@ import dev.foltz.mooselang.ir.TypedIR;
 import dev.foltz.mooselang.ir.nodes.IRGlobalDef;
 import dev.foltz.mooselang.ir.nodes.IRModule;
 import dev.foltz.mooselang.ir.nodes.comp.IRComp;
-import dev.foltz.mooselang.ir.nodes.comp.IRProduce;
+import dev.foltz.mooselang.ir.nodes.comp.IRCompProduce;
 import dev.foltz.mooselang.ir.nodes.value.IRValue;
 import dev.foltz.mooselang.parser.Parsers;
 import dev.foltz.mooselang.rt.Interpreter;
@@ -47,10 +47,10 @@ public class MooseLang {
         var ir = compileIR(asts);
         System.out.println(PrettyPrintIR.prettyPrint(ir));
         var eval = evaluate(ir);
-        var pret = eval.find("pret");
-        System.out.println("type of pret: " + new TypedIR(BUILTINS_TYPED).typeOf(pret));
         System.out.println(eval.term);
-        System.out.println(BUILTINS_TYPED);
+//        var pret = eval.find("pret");
+//        System.out.println("type of pret: " + new TypedIR(BUILTINS_TYPED).typeOf(pret));
+//        System.out.println(BUILTINS_TYPED);
     }
 
     public static List<ASTNode> parseAST(SourceDesc source) {
@@ -68,7 +68,7 @@ public class MooseLang {
     public static IRModule compileIR(List<ASTNode> asts) {
         var irs = asts.stream().map(CompilerIR::compile).toList();
         var topLevelDefs = irs.stream().filter(ir -> ir instanceof IRGlobalDef).map(ir -> (IRGlobalDef) ir).toList();
-        var topLevelComps = irs.stream().filter(ir -> ir instanceof IRComp || ir instanceof IRValue).map(ir -> ir instanceof IRValue value ? new IRProduce(value) : (IRComp) ir).toList();
+        var topLevelComps = irs.stream().filter(ir -> ir instanceof IRComp || ir instanceof IRValue).map(ir -> ir instanceof IRValue value ? new IRCompProduce(value) : (IRComp) ir).toList();
         return new IRModule(topLevelDefs, topLevelComps);
     }
 

@@ -1,7 +1,7 @@
 package dev.foltz.mooselang.ir;
 
 import dev.foltz.mooselang.ir.nodes.IRNode;
-import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
+import dev.foltz.mooselang.ir.nodes.comp.IRCompBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.*;
 import dev.foltz.mooselang.typing.TypeBase;
@@ -39,12 +39,12 @@ public class TypedIR extends VisitorIR<TypeBase> {
     }
 
     @Override
-    public TypeBase visit(IRBuiltin builtin) {
+    public TypeBase visit(IRCompBuiltin builtin) {
         return builtin.innerType;
     }
 
     @Override
-    public TypeBase visit(IRProduce produce) {
+    public TypeBase visit(IRCompProduce produce) {
         var valueType = typeOf(produce.value);
         if (valueType instanceof TypeValue value) {
             return new CompProducer(value);
@@ -55,7 +55,7 @@ public class TypedIR extends VisitorIR<TypeBase> {
     }
 
     @Override
-    public TypeBase visit(IRLambda lambda) {
+    public TypeBase visit(IRCompLambda lambda) {
         var bodyType = put(lambda.paramName, lambda.paramType).typeOf(lambda.body);
         if (bodyType instanceof TypeComp bodyComp) {
             return new CompLambda(lambda.paramName, lambda.paramType, bodyComp);
@@ -66,7 +66,7 @@ public class TypedIR extends VisitorIR<TypeBase> {
     }
 
     @Override
-    public TypeBase visit(IRLet bind) {
+    public TypeBase visit(IRCompLet bind) {
         var exprType = typeOf(bind.value);
         if (exprType instanceof TypeValue value) {
             var bodyType = put(bind.name, value).typeOf(bind.body);
@@ -83,7 +83,7 @@ public class TypedIR extends VisitorIR<TypeBase> {
     }
 
     @Override
-    public TypeBase visit(IRDo bind) {
+    public TypeBase visit(IRCompDo bind) {
         var boundType = typeOf(bind.boundComp);
         if (boundType instanceof CompProducer producer) {
             var bodyType = put(bind.name, producer.value).typeOf(bind.body);
@@ -100,8 +100,8 @@ public class TypedIR extends VisitorIR<TypeBase> {
     }
 
     @Override
-    public TypeBase visit(IRForce force) {
-        if (force.thunk instanceof IRName name) {
+    public TypeBase visit(IRCompForce force) {
+        if (force.thunk instanceof IRValueName name) {
             var mbound = find(name.name);
             if (mbound.isEmpty()) {
                 return error("Cannot find " + name.name + " in scope.");
@@ -113,7 +113,7 @@ public class TypedIR extends VisitorIR<TypeBase> {
                 return error("Force expects Thunk, received: " + mbound.get());
             }
         }
-        else if (force.thunk instanceof IRThunk thunk) {
+        else if (force.thunk instanceof IRValueThunk thunk) {
             return typeOf(thunk.comp);
         }
         else {
@@ -122,7 +122,7 @@ public class TypedIR extends VisitorIR<TypeBase> {
     }
 
     @Override
-    public TypeBase visit(IRPush push) {
+    public TypeBase visit(IRCompPush push) {
         var valueType = typeOf(push.value);
         if (valueType instanceof TypeValue value) {
             var thenType = typeOf(push.then);
@@ -144,7 +144,7 @@ public class TypedIR extends VisitorIR<TypeBase> {
     }
 
     @Override
-    public TypeBase visit(IRCaseOf caseOf) {
+    public TypeBase visit(IRCompCaseOf caseOf) {
         var baseType = typeOf(caseOf.value);
         if (!(baseType instanceof TypeValue valueType)) {
             return error("case-of expects Value, received: " + baseType);
@@ -192,13 +192,13 @@ public class TypedIR extends VisitorIR<TypeBase> {
         //   - Ensure pattern can destruct value appropriately.
         //   - Return a typer with pattern in scope.
 
-        if (pattern instanceof IRName patternName) {
+        if (pattern instanceof IRValueName patternName) {
             return put(patternName.name, valueType).typeOf(body);
         }
-        else if (valueType instanceof ValueNumber typeNumber && pattern instanceof IRNumber patternNumber) {
+        else if (valueType instanceof ValueNumber typeNumber && pattern instanceof IRValueNumber patternNumber) {
             return typeOf(body);
         }
-        else if (valueType instanceof ValueString typeString && pattern instanceof IRString patternString) {
+        else if (valueType instanceof ValueString typeString && pattern instanceof IRValueString patternString) {
             return typeOf(body);
         }
         else {
@@ -207,7 +207,7 @@ public class TypedIR extends VisitorIR<TypeBase> {
     }
 
     @Override
-    public TypeBase visit(IRThunk thunk) {
+    public TypeBase visit(IRValueThunk thunk) {
         var innerType = typeOf(thunk.comp);
         if (innerType instanceof TypeComp innerComp) {
             return new ValueThunk(innerComp);
@@ -218,27 +218,27 @@ public class TypedIR extends VisitorIR<TypeBase> {
     }
 
     @Override
-    public TypeBase visit(IRName name) {
+    public TypeBase visit(IRValueName name) {
         return find(name.name).orElseGet(() -> (TypeValue) error("Cannot find " + name.name + " in scope."));
     }
 
     @Override
-    public TypeBase visit(IRNumber number) {
+    public TypeBase visit(IRValueNumber number) {
         return new ValueNumber();
     }
 
     @Override
-    public TypeBase visit(IRString string) {
+    public TypeBase visit(IRValueString string) {
         return new ValueString();
     }
 
     @Override
-    public TypeBase visit(IRUnit unit) {
+    public TypeBase visit(IRValueUnit unit) {
         return new ValueUnit();
     }
 
     @Override
-    public TypeBase visit(IRTuple tuple) {
+    public TypeBase visit(IRValueTuple tuple) {
         var valueTypes = tuple.values.stream().map(this::typeOf).toList();
         if (valueTypes.stream().anyMatch(t -> !(t instanceof TypeValue))) {
             return error("Tuple expects Value components, received: " + tuple.values);

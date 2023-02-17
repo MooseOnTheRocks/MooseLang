@@ -78,13 +78,13 @@ public class PrettyPrintIR extends VisitorIR<String> {
     }
 
     @Override
-    public String visit(IRLet bind) {
+    public String visit(IRCompLet bind) {
         return "let " + inline().pprint(bind.name) + " = " + pprint(bind.value) + " in\n" +
             getIndent() + pprint(bind.body);
     }
 
     @Override
-    public String visit(IRDo bind) {
+    public String visit(IRCompDo bind) {
         return "do (\n" +
             getNextIndent() + indent().pprint(bind.boundComp) + "\n" +
             getIndent() + ") = " + inline().pprint(bind.name) + "\n" +
@@ -93,12 +93,12 @@ public class PrettyPrintIR extends VisitorIR<String> {
     }
 
     @Override
-    public String visit(IRProduce produce) {
+    public String visit(IRCompProduce produce) {
         return "#produce " + pprint(produce.value);
     }
 
     @Override
-    public String visit(IRLambda lambda) {
+    public String visit(IRCompLambda lambda) {
         var lambdaType = lambda.paramType;
         var typeName = "";
         if (lambdaType.equals(new ValueNumber())) typeName = "Number";
@@ -112,50 +112,50 @@ public class PrettyPrintIR extends VisitorIR<String> {
     }
 
     @Override
-    public String visit(IRCaseOf caseOf) {
+    public String visit(IRCompCaseOf caseOf) {
         return "case " + inline().pprint(caseOf.value) + " of (\n" +
             caseOf.branches.stream().map(b -> getNextIndent() + indent().pprint(b)).collect(Collectors.joining("\n")) + "\n" +
             getIndent() + ")";
     }
 
     @Override
-    public String visit(IRCaseOfBranch caseOfBranch) {
+    public String visit(IRCompCaseOfBranch caseOfBranch) {
         return inline().pprint(caseOfBranch.pattern) + " -> " + indent().pprint(caseOfBranch.body);
     }
 
     @Override
-    public String visit(IRThunk thunk) {
+    public String visit(IRValueThunk thunk) {
         return "#thunk " + pprint(thunk.comp);
     }
 
     @Override
-    public String visit(IRPush push) {
+    public String visit(IRCompPush push) {
         return "#push " + pprint(push.value) + "\n" +
             getIndent() + pprint(push.then);
     }
 
     @Override
-    public String visit(IRForce force) {
+    public String visit(IRCompForce force) {
         return "#force " + pprint(force.thunk);
     }
 
     @Override
-    public String visit(IRTuple tuple) {
+    public String visit(IRValueTuple tuple) {
         return "(" + tuple.values.stream().map(inline()::pprint).collect(Collectors.joining(", ")) + ")";
     }
 
     @Override
-    public String visit(IRName name) {
+    public String visit(IRValueName name) {
         return name.name;
     }
 
     @Override
-    public String visit(IRString string) {
+    public String visit(IRValueString string) {
         return "\"" + string.value + "\"";
     }
 
     @Override
-    public String visit(IRNumber number) {
+    public String visit(IRValueNumber number) {
         return "" + number.value;
     }
 }

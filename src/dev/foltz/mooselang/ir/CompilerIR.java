@@ -13,7 +13,6 @@ import dev.foltz.mooselang.typing.value.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 
 public class CompilerIR extends VisitorAST<IRNode> {
     // TODO: Move this somewhere else.
@@ -34,14 +33,14 @@ public class CompilerIR extends VisitorAST<IRNode> {
         return node.apply(this);
     }
 
-    private static IRThunk curry(IRComp body, List<String> paramNames, List<TypeValue> paramTypes) {
+    private static IRValueThunk curry(IRComp body, List<String> paramNames, List<TypeValue> paramTypes) {
         if (paramNames.size() != paramTypes.size()) {
             throw new RuntimeException("curry with different sized name and type lists: " + paramNames + ", " + paramTypes);
         }
 
         // U(A -> F(...))
         // F(InnerType)
-        IRThunk wrapped = null;
+        IRValueThunk wrapped = null;
         int apps = 0;
 //        var paramEntries = new ArrayList<>(typedParams.entrySet().stream().toList());
 //        Collections.reverse(paramEntries);
@@ -49,10 +48,10 @@ public class CompilerIR extends VisitorAST<IRNode> {
             var name = paramNames.get(i);
             var type = paramTypes.get(i);
             if (apps == 0) {
-                wrapped = new IRThunk(new IRLambda(name, type, body), Map.of());
+                wrapped = new IRValueThunk(new IRCompLambda(name, type, body), Map.of());
             }
             else {
-                wrapped = new IRThunk(new IRLambda(name, type, new IRProduce(wrapped)), Map.of());
+                wrapped = new IRValueThunk(new IRCompLambda(name, type, new IRCompProduce(wrapped)), Map.of());
             }
             apps += 1;
         }
@@ -74,10 +73,10 @@ public class CompilerIR extends VisitorAST<IRNode> {
         var rhs = compileNode(chain.second);
 
         if (lhs instanceof IRComp lhsComp && rhs instanceof IRComp rhsComp) {
-            return new IRDo("_", lhsComp, rhsComp);
+            return new IRCompDo("_", lhsComp, rhsComp);
         }
         else if (lhs instanceof IRComp lhsComp && rhs instanceof IRValue rhsValue) {
-            return new IRDo("_", lhsComp, new IRProduce(rhsValue));
+            return new IRCompDo("_", lhsComp, new IRCompProduce(rhsValue));
         }
         return error("Cannot chain:\nlhs: " + lhs + "\nrhs: " + rhs);
     }
@@ -88,12 +87,12 @@ public class CompilerIR extends VisitorAST<IRNode> {
         var lhs = compileNode(apply.lhs);
         var rhs = compileNode(apply.rhs);
 
-        if (lhs instanceof IRName lhsName && rhs instanceof IRValue rhsValue) {
-            return new IRPush(rhsValue, new IRForce(lhsName));
+        if (lhs instanceof IRValueName lhsName && rhs instanceof IRValue rhsValue) {
+            return new IRCompPush(rhsValue, new IRCompForce(lhsName));
         }
-        else if (lhs instanceof IRName lhsName && rhs instanceof IRComp rhsComp) {
+        else if (lhs instanceof IRValueName lhsName && rhs instanceof IRComp rhsComp) {
             var argname = "_app_" + (args++);
-            return new IRDo(argname, rhsComp, new IRPush(new IRName(argname), new IRForce(lhsName)));
+            return new IRCompDo(argname, rhsComp, new IRCompPush(new IRValueName(argname), new IRCompForce(lhsName)));
         }
 //        else if (lhs instanceof IRComp lhsComp && rhs instanceof IRName rhsName) {
 //            var argname = "_app_" + (args++);
@@ -101,12 +100,12 @@ public class CompilerIR extends VisitorAST<IRNode> {
 //        }
         else if (lhs instanceof IRComp lhsComp && rhs instanceof IRValue rhsValue) {
             var argname = "_app_" + (args++);
-            return new IRDo(argname, lhsComp, new IRPush(rhsValue, new IRForce(new IRName(argname))));
+            return new IRCompDo(argname, lhsComp, new IRCompPush(rhsValue, new IRCompForce(new IRValueName(argname))));
         }
         else if (lhs instanceof IRComp lhsComp && rhs instanceof IRComp rhsComp) {
             var lhsName = "_app_" + (args++);
             var rhsName = "_app_" + (args++);
-            return new IRDo(lhsName, lhsComp, new IRDo(rhsName, rhsComp, new IRPush(new IRName(rhsName), new IRForce(new IRName(lhsName)))));
+            return new IRCompDo(lhsName, lhsComp, new IRCompDo(rhsName, rhsComp, new IRCompPush(new IRValueName(rhsName), new IRCompForce(new IRValueName(lhsName)))));
         }
 
         // Assume this is function application so name corresponds to (A -> B)
@@ -147,14 +146,14 @@ public class CompilerIR extends VisitorAST<IRNode> {
     @Override
     public IRNode visit(ExprLambda lambda) {
         var body = compileNode(lambda.body);
-        if (body instanceof IRLambda bodyLambda) {
-            return new IRLambda(lambda.param, getType(lambda.paramType), new IRProduce(new IRThunk(bodyLambda, Map.of())));
+        if (body instanceof IRCompLambda bodyLambda) {
+            return new IRCompLambda(lambda.param, getType(lambda.paramType), new IRCompProduce(new IRValueThunk(bodyLambda, Map.of())));
         }
         else if (body instanceof IRComp bodyComp) {
-            return new IRLambda(lambda.param, getType(lambda.paramType), bodyComp);
+            return new IRCompLambda(lambda.param, getType(lambda.paramType), bodyComp);
         }
         else if (body instanceof IRValue bodyValue) {
-            return new IRLambda(lambda.param, getType(lambda.paramType), new IRProduce(new IRName(lambda.param)));
+            return new IRCompLambda(lambda.param, getType(lambda.paramType), new IRCompProduce(new IRValueName(lambda.param)));
         }
         return error("Lambda expected body of computation, received: " + lambda.body);
     }
@@ -164,20 +163,20 @@ public class CompilerIR extends VisitorAST<IRNode> {
         var expr = compileNode(let.expr);
         var body = compileNode(let.body);
 
-        if (expr instanceof IRLambda exprLambda && body instanceof IRComp bodyComp) {
-            return new IRLet(let.name.name, new IRThunk(exprLambda, Map.of()), bodyComp);
+        if (expr instanceof IRCompLambda exprLambda && body instanceof IRComp bodyComp) {
+            return new IRCompLet(let.name.name, new IRValueThunk(exprLambda, Map.of()), bodyComp);
         }
         else if (expr instanceof IRComp exprComp && body instanceof IRComp bodyComp) {
-            return new IRDo(let.name.name, exprComp, bodyComp);
+            return new IRCompDo(let.name.name, exprComp, bodyComp);
         }
         else if (expr instanceof IRValue exprValue && body instanceof IRComp bodyComp) {
-            return new IRLet(let.name.name, exprValue, bodyComp);
+            return new IRCompLet(let.name.name, exprValue, bodyComp);
         }
         else if (expr instanceof IRValue exprValue && body instanceof IRValue bodyValue) {
-            return new IRLet(let.name.name, exprValue, new IRProduce(bodyValue));
+            return new IRCompLet(let.name.name, exprValue, new IRCompProduce(bodyValue));
         }
         else if (expr instanceof IRComp exprComp && body instanceof IRValue bodyValue) {
-            return new IRDo(let.name.name, exprComp, new IRProduce(bodyValue));
+            return new IRCompDo(let.name.name, exprComp, new IRCompProduce(bodyValue));
         }
 
         return error("let-in:\nexpr: " + expr + "\nbody: " + body);
@@ -188,12 +187,43 @@ public class CompilerIR extends VisitorAST<IRNode> {
         var pattern = compileNode(ofBranch.pattern);
         var body = compileNode(ofBranch.body);
         if (pattern instanceof IRValue patternValue && body instanceof IRComp bodyComp) {
-            return new IRCaseOfBranch(patternValue, bodyComp);
+            return new IRCompCaseOfBranch(patternValue, bodyComp);
         }
         else if (pattern instanceof IRValue patternValue && body instanceof IRValue bodyValue) {
-            return new IRCaseOfBranch(patternValue, new IRProduce(bodyValue));
+            return new IRCompCaseOfBranch(patternValue, new IRCompProduce(bodyValue));
         }
         return error("Case-of-branch expects Value for pattern and Computation for body:\npattern: " + pattern + "\nbody: " + body);
+    }
+
+    private boolean patternMatches(IRValue value, IRValue pattern) {
+        if (pattern instanceof IRValueName) {
+            return true;
+        }
+        else if (value instanceof IRValueNumber valueNumber && pattern instanceof IRValueNumber patternNumber) {
+            return valueNumber.value == patternNumber.value;
+        }
+        else if (value instanceof IRValueString valueString && pattern instanceof IRValueString patternString) {
+            return valueString.value.equals(patternString.value);
+        }
+        else if (value instanceof IRValueUnit && pattern instanceof IRValueUnit) {
+            return true;
+        }
+        else if (value instanceof IRValueTuple valueTuple && pattern instanceof IRValueTuple patternTuple) {
+            if (valueTuple.values.size() != patternTuple.values.size()) {
+                return false;
+            }
+            for (int i = 0; i < valueTuple.values.size(); i++) {
+                var valueElem = valueTuple.values.get(i);
+                var patternElem = patternTuple.values.get(i);
+                if (!patternMatches(valueElem, patternElem)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     @Override
@@ -202,7 +232,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
         var value = compiledValue;
         if (value instanceof IRComp) {
             var argname = "_pmarg_" + (args++);
-            value = new IRName(argname);
+            value = new IRValueName(argname);
         }
 //        if (!(value instanceof IRValue caseOfValue)) {
 //            return error("Case-of expects value, received: " + value);
@@ -210,31 +240,21 @@ public class CompilerIR extends VisitorAST<IRNode> {
 
         var maybeBranches = caseOf.cases.stream().map(this::compileNode).toList();
         for (IRNode branch : maybeBranches) {
-            if (!(branch instanceof IRCaseOfBranch)) {
+            if (!(branch instanceof IRCompCaseOfBranch)) {
                 return error("Expected IRBranchCaseOf, received: " + branch);
             }
         }
-        var branches = maybeBranches.stream().map(b -> (IRCaseOfBranch) b).toList();
+        var branches = maybeBranches.stream().map(b -> (IRCompCaseOfBranch) b).toList();
 
-        Predicate<IRCaseOfBranch> branchPred = b -> true;
-        if (value instanceof IRTuple valueTuple) {
-            branchPred = b ->
-                b.pattern instanceof IRTuple pattern &&
-                pattern.values.size() == valueTuple.values.size() &&
-                pattern.values.stream().allMatch(v -> v instanceof IRName);
-        }
-
-        for (IRCaseOfBranch branch : branches) {
-            if (branchPred.negate().test(branch)) {
-                return error("Invalid CaseOfBranch: " + branch);
-            }
+        for (IRCompCaseOfBranch branch : branches) {
+            // Type-check branch patterns and bodies here.
         }
 
         if (compiledValue instanceof IRComp caseOfComp) {
-            return new IRDo(((IRName) value).name, caseOfComp, new IRCaseOf((IRName) value, branches));
+            return new IRCompDo(((IRValueName) value).name, caseOfComp, new IRCompCaseOf((IRValueName) value, branches));
         }
         else if (value instanceof IRValue caseOfValue) {
-            return new IRCaseOf(caseOfValue, branches);
+            return new IRCompCaseOf(caseOfValue, branches);
         }
         else {
             return error("Unhandled case of value: " + value);
@@ -245,7 +265,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
     public IRNode visit(ExprTuple tuple) {
         var values = tuple.values.stream().map(this::compileNode).toList();
         if (values.stream().allMatch(t -> t instanceof IRValue)) {
-            return new IRTuple(values.stream().map(t -> (IRValue) t).toList());
+            return new IRValueTuple(values.stream().map(t -> (IRValue) t).toList());
         }
         else {
             // Should tuple construction be lazy or eager?
@@ -265,7 +285,7 @@ public class CompilerIR extends VisitorAST<IRNode> {
             for (int i = 0; i < values.size(); i++) {
                 var v = values.get(i);
                 if (v instanceof IRComp) {
-                    innerValues.add(new IRName(names.get(compCount)));
+                    innerValues.add(new IRValueName(names.get(compCount)));
                     compCount += 1;
                 }
                 else if (v instanceof IRValue val) {
@@ -276,10 +296,10 @@ public class CompilerIR extends VisitorAST<IRNode> {
                 }
             }
 
-            var innerTuple = new IRTuple(innerValues);
-            IRComp wrappedTuple = new IRProduce(innerTuple);
+            var innerTuple = new IRValueTuple(innerValues);
+            IRComp wrappedTuple = new IRCompProduce(innerTuple);
             for (int i = 0; i < compCount; i++) {
-                wrappedTuple = new IRDo(names.get(i), comps.get(i), wrappedTuple);
+                wrappedTuple = new IRCompDo(names.get(i), comps.get(i), wrappedTuple);
             }
             return wrappedTuple;
         }
@@ -287,22 +307,22 @@ public class CompilerIR extends VisitorAST<IRNode> {
 
     @Override
     public IRNode visit(ExprName name) {
-        return new IRName(name.name);
+        return new IRValueName(name.name);
     }
 
     @Override
     public IRNode visit(ExprSymbolic symbolic) {
-        return new IRName(symbolic.symbol);
+        return new IRValueName(symbolic.symbol);
     }
 
     @Override
     public IRNode visit(ExprNumber number) {
-        return new IRNumber(number.value);
+        return new IRValueNumber(number.value);
     }
 
     @Override
     public IRNode visit(ExprString string) {
-        return new IRString(string.value);
+        return new IRValueString(string.value);
     }
 
     @Override

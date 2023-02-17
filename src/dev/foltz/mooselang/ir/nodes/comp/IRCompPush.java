@@ -3,11 +3,11 @@ package dev.foltz.mooselang.ir.nodes.comp;
 import dev.foltz.mooselang.ir.nodes.value.IRValue;
 import dev.foltz.mooselang.ir.VisitorIR;
 
-public class IRPush extends IRComp {
+public class IRCompPush extends IRComp {
     public final IRValue value;
     public final IRComp then;
 
-    public IRPush(IRValue value, IRComp then) {
+    public IRCompPush(IRValue value, IRComp then) {
         this.value = value;
         this.then = then;
     }

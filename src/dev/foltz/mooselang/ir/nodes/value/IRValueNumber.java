@@ -2,10 +2,10 @@ package dev.foltz.mooselang.ir.nodes.value;
 
 import dev.foltz.mooselang.ir.VisitorIR;
 
-public class IRString extends IRValue {
-    public final String value;
+public class IRValueNumber extends IRValue {
+    public final double value;
 
-    public IRString(String value) {
+    public IRValueNumber(double value) {
         this.value = value;
     }
 
@@ -16,6 +16,6 @@ public class IRString extends IRValue {
 
     @Override
     public String toString() {
-        return "IRString(\"" + value + "\")";
+        return "IRNumber(" + value + ")";
     }
 }

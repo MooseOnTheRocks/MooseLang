@@ -4,10 +4,10 @@ import dev.foltz.mooselang.ir.VisitorIR;
 
 import java.util.List;
 
-public class IRTuple extends IRValue {
+public class IRValueTuple extends IRValue {
     public final List<IRValue> values;
 
-    public IRTuple(List<IRValue> values) {
+    public IRValueTuple(List<IRValue> values) {
         this.values = List.copyOf(values);
     }
 

@@ -1,5 +1,6 @@
-pret n: String = print n; n
-
-complex n: Number = n * 2 + n * 3
-
-pret (complex 10) + pret (complex 40)
+case (10, 2): (Number, Number) of
+    (0, 0): (Number, Number) -> "Double 0": String
+    (0, 1): (Number, Number) -> "Right 1": String
+    (1, 0): (Number, Number) -> "Left 1": String
+    (1, 1): (Number, Number) -> "Double 1": String
+    _: * -> "Unsure"

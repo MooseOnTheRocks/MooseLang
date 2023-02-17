@@ -1,11 +1,11 @@
-package dev.foltz.mooselang.ir.nodes.value;
+package dev.foltz.mooselang.ir.nodes.types;
 
 import dev.foltz.mooselang.ir.VisitorIR;
 
-public class IRName extends IRValue {
+public class IRTypeName extends IRType {
     public final String name;
 
-    public IRName(String name) {
+    public IRTypeName(String name) {
         this.name = name;
     }
 
@@ -16,6 +16,6 @@ public class IRName extends IRValue {
 
     @Override
     public String toString() {
-        return "IRName(" + name + ")";
+        return "IRTypeName(" + name + ")";
     }
 }

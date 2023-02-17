@@ -5,11 +5,11 @@ import dev.foltz.mooselang.ir.nodes.value.IRValue;
 
 import java.util.List;
 
-public class IRCaseOf extends IRComp {
+public class IRCompCaseOf extends IRComp {
     public final IRValue value;
-    public final List<IRCaseOfBranch> branches;
+    public final List<IRCompCaseOfBranch> branches;
 
-    public IRCaseOf(IRValue value, List<IRCaseOfBranch> branches) {
+    public IRCompCaseOf(IRValue value, List<IRCompCaseOfBranch> branches) {
         this.value = value;
         this.branches = branches;
     }

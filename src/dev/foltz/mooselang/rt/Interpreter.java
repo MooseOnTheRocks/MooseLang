@@ -1,13 +1,11 @@
 package dev.foltz.mooselang.rt;
 
 import dev.foltz.mooselang.ir.VisitorIR;
-import dev.foltz.mooselang.ir.nodes.IRNode;
-import dev.foltz.mooselang.ir.nodes.builtin.IRBuiltin;
+import dev.foltz.mooselang.ir.nodes.comp.IRCompBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Interpreter extends VisitorIR<Interpreter> {
     public final IRComp term;
@@ -107,7 +105,7 @@ public class Interpreter extends VisitorIR<Interpreter> {
     }
 
     public IRValue resolve(IRValue value) {
-        if (value instanceof IRName name) {
+        if (value instanceof IRValueName name) {
             return resolve(find(name.name));
         }
         return value;
@@ -118,22 +116,35 @@ public class Interpreter extends VisitorIR<Interpreter> {
     }
 
     @Override
-    public Interpreter visit(IRBuiltin builtin) {
+    public Interpreter visit(IRCompBuiltin builtin) {
         return builtin.internal.apply(this);
     }
 
     private boolean patternMatches(IRValue value, IRValue pattern) {
         value = resolve(value);
-        if (pattern instanceof IRName) {
+        if (pattern instanceof IRValueName) {
             return true;
         }
-        else if (value instanceof IRNumber valueNumber && pattern instanceof IRNumber patternNumber) {
+        else if (value instanceof IRValueNumber valueNumber && pattern instanceof IRValueNumber patternNumber) {
             return valueNumber.value == patternNumber.value;
         }
-        else if (value instanceof IRString valueString && pattern instanceof IRString patternString) {
+        else if (value instanceof IRValueString valueString && pattern instanceof IRValueString patternString) {
             return valueString.value.equals(patternString.value);
         }
-        else if (value instanceof IRUnit && pattern instanceof IRUnit) {
+        else if (value instanceof IRValueUnit && pattern instanceof IRValueUnit) {
+            return true;
+        }
+        else if (value instanceof IRValueTuple valueTuple && pattern instanceof IRValueTuple patternTuple) {
+            if (valueTuple.values.size() != patternTuple.values.size()) {
+                return false;
+            }
+            for (int i = 0; i < valueTuple.values.size(); i++) {
+                var valueElem = valueTuple.values.get(i);
+                var patternElem = patternTuple.values.get(i);
+                if (!patternMatches(valueElem, patternElem)) {
+                    return false;
+                }
+            }
             return true;
         }
         else {
@@ -143,17 +154,32 @@ public class Interpreter extends VisitorIR<Interpreter> {
 
     private Interpreter bindPattern(IRValue value, IRValue pattern) {
         value = resolve(value);
-        if (pattern instanceof IRName name) {
+        if (pattern instanceof IRValueName name) {
             return bind(name.name, value);
         }
-        else if (value instanceof IRNumber valueNumber && pattern instanceof IRNumber patternNumber) {
+        else if (value instanceof IRValueNumber valueNumber && pattern instanceof IRValueNumber patternNumber) {
             return this;
         }
-        else if (value instanceof IRString valueString && pattern instanceof IRString patternString) {
+        else if (value instanceof IRValueString valueString && pattern instanceof IRValueString patternString) {
             return this;
         }
-        else if (value instanceof IRUnit && pattern instanceof IRUnit) {
+        else if (value instanceof IRValueUnit && pattern instanceof IRValueUnit) {
             return this;
+        }
+        else if (value instanceof IRValueTuple valueTuple && pattern instanceof IRValueTuple patternTuple) {
+            if (valueTuple.values.size() != patternTuple.values.size()) {
+                return this;
+            }
+            var interp = this;
+            for (int i = 0; i < valueTuple.values.size(); i++) {
+                var valueElem = valueTuple.values.get(i);
+                var patternElem = patternTuple.values.get(i);
+                if (!patternMatches(valueElem, patternElem)) {
+                    return error("Cannot bind tuple " + value + " into " + pattern);
+                }
+                interp = interp.bindPattern(valueElem, patternElem);
+            }
+            return interp;
         }
         else {
             return error("Cannot bind destruct " + value + " into " + pattern);
@@ -161,7 +187,7 @@ public class Interpreter extends VisitorIR<Interpreter> {
     }
 
     @Override
-    public Interpreter visit(IRCaseOf caseOf) {
+    public Interpreter visit(IRCompCaseOf caseOf) {
         // Find a matching branch, perform destructure-bindings, set term to matching body.
         // If no match (including no default branch), error.
         var value = resolve(caseOf.value);
@@ -175,17 +201,17 @@ public class Interpreter extends VisitorIR<Interpreter> {
     }
 
     @Override
-    public Interpreter visit(IRProduce produce) {
+    public Interpreter visit(IRCompProduce produce) {
         var value = produce.value;
-        if (value instanceof IRThunk thunk) {
+        if (value instanceof IRValueThunk thunk) {
             var newClosure = new HashMap<>(thunk.closure);
             context.forEach((name, v) -> {
                 if (!newClosure.containsKey(name)) {
-//                    System.out.println("Adding to closure: " + name + " = " + v);
+                    System.out.println("Adding to closure: " + name + " = " + v);
                 }
                 newClosure.putIfAbsent(name, v);
             });
-            value = new IRThunk(thunk.comp, newClosure);
+            value = new IRValueThunk(thunk.comp, newClosure);
         }
 
         var top = top();
@@ -193,28 +219,18 @@ public class Interpreter extends VisitorIR<Interpreter> {
             return pop().bind(stackFrame.name, value).withTerm(stackFrame.body);
         }
         else if (top == null) {
-            return withTerm(new IRProduce(resolve(value))).terminate();
+            return withTerm(new IRCompProduce(resolve(value))).terminate();
         }
         return error("Produce expects null or StackFrame, received: " + top);
-//        return withTerm(new IRProduce(resolve(produce.value))).terminate();
     }
 
     @Override
-    public Interpreter visit(IRDo bind) {
+    public Interpreter visit(IRCompDo bind) {
         return pushFrame(new StackFrame(bind.name, bind.body)).withTerm(bind.boundComp);
-//        var eval = evaluate(bind.boundComp);
-//        if (eval.term instanceof IRProduce produce) {
-//            return eval.bind(bind.name, produce.value).evaluate(bind.body);
-//            return eval.bind(bind.name, produce.value).withTerm(bind.body);
-//        }
-//        return error("Expected IRProduce, received: " + eval.term);
-//        return eval.term instanceof IRProduce produce
-//            ? eval.bind(bind.name, produce.value).evaluate(bind.body)
-//            : error("Expected IRProduce, received: " + eval.term);
     }
 
     @Override
-    public Interpreter visit(IRLambda lambda) {
+    public Interpreter visit(IRCompLambda lambda) {
         var top = top();
         if (top instanceof StackValue stackValue) {
             return pop().bind(lambda.paramName, stackValue.value).withTerm(lambda.body);
@@ -223,27 +239,19 @@ public class Interpreter extends VisitorIR<Interpreter> {
     }
 
     @Override
-    public Interpreter visit(IRPush push) {
+    public Interpreter visit(IRCompPush push) {
         return push(push.value).withTerm(push.then);
-//        var eval = evaluate(push.then);
-//        if (eval.term instanceof IRLambda lambda) {
-//            return eval.bind(lambda.paramName, resolve(push.value)).withTerm(lambda.body);
-//        }
-//        return error("Expected IRLambda, received: " + eval.term);
-//        return eval.term instanceof IRLambda lambda
-//            ? eval.bind(lambda.paramName, push.value).evaluate(lambda.body)
-//            : error("Expected IRLambda, received: " + eval.term);
     }
 
     @Override
-    public Interpreter visit(IRLet bind) {
+    public Interpreter visit(IRCompLet bind) {
         return bind(bind.name, resolve(bind.value)).withTerm(bind.body);
     }
 
     @Override
-    public Interpreter visit(IRForce force) {
+    public Interpreter visit(IRCompForce force) {
         var mthunk = resolve(force.thunk);
-        if (mthunk instanceof IRThunk thunk) {
+        if (mthunk instanceof IRValueThunk thunk) {
             return bindAll(thunk.closure).withTerm(thunk.comp);
         }
         return error("Force expects Thunk, received: " + mthunk);

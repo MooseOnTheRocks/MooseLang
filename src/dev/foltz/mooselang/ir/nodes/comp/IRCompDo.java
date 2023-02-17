@@ -2,12 +2,12 @@ package dev.foltz.mooselang.ir.nodes.comp;
 
 import dev.foltz.mooselang.ir.VisitorIR;
 
-public class IRDo extends IRComp {
+public class IRCompDo extends IRComp {
     public final String name;
     public final IRComp boundComp;
     public final IRComp body;
 
-    public IRDo(String name, IRComp boundComp, IRComp body) {
+    public IRCompDo(String name, IRComp boundComp, IRComp body) {
         this.name = name;
         this.boundComp = boundComp;
         this.body = body;

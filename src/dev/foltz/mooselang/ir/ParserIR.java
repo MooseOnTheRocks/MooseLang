@@ -1,9 +1,5 @@
 package dev.foltz.mooselang.ir;
 
-import dev.foltz.mooselang.ast.nodes.expr.ASTExpr;
-import dev.foltz.mooselang.ast.nodes.expr.ExprCaseOf;
-import dev.foltz.mooselang.ast.nodes.expr.ExprCaseOfBranch;
-import dev.foltz.mooselang.ast.nodes.expr.ExprTuple;
 import dev.foltz.mooselang.ir.nodes.comp.*;
 import dev.foltz.mooselang.ir.nodes.value.*;
 import dev.foltz.mooselang.parser.Parsers;
@@ -25,25 +21,25 @@ public class ParserIR {
 
     // Values
     public static final Parser<IRValue> irParenValue = all(match("("), anyws, irValue, anyws, match(")")).map(ls -> (IRValue) ls.get(2));
-    public static final Parser<IRName> irName = any(Parsers.name, Parsers.symbolic).map(n -> (String) n).map(IRName::new);
-    public static final Parser<IRUnit> irUnit = match("()").map(u -> new IRUnit());
-    public static final Parser<IRNumber> irNumber = Parsers.number.map(IRNumber::new);
-    public static final Parser<IRString> irString = Parsers.string.map(IRString::new);
-    public static final Parser<IRTuple> irTuple =
+    public static final Parser<IRValueName> irName = any(Parsers.name, Parsers.symbolic).map(n -> (String) n).map(IRValueName::new);
+    public static final Parser<IRValueUnit> irUnit = match("()").map(u -> new IRValueUnit());
+    public static final Parser<IRValueNumber> irNumber = Parsers.number.map(IRValueNumber::new);
+    public static final Parser<IRValueString> irString = Parsers.string.map(IRValueString::new);
+    public static final Parser<IRValueTuple> irTuple =
         all(match("("),
             anyws,
             joining(all(anyws, match(","), anyws), irValue),
             anyws,
             match(")"))
         .map(ls -> (List<IRValue>) ls.get(2))
-        .map(IRTuple::new);
-    public static final Parser<IRThunk> irThunk = all(match("#thunk"), anyws, irComp).map(ls -> new IRThunk((IRComp) ls.get(2), Map.of()));
+        .map(IRValueTuple::new);
+    public static final Parser<IRValueThunk> irThunk = all(match("#thunk"), anyws, irComp).map(ls -> new IRValueThunk((IRComp) ls.get(2), Map.of()));
 
     // Computations
     public static final Parser<IRComp> irParenComp = all(match("("), anyws, irComp, anyws, match(")")).map(ls -> (IRComp) ls.get(2));
-    public static final Parser<IRProduce> irProduce = all(match("#produce"),  anyws, irValue).map(ls -> new IRProduce((IRValue) ls.get(2)));
-    public static final Parser<IRForce> irForce = all(match("#force"), anyws, irValue).map(ls -> new IRForce((IRValue) ls.get(2)));
-    public static final Parser<IRDo> irDo =
+    public static final Parser<IRCompProduce> irProduce = all(match("#produce"),  anyws, irValue).map(ls -> new IRCompProduce((IRValue) ls.get(2)));
+    public static final Parser<IRCompForce> irForce = all(match("#force"), anyws, irValue).map(ls -> new IRCompForce((IRValue) ls.get(2)));
+    public static final Parser<IRCompDo> irDo =
         intersperse(anyws,
             match("do"),
             irComp,
@@ -51,12 +47,12 @@ public class ParserIR {
             name,
             match("in"),
             irComp)
-        .map(ls -> new IRDo(
+        .map(ls -> new IRCompDo(
             (String) ls.get(3),
             (IRComp) ls.get(1),
             (IRComp) ls.get(5)));
 
-    public static final Parser<IRLambda> irLambda =
+    public static final Parser<IRCompLambda> irLambda =
         intersperse(anyws,
             match("\\"),
             name,
@@ -64,12 +60,12 @@ public class ParserIR {
             name,
             match("->"),
             irComp)
-        .map(ls -> new IRLambda(
+        .map(ls -> new IRCompLambda(
             (String) ls.get(1),
             TypeValue.fromString((String) ls.get(3)),
             (IRComp) ls.get(5)));
 
-    public static final Parser<IRLet> irLet =
+    public static final Parser<IRCompLet> irLet =
         intersperse(anyws,
             match("let"),
             name,
@@ -77,32 +73,32 @@ public class ParserIR {
             irValue,
             match("in"),
             irComp)
-        .map(ls -> new IRLet(
+        .map(ls -> new IRCompLet(
             (String) ls.get(1),
             (IRValue) ls.get(3),
             (IRComp) ls.get(5)));
 
-    public static final Parser<IRPush> irPush =
+    public static final Parser<IRCompPush> irPush =
         all(match("#push"),
             anyws,
             irValue,
             anyws,
             irComp)
-        .map(ls -> new IRPush(
+        .map(ls -> new IRCompPush(
             (IRValue) ls.get(2),
             (IRComp) ls.get(4)));
 
-    public static final Parser<IRCaseOfBranch> irCaseOfBranch =
+    public static final Parser<IRCompCaseOfBranch> irCaseOfBranch =
         intersperse(anyws,
             irValue,
             match("->"),
             irComp)
-        .map(ls -> new IRCaseOfBranch(
+        .map(ls -> new IRCompCaseOfBranch(
             (IRValue) ls.get(0),
             (IRComp) ls.get(2)
         ));
 
-    public static final Parser<IRCaseOf> irCaseOf =
+    public static final Parser<IRCompCaseOf> irCaseOf =
         intersperse(anyws,
             match("case"),
             irValue,
@@ -111,9 +107,9 @@ public class ParserIR {
                 any(irCaseOfBranch,
                     intersperse(anyws, match("("), irCaseOfBranch, match(")"))
                     .map(ls -> ls.get(1)))))
-        .map(ls -> new IRCaseOf(
+        .map(ls -> new IRCompCaseOf(
             (IRValue) ls.get(1),
-            (List<IRCaseOfBranch>) ls.get(3)));
+            (List<IRCompCaseOfBranch>) ls.get(3)));
 
     private static ParserState<IRValue> irValue(ParserState<?> s) {
         return any(
