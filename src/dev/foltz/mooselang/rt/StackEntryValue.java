@@ -2,10 +2,10 @@ package dev.foltz.mooselang.rt;
 
 import dev.foltz.mooselang.ir.nodes.value.IRValue;
 
-public class StackValue extends StackType {
+public class StackEntryValue extends StackEntry {
     public final IRValue value;
 
-    public StackValue(IRValue value) {
+    public StackEntryValue(IRValue value) {
         this.value = value;
     }
 

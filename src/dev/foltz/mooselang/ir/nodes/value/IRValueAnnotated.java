@@ -1,7 +1,7 @@
 package dev.foltz.mooselang.ir.nodes.value;
 
 import dev.foltz.mooselang.ir.VisitorIR;
-import dev.foltz.mooselang.ir.nodes.types.IRType;
+import dev.foltz.mooselang.ir.nodes.type.IRType;
 
 public class IRValueAnnotated extends IRValue {
     public final IRValue value;

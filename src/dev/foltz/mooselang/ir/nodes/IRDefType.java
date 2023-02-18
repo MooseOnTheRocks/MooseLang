@@ -1,15 +1,15 @@
 package dev.foltz.mooselang.ir.nodes;
 
 import dev.foltz.mooselang.ir.VisitorIR;
-import dev.foltz.mooselang.ir.nodes.value.IRValue;
+import dev.foltz.mooselang.ir.nodes.type.IRType;
 
-public class IRGlobalDef extends IRNode {
+public class IRDefType extends IRNode {
     public final String name;
-    public final IRValue value;
+    public final IRType type;
 
-    public IRGlobalDef(String name, IRValue value) {
+    public IRDefType(String name, IRType type) {
         this.name = name;
-        this.value = value;
+        this.type = type;
     }
 
     @Override
@@ -19,6 +19,6 @@ public class IRGlobalDef extends IRNode {
 
     @Override
     public String toString() {
-        return "IRGlobalDef(" + name + ", " + value + ")";
+        return "IRDefType(" + name + ", " + type + ")";
     }
 }

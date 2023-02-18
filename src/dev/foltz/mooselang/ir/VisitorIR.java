@@ -1,22 +1,33 @@
 package dev.foltz.mooselang.ir;
 
-import dev.foltz.mooselang.ir.nodes.IRGlobalDef;
+import dev.foltz.mooselang.ir.nodes.IRDefType;
+import dev.foltz.mooselang.ir.nodes.IRDefValue;
 import dev.foltz.mooselang.ir.nodes.IRModule;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.IRCompBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
-import dev.foltz.mooselang.ir.nodes.types.IRTypeName;
-import dev.foltz.mooselang.ir.nodes.types.IRTypeTuple;
+import dev.foltz.mooselang.ir.nodes.type.*;
+import dev.foltz.mooselang.ir.nodes.type.tag.IRTypeTagName;
+import dev.foltz.mooselang.ir.nodes.type.tag.IRTypeTagNumber;
 import dev.foltz.mooselang.ir.nodes.value.*;
 
 public abstract class VisitorIR<T> {
     // Top level structures
     public T visit(IRModule module) { return undefined(module); }
-    public T visit(IRGlobalDef globalDef) { return undefined(globalDef); }
+    public T visit(IRDefValue globalDef) { return undefined(globalDef); }
+    public T visit(IRDefType defType) { return undefined(defType); }
 
     // IR Types
+    public T visit(IRTypeUnit unit) { return undefined(unit); }
     public T visit(IRTypeName name) { return undefined(name); }
+    public T visit(IRTypeNumber number) { return undefined(number); }
+    public T visit(IRTypeString string) { return undefined(string); }
     public T visit(IRTypeTuple tuple) { return undefined(tuple); }
+    public T visit(IRTypeSum sum) { return undefined(sum); }
+
+    // Tags
+    public T visit(IRTypeTagNumber tag) { return undefined(tag); }
+    public T visit(IRTypeTagName tag) { return undefined(tag); }
 
     // IR Computations
     public T visit(IRCompBuiltin builtin) { return undefined(builtin); }
@@ -31,7 +42,8 @@ public abstract class VisitorIR<T> {
     public T visit(IRCompPush push) { return undefined(push); }
 
     // IR Values
-
+    public T visit(IRValueFunctionHandle handle) { return undefined(handle); }
+    public T visit(IRValueTagged tagged) { return undefined(tagged); }
     public T visit(IRValueAnnotated typed) { return undefined(typed); }
     public T visit(IRValueString string) { return undefined(string); }
     public T visit(IRValueThunk thunk) { return undefined(thunk); }

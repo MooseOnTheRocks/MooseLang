@@ -1,15 +1,15 @@
 package dev.foltz.mooselang.ir;
 
-import dev.foltz.mooselang.ir.nodes.IRGlobalDef;
+import dev.foltz.mooselang.ir.nodes.IRDefType;
+import dev.foltz.mooselang.ir.nodes.IRDefValue;
 import dev.foltz.mooselang.ir.nodes.IRModule;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.*;
-import dev.foltz.mooselang.ir.nodes.types.IRTypeName;
-import dev.foltz.mooselang.ir.nodes.types.IRTypeTuple;
+import dev.foltz.mooselang.ir.nodes.type.IRTypeName;
+import dev.foltz.mooselang.ir.nodes.type.IRTypeSum;
+import dev.foltz.mooselang.ir.nodes.type.IRTypeTuple;
 import dev.foltz.mooselang.ir.nodes.value.*;
-import dev.foltz.mooselang.typing.value.ValueNumber;
-import dev.foltz.mooselang.typing.value.ValueString;
-import dev.foltz.mooselang.typing.value.ValueUnit;
+import dev.foltz.mooselang.typing.value.*;
 
 import java.util.stream.Collectors;
 
@@ -74,23 +74,59 @@ public class PrettyPrintIR extends VisitorIR<String> {
     @Override
     public String visit(IRModule module) {
         var sb = new StringBuilder();
-        sb.append("\n-- Top Level Definitions\n\n");
-        for (var topDef : module.topLevelDefs) {
-            sb.append(pprint(topDef));
+        sb.append("-- Top Level Type Definitions\n\n");
+        for (var topTypeDefs : module.topLevelTypeDefs.entrySet()) {
+            sb.append("-- ");
+            sb.append(pprint(topTypeDefs.getKey()));
             sb.append("\n");
-            sb.append("\n");
+            for (var typeDef : topTypeDefs.getValue()) {
+                sb.append(pprint(typeDef));
+                sb.append("\n\n");
+            }
+            sb.append("\n\n");
         }
-        sb.append("\n-- Top Level Computations\n\n");
+        sb.append("-- Top Level Definitions\n\n");
+        for (var topDefs : module.topLevelDefs.entrySet()) {
+            sb.append("-- ");
+            sb.append(pprint(topDefs.getKey()));
+            sb.append("\n");
+            for (var def : topDefs.getValue()) {
+                sb.append(pprint(def));
+                sb.append("\n\n");
+            }
+            sb.append("\n\n");
+        }
+        sb.append("-- Top Level Computations\n\n");
         for (var topComp : module.topLevelComps) {
             sb.append(pprint(topComp));
-            sb.append("\n");
-            sb.append("\n");
+            sb.append("\n\n\n");
         }
         return sb.toString();
     }
 
     @Override
-    public String visit(IRGlobalDef globalDef) {
+    public String visit(IRTypeSum sum) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < sum.conNames.size(); i++) {
+            if (i > 0) {
+                sb.append("\n");
+                sb.append(getIndent());
+                sb.append("| ");
+            }
+            sb.append(sum.conNames.get(i));
+            sb.append(" ");
+            sb.append(sum.params.get(i).stream().map(t -> indent().pprint(t)).collect(Collectors.joining(" ")));
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public String visit(IRDefType defType) {
+        return "type " + defType.name + "\n" + getNextIndent() + "= " + indent().pprint(defType.type);
+    }
+
+    @Override
+    public String visit(IRDefValue globalDef) {
         return "def " + globalDef.name + " = " + indent().pprint(globalDef.value);
     }
 
@@ -114,14 +150,20 @@ public class PrettyPrintIR extends VisitorIR<String> {
         return "#produce " + pprint(produce.value);
     }
 
+    private String typeToString(TypeValue value) {
+        if (value instanceof ValueNumber) return "Number";
+        else if (value instanceof ValueString) return "String";
+        else if (value instanceof ValueUnit) return "()";
+        else if (value instanceof TypeValueNamed named) return named.name;
+        else if (value instanceof ValueTuple tuple)
+            return "(" + tuple.values.stream().map(this::typeToString).collect(Collectors.joining(", ")) + ")";
+        else throw new RuntimeException("Unknown type for conversion: " + value);
+    }
+
     @Override
     public String visit(IRCompLambda lambda) {
         var lambdaType = lambda.paramType;
-        var typeName = "";
-        if (lambdaType.equals(new ValueNumber())) typeName = "Number";
-        else if (lambdaType.equals(new ValueString())) typeName = "String";
-        else if (lambdaType.equals(new ValueUnit())) typeName = "Unit";
-        else throw new RuntimeException("Unknown type for lambda param: " + lambdaType);
+        var typeName = typeToString(lambdaType);
 
         return "(\\" + lambda.paramName + ": " + typeName + " ->\n" +
                 getNextIndent() + indent().pprint(lambda.body) + "\n" +

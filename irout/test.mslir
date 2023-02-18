@@ -1,7 +1,195 @@
+-- Top Level Type Definitions
+
+-- Animal
+type Animal
+    = Fish 
+    | Cow 
+    | Sheep 
+
+
+
+-- Color
+type Color
+    = Red 
+    | Green 
+    | Blue 
+
+
+
+-- Top Level Definitions
+
+-- f
+def f = #thunk (\y: Number ->
+        #produce #thunk (\x: Number ->
+            do (
+                #push x
+                #force +
+            ) = _app_10
+            in
+            #push y
+            #force _app_10
+        )
+    )
+
+
+
+-- describe
+def describe = #thunk (\desc: Color ->
+        #produce #thunk (\animal: Animal ->
+            do (
+                do (
+                    do (
+                        do (
+                            #push desc
+                            #force show
+                        ) = _app_0
+                        in
+                        #push _app_0
+                        #force +
+                    ) = _app_1
+                    in
+                    #push (" ") : String
+                    #force _app_1
+                ) = _app_2
+                in
+                #push _app_2
+                #force +
+            ) = _app_3
+            in
+            do (
+                #push animal
+                #force show
+            ) = _app_4
+            in
+            #push _app_4
+            #force _app_3
+        )
+    )
+
+def describe = #thunk (\desc: Number ->
+        #produce #thunk (\animal: Animal ->
+            do (
+                do (
+                    do (
+                        do (
+                            #push desc
+                            #force show
+                        ) = _app_5
+                        in
+                        #push _app_5
+                        #force +
+                    ) = _app_6
+                    in
+                    #push (" ") : String
+                    #force _app_6
+                ) = _app_7
+                in
+                #push _app_7
+                #force +
+            ) = _app_8
+            in
+            do (
+                #push animal
+                #force show
+            ) = _app_9
+            in
+            #push _app_9
+            #force _app_8
+        )
+    )
+
+
+
+-- show
+def show = #thunk (\c: Color ->
+        case c of (
+            Red -> #produce ("Red") : String
+            Green -> #produce ("Green") : String
+            Blue -> #produce ("Blue") : String
+        )
+    )
+
+def show = #thunk (\a: Animal ->
+        case a of (
+            Fish -> #produce ("Fish") : String
+            Cow -> #produce ("Cow") : String
+            Sheep -> #produce ("Sheep") : String
+        )
+    )
+
+def show = #thunk (\n: Number ->
+        case n of (
+            (1.0) : Number -> #produce ("One") : String
+            (2.0) : Number -> #produce ("Two") : String
+            (3.0) : Number -> #produce ("Three") : String
+            _ -> #produce ("An amount of") : String
+        )
+    )
+
+
+
+-- Top Level Computations
+
 do (
-    #push 9.0
-    #force -
-) = __app_0
+    #push (10.0) : Number
+    #force f
+) = _app_11
 in
-#push 1.0
-#force __app_0
+#push _app_11
+#force print
+
+
+do (
+    do (
+        #push (1.0) : Number
+        #force describe
+    ) = _app_12
+    in
+    #push Fish
+    #force _app_12
+) = _app_13
+in
+#push _app_13
+#force print
+
+
+do (
+    do (
+        #push (2.0) : Number
+        #force describe
+    ) = _app_14
+    in
+    #push Fish
+    #force _app_14
+) = _app_15
+in
+#push _app_15
+#force print
+
+
+do (
+    do (
+        #push Red
+        #force describe
+    ) = _app_16
+    in
+    #push Fish
+    #force _app_16
+) = _app_17
+in
+#push _app_17
+#force print
+
+
+do (
+    do (
+        #push Blue
+        #force describe
+    ) = _app_18
+    in
+    #push Fish
+    #force _app_18
+) = _app_19
+in
+#push _app_19
+#force print

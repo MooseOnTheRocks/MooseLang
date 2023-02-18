@@ -1,4 +1,4 @@
 package dev.foltz.mooselang.rt;
 
-public abstract class StackType {
+public abstract class StackEntry {
 }

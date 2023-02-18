@@ -3,10 +3,7 @@ package dev.foltz.mooselang.ir;
 import dev.foltz.mooselang.ir.nodes.comp.IRCompBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.IRCompLambda;
 import dev.foltz.mooselang.ir.nodes.comp.IRCompProduce;
-import dev.foltz.mooselang.ir.nodes.value.IRValueNumber;
-import dev.foltz.mooselang.ir.nodes.value.IRValueString;
-import dev.foltz.mooselang.ir.nodes.value.IRValueThunk;
-import dev.foltz.mooselang.ir.nodes.value.IRValueUnit;
+import dev.foltz.mooselang.ir.nodes.value.*;
 import dev.foltz.mooselang.typing.comp.CompProducer;
 import dev.foltz.mooselang.typing.value.*;
 
@@ -16,14 +13,19 @@ import java.util.Map;
 public class Builtins {
     public static final IRValueThunk PRINT;
     public static final IRValueThunk NUM2STR;
+    public static final IRValueThunk CONCAT;
     public static final IRValueThunk ADD;
     public static final IRValueThunk SUBTRACT;
     public static final IRValueThunk MULTIPLY;
 
+    private static IRValue unwrap(IRValue value) {
+        return value instanceof IRValueAnnotated annotated ? annotated.value : value;
+    }
+
     static {
         PRINT = curry(List.of("_print_0"), List.of(new ValueString()), new IRCompBuiltin("print", new CompProducer(new ValueUnit()),
             interp -> {
-                var value = interp.resolve(interp.find("_print_0"));
+                var value = unwrap(interp.resolve(interp.find("_print_0")));
                 var str = value.toString();
                 if (value instanceof IRValueString string) str = string.value;
                 else if (value instanceof IRValueNumber number) str = "" + number.value;
@@ -33,22 +35,27 @@ public class Builtins {
             }));
 
         NUM2STR = curry(List.of("_num2str_0"), List.of(new ValueNumber()), new IRCompBuiltin("num2str", new CompProducer(new ValueString()),
-                interp -> interp.find("_num2str_0") instanceof IRValueNumber number
+                interp -> unwrap(interp.find("_num2str_0")) instanceof IRValueNumber number
                         ? interp.withTerm(new IRCompProduce(new IRValueString("" + number.value)))
-                        : interp.error("")));
+                        : interp.error("num2str expects argument of String, received: " + interp.find("_num2str_0"))));
+
+        CONCAT = curry(List.of("_concat_0", "_concat_1"), List.of(new ValueString(), new ValueString()), new IRCompBuiltin("concat", new CompProducer(new ValueString()),
+                interp -> unwrap(interp.find("_concat_0")) instanceof IRValueString a && unwrap(interp.find("_concat_1")) instanceof IRValueString b
+                    ? interp.withTerm(new IRCompProduce(new IRValueString(a.value + b.value)))
+                    : interp.error("concat expects arguments of String, received: " + interp.find("_concat_0") + ", " + interp.find("_concat_1"))));
 
         ADD = curry(List.of("_add_0", "_add_1"), List.of(new ValueNumber(), new ValueNumber()), new IRCompBuiltin("add", new CompProducer(new ValueNumber()),
-                interp -> interp.find("_add_0") instanceof IRValueNumber a && interp.find("_add_1") instanceof IRValueNumber b
+                interp -> unwrap(interp.find("_add_0")) instanceof IRValueNumber a && unwrap(interp.find("_add_1")) instanceof IRValueNumber b
                         ? interp.withTerm(new IRCompProduce(new IRValueNumber(a.value + b.value)))
                         : interp.error("(+) expects arguments of Number, received: " + interp.find("_add_0") + " + " + interp.find("_add_1"))));
 
         SUBTRACT = curry(List.of("_subtract_0", "_subtract_1"), List.of(new ValueNumber(), new ValueNumber()), new IRCompBuiltin("subtract", new CompProducer(new ValueNumber()),
-                interp -> interp.find("_subtract_0") instanceof IRValueNumber a && interp.find("_subtract_1") instanceof IRValueNumber b
+                interp -> unwrap(interp.find("_subtract_0")) instanceof IRValueNumber a && unwrap(interp.find("_subtract_1")) instanceof IRValueNumber b
                         ? interp.withTerm(new IRCompProduce(new IRValueNumber(a.value + b.value)))
                         : interp.error("(-) expects arguments of Number, received: " + interp.find("_subtract_0") + " + " + interp.find("_subtract_1"))));
 
         MULTIPLY = curry(List.of("_multiply_0", "_multiply_1"), List.of(new ValueNumber(), new ValueNumber()), new IRCompBuiltin("multiply", new CompProducer(new ValueNumber()),
-                interp -> interp.find("_multiply_0") instanceof IRValueNumber a && interp.find("_multiply_1") instanceof IRValueNumber b
+                interp -> unwrap(interp.find("_multiply_0")) instanceof IRValueNumber a && unwrap(interp.find("_multiply_1")) instanceof IRValueNumber b
                         ? interp.withTerm(new IRCompProduce(new IRValueNumber(a.value + b.value)))
                         : interp.error("(*) expects arguments of Number, received: " + interp.find("_multiply_0") + " + " + interp.find("_multiply_1"))));
     }

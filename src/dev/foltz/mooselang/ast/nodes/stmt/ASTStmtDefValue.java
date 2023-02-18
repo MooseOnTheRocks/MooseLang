@@ -7,13 +7,13 @@ import dev.foltz.mooselang.ast.nodes.type.ASTType;
 
 import java.util.List;
 
-public class ASTStmtDef extends ASTStmt {
+public class ASTStmtDefValue extends ASTStmt {
     public final ASTExprName name;
     public final List<String> paramNames;
     public final List<ASTType> paramTypes;
     public final ASTExpr body;
 
-    public ASTStmtDef(ASTExprName name, List<String> paramNames, List<ASTType> paramTypes, ASTExpr body) {
+    public ASTStmtDefValue(ASTExprName name, List<String> paramNames, List<ASTType> paramTypes, ASTExpr body) {
         this.name = name;
         this.paramNames = paramNames;
         this.paramTypes = paramTypes;

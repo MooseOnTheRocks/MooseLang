@@ -3,15 +3,16 @@ package dev.foltz.mooselang.ir;
 import dev.foltz.mooselang.ast.VisitorAST;
 import dev.foltz.mooselang.ast.nodes.ASTNode;
 import dev.foltz.mooselang.ast.nodes.expr.*;
-import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtDef;
+import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtDefSumType;
+import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtDefValue;
 import dev.foltz.mooselang.ast.nodes.type.ASTType;
 import dev.foltz.mooselang.ast.nodes.type.ASTTypeName;
 import dev.foltz.mooselang.ast.nodes.type.ASTTypeTuple;
-import dev.foltz.mooselang.ir.nodes.IRGlobalDef;
+import dev.foltz.mooselang.ir.nodes.IRDefType;
+import dev.foltz.mooselang.ir.nodes.IRDefValue;
 import dev.foltz.mooselang.ir.nodes.IRNode;
 import dev.foltz.mooselang.ir.nodes.comp.*;
-import dev.foltz.mooselang.ir.nodes.types.IRTypeName;
-import dev.foltz.mooselang.ir.nodes.types.IRTypeTuple;
+import dev.foltz.mooselang.ir.nodes.type.*;
 import dev.foltz.mooselang.ir.nodes.value.*;
 import dev.foltz.mooselang.typing.value.*;
 
@@ -27,7 +28,8 @@ public class CompilerIR extends VisitorAST<IRNode> {
                 case "Number" -> new ValueNumber();
                 case "String" -> new ValueString();
                 case "()" -> new ValueUnit();
-                default -> throw new RuntimeException("getType of unknown type: " + name.name);
+                default -> new TypeValueNamed(name.name);
+//                default -> throw new RuntimeException("getType of unknown type: " + name.name);
             };
         }
         else if (type instanceof ASTTypeTuple tuple) {
@@ -36,7 +38,19 @@ public class CompilerIR extends VisitorAST<IRNode> {
         throw new RuntimeException("getType of unknown type: " + type);
     }
 
+    public IRType reifyType(TypeValue type) {
+        if (type instanceof ValueNumber) return new IRTypeNumber();
+        else if (type instanceof ValueString) return new IRTypeString();
+        else if (type instanceof ValueUnit) return new IRTypeUnit();
+        else if (type instanceof ValueTuple tuple) {
+            return new IRTypeTuple(tuple.values.stream().map(this::reifyType).toList());
+        }
+        else if (type instanceof TypeValueNamed named) return new IRTypeName(named.name);
+        throw new RuntimeException("reifyType of unknown type: " + type);
+    }
+
     public static IRNode compile(ASTNode node) {
+//        System.out.println("Compiling top level node: " + node);
         return new CompilerIR().compileNode(node);
     }
 
@@ -70,10 +84,31 @@ public class CompilerIR extends VisitorAST<IRNode> {
     }
 
     @Override
-    public IRNode visit(ASTStmtDef def) {
+    public IRNode visit(ASTStmtDefSumType def) {
+        var paramTypes = def.sumParams.stream().map(ts -> ts.stream().map(this::getType).map(this::reifyType).toList()).toList();
+        var sumType = new IRTypeSum(def.name.name, def.sumNames, paramTypes);
+        return new IRDefType(def.name.name, sumType);
+    }
+
+    @Override
+    public IRNode visit(ASTStmtDefValue def) {
         var body = compileNode(def.body);
-        if (body instanceof IRComp bodyComp) {
-            return new IRGlobalDef(def.name.name, curry(bodyComp, def.paramNames, def.paramTypes.stream().map(this::getType).toList()));
+        if (body instanceof IRCompLambda lambda && def.paramNames.size() > 0) {
+            return new IRDefValue(def.name.name, curry(new IRCompProduce(new IRValueThunk(lambda, Map.of())), def.paramNames, def.paramTypes.stream().map(this::getType).toList()));
+        }
+        else if (body instanceof IRComp bodyComp && def.paramNames.size() > 0) {
+            return new IRDefValue(def.name.name, curry(bodyComp, def.paramNames, def.paramTypes.stream().map(this::getType).toList()));
+        }
+        else if (body instanceof IRValue bodyValue) {
+            if (def.paramNames.size() > 0) {
+                return new IRDefValue(def.name.name, curry(new IRCompProduce(bodyValue), def.paramNames, def.paramTypes.stream().map(this::getType).toList()));
+            }
+            else {
+                return new IRDefValue(def.name.name, bodyValue);
+            }
+        }
+        else if (body instanceof IRCompLambda lambda) {
+            return new IRDefValue(def.name.name, new IRValueThunk(lambda, Map.of()));
         }
         return error("StmtDef expects body of computation.");
     }

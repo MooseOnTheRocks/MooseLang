@@ -2,11 +2,11 @@ package dev.foltz.mooselang.rt;
 
 import dev.foltz.mooselang.ir.nodes.comp.IRComp;
 
-public class StackFrame extends StackType {
+public class StackEntryFrame extends StackEntry {
     public final String name;
     public final IRComp body;
 
-    public StackFrame(String name, IRComp body) {
+    public StackEntryFrame(String name, IRComp body) {
         this.name = name;
         this.body = body;
     }

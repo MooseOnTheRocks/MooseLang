@@ -1,4 +1,4 @@
-package dev.foltz.mooselang.ir.nodes.types;
+package dev.foltz.mooselang.ir.nodes.type;
 
 import dev.foltz.mooselang.ir.VisitorIR;
 

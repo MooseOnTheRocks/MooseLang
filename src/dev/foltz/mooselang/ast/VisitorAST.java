@@ -1,16 +1,19 @@
 package dev.foltz.mooselang.ast;
 
 import dev.foltz.mooselang.ast.nodes.ASTNode;
-import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtDef;
+import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtDefSumType;
+import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtDefValue;
 import dev.foltz.mooselang.ast.nodes.stmt.ASTStmtLet;
 import dev.foltz.mooselang.ast.nodes.expr.*;
 import dev.foltz.mooselang.ast.nodes.type.ASTTypeName;
+import dev.foltz.mooselang.ast.nodes.type.ASTTypeSum;
 import dev.foltz.mooselang.ast.nodes.type.ASTTypeTuple;
 
 public abstract class VisitorAST<T> {
     // AST Types
     public T visit(ASTTypeName name) { return undefined(name); }
     public T visit(ASTTypeTuple tuple) { return undefined(tuple); }
+    public T visit(ASTTypeSum sum) { return undefined(sum); }
 
     // AST Expressions
     public T visit(ASTExprTypeAnnotated annotated) { return undefined(annotated); }
@@ -28,7 +31,8 @@ public abstract class VisitorAST<T> {
     public T visit(ASTExprTuple tuple) { return undefined(tuple); }
 
     // AST Statements
-    public T visit(ASTStmtDef def) { return undefined(def); }
+    public T visit(ASTStmtDefValue def) { return undefined(def); }
+    public T visit(ASTStmtDefSumType def) { return undefined(def); }
     public T visit(ASTStmtLet let) { return undefined(let); }
 
     public T undefined(ASTNode node) {

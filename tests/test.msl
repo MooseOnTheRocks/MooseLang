@@ -1,8 +1,34 @@
-pair x: Number y: Number = case (x, y) of
-    (0, 0): (Number, Number) -> "Double 0": String
-    (0, 1): (Number, Number) -> "Right 1": String
-    (1, 0): (Number, Number) -> "Left 1": String
-    (1, 1): (Number, Number) -> "Double 1": String
-    _ -> "Unsure": String
+type Color = Red | Green | Blue
+type Animal = Fish | Cow | Sheep
 
-pair 10 20
+show c: Color = case c of
+    Red -> "Red"
+    Green -> "Green"
+    Blue -> "Blue"
+
+show a: Animal = case a of
+    Fish -> "Fish"
+    Cow -> "Cow"
+    Sheep -> "Sheep"
+
+show n: Number = case n of
+    1 -> "One"
+    2 -> "Two"
+    3 -> "Three"
+    _ -> "An amount of"
+
+describe desc: Color animal: Animal =
+    show desc + " " + show animal
+
+describe desc: Number animal: Animal =
+    show desc + " " + show animal
+
+f y: Number = \x: Number -> x + y
+
+print (f 10)
+-- print (concat 10 20)
+
+print (describe 1 Fish)
+print (describe 2 Fish)
+print (describe Red Fish)
+print (describe Blue Fish)

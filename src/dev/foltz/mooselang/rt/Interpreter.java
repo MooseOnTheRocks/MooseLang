@@ -3,29 +3,34 @@ package dev.foltz.mooselang.rt;
 import dev.foltz.mooselang.ir.VisitorIR;
 import dev.foltz.mooselang.ir.nodes.comp.IRCompBuiltin;
 import dev.foltz.mooselang.ir.nodes.comp.*;
+import dev.foltz.mooselang.ir.nodes.type.IRType;
 import dev.foltz.mooselang.ir.nodes.value.*;
+import dev.foltz.mooselang.typing.TypeBase;
+import dev.foltz.mooselang.typing.value.*;
 
 import java.util.*;
 
 public class Interpreter extends VisitorIR<Interpreter> {
     public final IRComp term;
     public final Map<String, IRValue> context;
-    public final List<StackType> stack;
+    public final Map<String, IRType> definedTypes;
+    public final List<StackEntry> stack;
     public final boolean terminated;
 
-    public Interpreter(IRComp term, Map<String, IRValue> context, List<StackType> stack, boolean terminated) {
+    public Interpreter(IRComp term, Map<String, IRValue> context, List<StackEntry> stack, boolean terminated, Map<String, IRType> definedTypes) {
         this.term = term;
         this.context = Map.copyOf(context);
         this.stack = List.copyOf(stack);
         this.terminated = terminated;
+        this.definedTypes = Map.copyOf(definedTypes);
     }
 
     public Interpreter terminate() {
-        return new Interpreter(term, context, stack, true);
+        return new Interpreter(term, context, stack, true, Map.of());
     }
 
     public Interpreter withTerm(IRComp newTerm) {
-        return new Interpreter(newTerm, context, stack, terminated);
+        return new Interpreter(newTerm, context, stack, terminated, Map.of());
     }
 
     public Interpreter bind(String name, IRValue value) {
@@ -33,7 +38,7 @@ public class Interpreter extends VisitorIR<Interpreter> {
 //        System.out.println("bind " + name + " = " + value);
         var newContext = new HashMap<>(context);
         newContext.put(name, resolved);
-        return new Interpreter(term, newContext, stack, terminated);
+        return new Interpreter(term, newContext, stack, terminated, Map.of());
     }
 
     public Interpreter bindAll(Map<String, IRValue> bindings) {
@@ -51,18 +56,25 @@ public class Interpreter extends VisitorIR<Interpreter> {
         throw new RuntimeException("[Interpreter Error] Cannot find " + name + " in scope.");
     }
 
+    public IRType findType(String name) {
+        if (definedTypes.containsKey(name)) {
+            return definedTypes.get(name);
+        }
+        throw new RuntimeException("[Interpreter Error] Cannot find type " + name + " in scope.");
+    }
+
     public Interpreter push(IRValue value) {
 //        System.out.println("push " + value);
         var newStack = new ArrayList<>(stack);
-        newStack.add(new StackValue(resolve(value)));
-        return new Interpreter(term, context, newStack, terminated);
+        newStack.add(new StackEntryValue(resolve(value)));
+        return new Interpreter(term, context, newStack, terminated, Map.of());
     }
 
-    public Interpreter pushFrame(StackFrame frame) {
+    public Interpreter pushFrame(StackEntryFrame frame) {
 //        System.out.println("push " + frame);
         var newStack = new ArrayList<>(stack);
         newStack.add(frame);
-        return new Interpreter(term, context, newStack, terminated);
+        return new Interpreter(term, context, newStack, terminated, Map.of());
     }
 
     public Interpreter pop() {
@@ -72,10 +84,10 @@ public class Interpreter extends VisitorIR<Interpreter> {
 //        System.out.println("pop " + top());
         var newStack = new ArrayList<>(stack);
         newStack.remove(newStack.size() - 1);
-        return new Interpreter(term, context, newStack, terminated);
+        return new Interpreter(term, context, newStack, terminated, Map.of());
     }
 
-    public StackType top() {
+    public StackEntry top() {
         if (stack.isEmpty()) {
             return null;
         }
@@ -121,8 +133,16 @@ public class Interpreter extends VisitorIR<Interpreter> {
     }
 
     private boolean patternMatches(IRValue value, IRValue pattern) {
-        value = resolve(value);
-        if (pattern instanceof IRValueName) {
+//        System.out.println("VALUE = " + value);
+        value = unwrap(resolve(value));
+        pattern = unwrap(pattern);
+//        System.out.println("Unwrapped pattern: " + pattern);
+//        System.out.println("Resolved pattern: " + resolve(pattern));
+//        System.out.println("VALUE UNWRAPPED = " + value);
+        if (pattern instanceof IRValueName name) {
+            if (Character.isUpperCase(name.name.charAt(0))) {
+                return patternMatches(value, resolve(pattern));
+            }
             return true;
         }
         else if (value instanceof IRValueNumber valueNumber && pattern instanceof IRValueNumber patternNumber) {
@@ -133,6 +153,9 @@ public class Interpreter extends VisitorIR<Interpreter> {
         }
         else if (value instanceof IRValueUnit && pattern instanceof IRValueUnit) {
             return true;
+        }
+        else if (value instanceof IRValueTagged valueTagged && pattern instanceof IRValueTagged patternTagged) {
+            return valueTagged.type.equals(patternTagged.type) && valueTagged.tag.equals(patternTagged.tag);
         }
         else if (value instanceof IRValueTuple valueTuple && pattern instanceof IRValueTuple patternTuple) {
             if (valueTuple.values.size() != patternTuple.values.size()) {
@@ -153,7 +176,8 @@ public class Interpreter extends VisitorIR<Interpreter> {
     }
 
     private Interpreter bindPattern(IRValue value, IRValue pattern) {
-        value = resolve(value);
+        value = unwrap(resolve(value));
+        pattern = unwrap(pattern);
         if (pattern instanceof IRValueName name) {
             return bind(name.name, value);
         }
@@ -165,6 +189,14 @@ public class Interpreter extends VisitorIR<Interpreter> {
         }
         else if (value instanceof IRValueUnit && pattern instanceof IRValueUnit) {
             return this;
+        }
+        else if (value instanceof IRValueTagged valueTagged && pattern instanceof IRValueTagged patternTagged) {
+            if (valueTagged.type.equals(patternTagged.type) && valueTagged.tag.equals(patternTagged.tag)) {
+                return this;
+            }
+            else {
+                return error("Cannot match: " + valueTagged + " with " + patternTagged);
+            }
         }
         else if (value instanceof IRValueTuple valueTuple && pattern instanceof IRValueTuple patternTuple) {
             if (valueTuple.values.size() != patternTuple.values.size()) {
@@ -190,7 +222,7 @@ public class Interpreter extends VisitorIR<Interpreter> {
     public Interpreter visit(IRCompCaseOf caseOf) {
         // Find a matching branch, perform destructure-bindings, set term to matching body.
         // If no match (including no default branch), error.
-        var value = resolve(caseOf.value);
+        var value = unwrap(resolve(caseOf.value));
         for (var branch : caseOf.branches) {
             var pattern = branch.pattern;
             if (patternMatches(value, pattern)) {
@@ -215,7 +247,7 @@ public class Interpreter extends VisitorIR<Interpreter> {
         }
 
         var top = top();
-        if (top instanceof StackFrame stackFrame) {
+        if (top instanceof StackEntryFrame stackFrame) {
             return pop().bind(stackFrame.name, value).withTerm(stackFrame.body);
         }
         else if (top == null) {
@@ -226,13 +258,13 @@ public class Interpreter extends VisitorIR<Interpreter> {
 
     @Override
     public Interpreter visit(IRCompDo bind) {
-        return pushFrame(new StackFrame(bind.name, bind.body)).withTerm(bind.boundComp);
+        return pushFrame(new StackEntryFrame(bind.name, bind.body)).withTerm(bind.boundComp);
     }
 
     @Override
     public Interpreter visit(IRCompLambda lambda) {
         var top = top();
-        if (top instanceof StackValue stackValue) {
+        if (top instanceof StackEntryValue stackValue) {
             return pop().bind(lambda.paramName, stackValue.value).withTerm(lambda.body);
         }
         return error("Lambda expects Value, received: " + top);
@@ -248,11 +280,79 @@ public class Interpreter extends VisitorIR<Interpreter> {
         return bind(bind.name, resolve(bind.value)).withTerm(bind.body);
     }
 
+    public boolean typesMatch(IRValue a, TypeBase b) {
+        // TODO: Fix IRValueFunctionHandle to combine the lambda parameter paths.
+        // I.e., with multiple parameters, if e.g. the first two parameters have the same type,
+        // then the entry for that function name should be another IRValueFunctionHandle.
+        // This way, force-chains will unroll appropriately based on applied values.
+        // Type checking before-hand should eliminate ambiguous paths.
+        a = resolve(a);
+        if (a instanceof IRValueAnnotated annotated) {
+            return typesMatch(annotated.value, b);
+        }
+        else if (a instanceof IRValueNumber && b instanceof ValueNumber) {
+            return true;
+        }
+        else if (a instanceof IRValueString && b instanceof ValueString) {
+            return true;
+        }
+        else if (a instanceof IRValueUnit && b instanceof ValueUnit) {
+            return true;
+        }
+        else if (a instanceof IRValueTagged tagged && b instanceof TypeValueNamed named) {
+            return tagged.type.typeName.equals(named.name);
+        }
+        else if (a instanceof IRValueTuple at && b instanceof ValueTuple bt) {
+            if (at.values.size() != bt.values.size()) {
+                return false;
+            }
+            for (int i = 0; i < at.values.size(); i++) {
+                if (!typesMatch(at.values.get(i), bt.values.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    private IRValue unwrap(IRValue value) {
+        if (value instanceof IRValueTuple tuple) {
+            return new IRValueTuple(tuple.values.stream().map(this::unwrap).toList());
+        }
+        else if (value instanceof IRValueAnnotated annotated) {
+            return unwrap(annotated.value);
+        }
+        return value;
+//        return value instanceof IRValueAnnotated annotated ? unwrap(annotated.value) : value;
+    }
+
     @Override
     public Interpreter visit(IRCompForce force) {
         var mthunk = resolve(force.thunk);
         if (mthunk instanceof IRValueThunk thunk) {
             return bindAll(thunk.closure).withTerm(thunk.comp);
+        }
+        else if (mthunk instanceof IRValueFunctionHandle handle) {
+            if (top() instanceof StackEntryValue entry) {
+                var value = unwrap(entry.value);
+//                System.out.println("Top = " + value);
+                // Select (at-runtime) appropriate definition.
+                // TODO: Make IRGlobalDef hold more utility information about itself.
+                for (var def : handle.defs) {
+//                    System.out.println("Looking at def: " + def);
+                    if (def.value instanceof IRValueThunk defThunk && defThunk.comp instanceof IRCompLambda defLambda) {
+                        var paramType = defLambda.paramType;
+//                        System.out.println("Matching: " + value + " with " + paramType);
+                        if (typesMatch(value, paramType)) {
+                            return bindAll(defThunk.closure).withTerm(defLambda);
+                        }
+                    }
+                }
+                return error("Unable to dispatch function " + handle.name + " on " + mthunk + " top = " + entry);
+            }
         }
         return error("Force expects Thunk, received: " + mthunk);
     }
